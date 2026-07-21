@@ -7,7 +7,7 @@ import { crazyGamesService } from './services/crazyGamesService';
 // Inicializar SDK da CrazyGames
 crazyGamesService.init().catch(err => console.error("Falha ao inicializar SDK CrazyGames:", err));
 
-// Safe global monkeypatch for requestPointerLock to handle "Target Element removed from DOM" errors gracefully
+// Safe global monkeypatch for requestPointerLock to handle security/DOM restrictions gracefully
 if (typeof Element !== 'undefined' && Element.prototype.requestPointerLock) {
   const originalRequestPointerLock = Element.prototype.requestPointerLock;
   Element.prototype.requestPointerLock = function (options?: any) {
@@ -19,31 +19,21 @@ if (typeof Element !== 'undefined' && Element.prototype.requestPointerLock) {
       const result = originalRequestPointerLock.call(this, options);
       if (result instanceof Promise) {
         return result.catch((err: any) => {
-          const errMsg = err?.message || '';
-          if (errMsg.includes("removed from DOM") || errMsg.includes("pointer lock") || err?.name === "DOMException") {
-            console.warn("Caught pointer lock promise rejection (element removed or request denied):", err);
-            return;
-          }
-          throw err;
+          console.warn("Caught pointer lock promise rejection:", err);
+          return;
         });
       }
       return result;
     } catch (err: any) {
-      const errMsg = err?.message || '';
-      if (errMsg.includes("removed from DOM") || errMsg.includes("pointer lock")) {
-        console.warn("Caught synchronous requestPointerLock error:", err);
-        return;
-      }
-      throw err;
+      console.warn("Caught synchronous requestPointerLock error:", err);
+      return Promise.resolve();
     }
   };
 }
 
 const renderApp = () => {
   createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
+    <App />
   );
 };
 

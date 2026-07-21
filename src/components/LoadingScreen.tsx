@@ -1,22 +1,29 @@
 import { useProgress } from "@react-three/drei";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
 export function LoadingScreen({ onProgress, forceExit = false, onExited }: { onProgress?: (p: number) => void, forceExit?: boolean, onExited?: () => void }) {
   const { progress, active } = useProgress();
   const [shouldExit, setShouldExit] = useState(false);
+  const onExitedRef = useRef(onExited);
+  const onProgressRef = useRef(onProgress);
+
+  useEffect(() => {
+    onExitedRef.current = onExited;
+    onProgressRef.current = onProgress;
+  }, [onExited, onProgress]);
   
   useEffect(() => {
-    if (onProgress) onProgress(progress);
+    if (onProgressRef.current) onProgressRef.current(progress);
     if (!active && progress === 100) {
       // Small delay to ensure everything is initialized
       const timer = setTimeout(() => {
         setShouldExit(true);
-        if (onExited) onExited();
-      }, 800);
+        if (onExitedRef.current) onExitedRef.current();
+      }, 600);
       return () => clearTimeout(timer);
     }
-  }, [progress, active, onProgress, onExited]);
+  }, [progress, active]);
 
   return (
     <AnimatePresence>

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Paintbrush } from "lucide-react";
+import { Language } from "../../translations";
+import { skinTranslations } from "../../dataTranslations";
 import { SKINS_DATA } from "../../data";
 
 interface ColorSelectorProps {
@@ -10,6 +12,8 @@ interface ColorSelectorProps {
   handleSelectColor: (colorObj: typeof SKINS_DATA[0]) => void;
   playSound: (type: string, isMuted: boolean) => void;
   isMuted: boolean;
+  language: Language;
+  t: any;
 }
 
 export function ColorSelector({
@@ -18,12 +22,18 @@ export function ColorSelector({
   setIsColorPanelOpen,
   handleSelectColor,
   playSound,
-  isMuted
+  isMuted,
+  language,
+  t
 }: ColorSelectorProps) {
   const [hoveredColorName, setHoveredColorName] = useState<string | null>(null);
 
+  const getSkinName = (skinId: string) => {
+    return skinTranslations[language]?.[skinId]?.name || SKINS_DATA.find(s => s.id === skinId)?.name || skinId;
+  };
+
   return (
-    <div className="absolute right-8 bottom-6 z-20 flex items-center justify-end gap-3">
+    <div className="relative flex items-center justify-end gap-3">
       <AnimatePresence initial={false}>
         {isColorPanelOpen && (
           <motion.div
@@ -36,7 +46,7 @@ export function ColorSelector({
             {/* Active/Hovered sci-fi color name indicator */}
             <div className="flex flex-col items-end gap-2">
               <span className="text-[9px] font-mono tracking-widest text-orange-400 uppercase bg-black/80 px-2.5 py-1 rounded-md border border-white/10 shadow-lg select-none backdrop-blur-md">
-                {hoveredColorName || selectedColor.name}
+                {hoveredColorName || getSkinName(selectedColor.id)}
               </span>
             </div>
 
@@ -44,11 +54,12 @@ export function ColorSelector({
             <div className="flex items-center gap-2.5 bg-black/60 backdrop-blur-xl border border-white/10 p-2.5 rounded-full shadow-2xl max-w-lg overflow-x-auto scrollbar-none shrink-0">
               {SKINS_DATA.map((colorObj) => {
                 const isActive = colorObj.id === selectedColor.id;
+                const skinName = getSkinName(colorObj.id);
                 return (
                   <button
                     key={colorObj.id}
                     onClick={() => handleSelectColor(colorObj)}
-                    onMouseEnter={() => setHoveredColorName(colorObj.name)}
+                    onMouseEnter={() => setHoveredColorName(skinName)}
                     onMouseLeave={() => setHoveredColorName(null)}
                     className={`
                       w-7 h-7 rounded-full transition-all duration-300 relative flex items-center justify-center cursor-pointer hover:scale-115 active:scale-90 border shrink-0
@@ -58,7 +69,7 @@ export function ColorSelector({
                       backgroundColor: colorObj.colorHex,
                       boxShadow: isActive ? `0 0 14px ${colorObj.colorHex}88, inset 0 0 4px rgba(255,255,255,0.4)` : 'none'
                     }}
-                    title={colorObj.name}
+                    title={skinName}
                   >
                     {isActive && (
                       <div className="w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
@@ -80,7 +91,7 @@ export function ColorSelector({
           w-14 h-14 rounded-full bg-black/50 hover:bg-black/75 border transition-all duration-500 flex items-center justify-center cursor-pointer pointer-events-auto backdrop-blur-md active:scale-95 shadow-2xl relative group shrink-0
           ${isColorPanelOpen ? 'border-orange-500/80 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'border-white/10 hover:border-orange-500/50'}
         `}
-        title={isColorPanelOpen ? "Fechar seleção de cores" : "Abrir seleção de cores"}
+        title={isColorPanelOpen ? t.closeSelection : t.openSelection}
       >
         <div className="relative">
           <Paintbrush className={`w-5 h-5 transition-transform duration-500 ${isColorPanelOpen ? 'text-orange-500 rotate-12 scale-110' : 'text-white/80 group-hover:text-orange-400 group-hover:-rotate-12'}`} />

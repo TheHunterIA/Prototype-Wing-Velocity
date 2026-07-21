@@ -8,11 +8,25 @@ export interface TrackRecord {
   shipId: string;
 }
 
+export interface ShipBoostPoints {
+  velocidade: number;
+  aceleracao: number;
+  turbo: number;
+  energia: number;
+  massa: number;
+}
+
+export interface ShipBoost {
+  points: ShipBoostPoints;
+  expiration: number;
+}
+
 export interface PlayerData {
   xp: number;
   level: number;
   trackRecords: Record<string, TrackRecord>;
   temporaryLicenses: Record<string, number>; // shipId -> expiration timestamp
+  shipBoosts?: Record<string, ShipBoost>; // shipId -> active boost
   totalRaces: number;
 }
 
@@ -218,6 +232,37 @@ export const playerService = {
       return tempLicenseExpiration - Date.now();
     }
     return 0;
+  },
+
+  getShipBoost(shipId: string): ShipBoostPoints | null {
+    if (!this.data.shipBoosts) return null;
+    const boost = this.data.shipBoosts[shipId];
+    if (boost && boost.expiration > Date.now()) {
+      return boost.points;
+    }
+    return null;
+  },
+
+  getShipBoostTimeLeft(shipId: string): number {
+    if (!this.data.shipBoosts) return 0;
+    const boost = this.data.shipBoosts[shipId];
+    if (boost && boost.expiration > Date.now()) {
+      return boost.expiration - Date.now();
+    }
+    return 0;
+  },
+
+  setShipBoost(shipId: string, points: ShipBoostPoints, durationMinutes = 15) {
+    if (!this.data.shipBoosts) {
+      this.data.shipBoosts = {};
+    }
+    const expiration = Date.now() + durationMinutes * 60 * 1000;
+    this.data.shipBoosts[shipId] = {
+      points,
+      expiration
+    };
+    this.save();
+    return expiration;
   }
 };
 

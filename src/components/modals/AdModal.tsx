@@ -52,9 +52,9 @@ export function AdModal({
             </p>
           </div>
           <p className="text-xs text-zinc-400 leading-relaxed">
-            Esta é uma autorização temporária concedida pelo programa de testes para que você experimente tecnologias ainda não liberadas.
+            {t.adAuthDesc}
             <br /><br />
-            Assista ao vídeo para validar sua <span className="text-white font-bold">{t.temporaryLicense} (15 Minutos)</span>.
+            {t.watchAdDesc} <span className="text-white font-bold">{t.temporaryLicense} (15 Minutos)</span>.
           </p>
           <div className="flex flex-col gap-3 w-full mt-2">
             <SciFiButton
@@ -64,7 +64,7 @@ export function AdModal({
               className="w-full py-4 rounded-xl text-[10px] tracking-[0.2em] group"
             >
               {isAdShowing ? (
-                <span className="animate-pulse">Sintonizando...</span>
+                <span className="animate-pulse">{t.tuning}</span>
               ) : (
                 <>
                   <Play className="w-3 h-3 fill-black group-hover:scale-125 transition-transform duration-500" />
@@ -74,8 +74,8 @@ export function AdModal({
             </SciFiButton>
             
             <div className="flex justify-between items-center px-1">
-              <span className="text-[8px] font-mono text-zinc-600 uppercase">Validade: 15 Minutos</span>
-              <span className="text-[8px] font-mono text-zinc-600 uppercase italic">Autorização Temporária</span>
+              <span className="text-[8px] font-mono text-zinc-600 uppercase">{t.validity15Min}</span>
+              <span className="text-[8px] font-mono text-zinc-600 uppercase italic">{t.temporaryLicense}</span>
             </div>
             
             <SciFiButton
@@ -84,7 +84,7 @@ export function AdModal({
               disabled={isAdShowing}
               className="w-full py-3 rounded-xl text-[9px] tracking-widest text-zinc-500 hover:text-white"
             >
-              Cancelar
+              {t.cancel}
             </SciFiButton>
           </div>
         </div>

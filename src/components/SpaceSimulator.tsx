@@ -1,6 +1,6 @@
 import { Suspense, useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { Environment, Html, useGLTF, useTexture, useProgress, Billboard, PointerLockControls } from "@react-three/drei";
+import { Environment, Html, useGLTF, useTexture, useProgress, Billboard } from "@react-three/drei";
 import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocessing";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as THREE from "three";
@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   Volume2, 
   VolumeX, 
-  Zap, 
+  Wrench, 
   ShieldAlert, 
   RotateCcw, 
   ArrowLeft, 
@@ -1343,7 +1343,7 @@ function PilotShipView({
         });
       }
     });
-    const box = new THREE.Box3().setFromObject(clone); const center = new THREE.Vector3(); box.getCenter(center); clone.position.sub(center);
+    const box = new THREE.Box3().setFromObject(clone); const center = new THREE.Vector3(); box.getCenter(center); clone.children.forEach((child) => { child.position.sub(center); });
     return clone;
   }, [scene, texture, pbrMaps, currentShip.id]);
 
@@ -1599,7 +1599,7 @@ function RenderNeonRings({ ringsRef, shipRef }: { ringsRef: React.MutableRefObje
 }
 
 interface ExplosionState { id: string; position: THREE.Vector3; particles: { pos: THREE.Vector3; vel: THREE.Vector3; scale: number; color: string; }[]; life: number; }
-interface KeysPressed { w: boolean; s: boolean; a: boolean; d: boolean; ArrowUp: boolean; ArrowDown: boolean; ArrowLeft: boolean; ArrowRight: boolean; Shift: boolean; e: boolean; }
+interface KeysPressed { w: boolean; s: boolean; a: boolean; d: boolean; ArrowUp: boolean; ArrowDown: boolean; ArrowLeft: boolean; ArrowRight: boolean; Shift: boolean; e: boolean; ' ': boolean; }
 interface SpaceSimulatorProps { 
   currentShip: ShipData; 
   selectedColor: any; 
@@ -1630,9 +1630,9 @@ function ShipThrusters({ currentShip, selectedColor, keysRef, abilityActive, vel
   useFrame((state, delta) => {
     if (!groupRef.current || !keysRef.current) return;
     
-    const isBoost = keysRef.current.w || keysRef.current.ArrowUp || keysRef.current.Shift || keysRef.current.e || abilityActive;
+    const isBoost = keysRef.current[' '] || keysRef.current.ArrowUp || keysRef.current.Shift || keysRef.current.e || abilityActive;
     const speed = Math.max(0, velocityRef.current || 0);
-    const isBraking = keysRef.current.s || keysRef.current.ArrowDown;
+    const isBraking = keysRef.current.ArrowDown;
     
     const baseFlameSize = Math.max(0.4, speed / 200.0);
     const targetScaleZ = isBoost ? 1.8 : (isBraking ? 0 : Math.min(1.4, baseFlameSize));
@@ -1702,7 +1702,7 @@ function ShipCrosshair({ selectedColor }: { selectedColor: any }) {
   );
 }
 
-export default function SpaceSimulator({ currentShip, selectedColor, isMuted, onExit, selectedRoute, graphicsQuality, setGraphicsQuality, language, onHangarStateChange }: SpaceSimulatorProps) {
+const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor, isMuted, onExit, selectedRoute, graphicsQuality, setGraphicsQuality, language, onHangarStateChange }: SpaceSimulatorProps) {
   const t = translations[language || "pt"];
   const scoreRef = useRef(0);
   const shieldRef = useRef(100);
@@ -1839,9 +1839,12 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
   const [loadingScreenActive, setLoadingScreenActive] = useState(true);
   const [takeoffStarted, setTakeoffStarted] = useState(false);
   const [takeoffPercent, setTakeoffPercent] = useState(0);
+  const takeoffPercentRef = useRef(0);
+  const takeoffBarRef = useRef<HTMLDivElement>(null);
+  const takeoffOverlayRef = useRef<HTMLDivElement>(null);
   const takeoffProgressRef = useRef(0); const shipRef = useRef<THREE.Group>(null); const containerRef = useRef<HTMLDivElement>(null);
   const multiplierRef = useRef(1);
-  const keysRef = useRef<KeysPressed>({ w: false, s: false, a: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, Shift: false, e: false });
+  const keysRef = useRef<KeysPressed>({ w: false, s: false, a: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, Shift: false, e: false, ' ': false });
   const pointerRef = useRef({ x: 0, y: 0 }); const shakeRef = useRef(0);
   const explosionsRef = useRef<ExplosionState[]>([]);
   const customRouteDataRef = useRef({
@@ -2187,23 +2190,31 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase(); 
-      if (['w', 'arrowup'].includes(k)) keysRef.current.w = true; 
-      if (['s', 'arrowdown'].includes(k)) keysRef.current.s = true; 
-      if (['a', 'arrowleft'].includes(k)) keysRef.current.a = true; 
-      if (['d', 'arrowright'].includes(k)) keysRef.current.d = true; 
-      if (e.key === "Shift") { 
-        keysRef.current.Shift = true; 
-      }
+      if (k === 'w') keysRef.current.w = true; 
+      if (k === 's') keysRef.current.s = true; 
+      if (k === 'a') keysRef.current.a = true; 
+      if (k === 'd') keysRef.current.d = true; 
+      if (e.key === 'ArrowUp') keysRef.current.ArrowUp = true; 
+      if (e.key === 'ArrowDown') keysRef.current.ArrowDown = true; 
+      if (e.key === 'ArrowLeft') keysRef.current.ArrowLeft = true; 
+      if (e.key === 'ArrowRight') keysRef.current.ArrowRight = true; 
+      if (e.key === "Shift") keysRef.current.Shift = true; 
       if (k === "e") keysRef.current.e = true;
+      if (e.key === ' ' || k === ' ') keysRef.current[' '] = true;
     };
     const up = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase(); 
-      if (['w', 'arrowup'].includes(k)) keysRef.current.w = false; 
-      if (['s', 'arrowdown'].includes(k)) keysRef.current.s = false; 
-      if (['a', 'arrowleft'].includes(k)) keysRef.current.a = false; 
-      if (['d', 'arrowright'].includes(k)) keysRef.current.d = false; 
+      if (k === 'w') keysRef.current.w = false; 
+      if (k === 's') keysRef.current.s = false; 
+      if (k === 'a') keysRef.current.a = false; 
+      if (k === 'd') keysRef.current.d = false; 
+      if (e.key === 'ArrowUp') keysRef.current.ArrowUp = false; 
+      if (e.key === 'ArrowDown') keysRef.current.ArrowDown = false; 
+      if (e.key === 'ArrowLeft') keysRef.current.ArrowLeft = false; 
+      if (e.key === 'ArrowRight') keysRef.current.ArrowRight = false; 
       if (e.key === "Shift") keysRef.current.Shift = false;
       if (k === "e") keysRef.current.e = false;
+      if (e.key === ' ' || k === ' ') keysRef.current[' '] = false;
     };
     const move = (e: MouseEvent) => { 
       if (document.pointerLockElement) {
@@ -2215,8 +2226,13 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
         // Limitar o "joystick virtual" para evitar giros infinitos sem fim
         pointerRef.current.x = Math.max(-1.5, Math.min(1.5, pointerRef.current.x));
         pointerRef.current.y = Math.max(-1.5, Math.min(1.5, pointerRef.current.y));
+      } else if (!isHangarActive && !isGameOver && !isVictory) {
+        // Quando o mouse ainda não está travado em pointer lock, permite controlar a nave movendo o cursor pela tela
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        pointerRef.current.x = Math.max(-1.5, Math.min(1.5, ((e.clientX - centerX) / centerX) * 1.5));
+        pointerRef.current.y = Math.max(-1.5, Math.min(1.5, -((e.clientY - centerY) / centerY) * 1.5));
       } else {
-        // Quando o mouse não está travado, garantimos que a nave não receba novos inputs de direção
         pointerRef.current.x = 0;
         pointerRef.current.y = 0;
       }
@@ -2340,6 +2356,13 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
         shakeRef.current = 3.5; // Dramatic camera shake on warp breakthrough
         playSimSound("warp", localMuted);
         crazyGamesService.gameplayStart();
+
+        // Tentar travar o ponteiro do mouse automaticamente ao entrar em modo de voo
+        setTimeout(() => {
+          if (containerRef.current && !document.pointerLockElement) {
+            containerRef.current.requestPointerLock();
+          }
+        }, 150);
       }, 3200); // Perfeitamente sincronizado com o zoom da tela de decolagem
       return () => clearTimeout(timer);
     }
@@ -2377,6 +2400,15 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
     <div 
       ref={containerRef} 
       tabIndex={0} 
+      onClick={(e) => {
+        // Ativar o controle de mouse oculto (pointer lock) ao clicar no simulador durante o voo
+        const target = e.target as HTMLElement;
+        if (!target.closest('button') && !target.closest('.pointer-events-auto') && !isHangarActive && !isGameOver && !isVictory) {
+          if (containerRef.current && !document.pointerLockElement) {
+            containerRef.current.requestPointerLock();
+          }
+        }
+      }}
       className="absolute inset-0 z-40 bg-black text-white flex flex-col justify-between overflow-hidden select-none font-sans outline-none focus:outline-none"
     >
       {loadingScreenActive && (
@@ -2404,10 +2436,10 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
             </div>
             
             <h3 className="text-xl font-display font-black text-white uppercase tracking-[0.2em] mb-2">
-              Sintonizando Transmissão...
+              {t.tuningTransmission}
             </h3>
             <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest max-w-[250px]">
-              Assista ao vídeo para dobrar seus ganhos de XP e subir de nível mais rápido!
+              {t.watchAdDoubleXp}
             </p>
             
             {/* Simulation Progress Bar */}
@@ -2421,13 +2453,13 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
             </div>
             
             <span className="text-[10px] font-mono text-zinc-600 mt-4 uppercase animate-pulse">
-              Recompensa disponível em breve
+              {t.rewardAvailableSoon}
             </span>
 
             {!crazyGamesService.isEnabled() && (
               <div className="absolute bottom-10 px-4 py-2 bg-white/5 border border-white/10 rounded-full">
                 <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-widest italic">
-                  Ambiente de Produção: Simulação Ativada
+                  {t.simulationActive}
                 </span>
               </div>
             )}
@@ -2438,7 +2470,6 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
 
       <div className="absolute inset-0 z-0">
         <Canvas camera={{ position: [0, 6, 26], fov: 45, far: 200000 }}>
-          <PointerLockControls enabled={!isHangarActive && !isGameOver} />
           <PerformanceController graphicsQuality={graphicsQuality} setGraphicsQuality={setGraphicsQuality} />
           <DynamicFOV velocityRef={velocityRef} />
           <SpeedParticles velocityRef={velocityRef} shipRef={shipRef} />
@@ -2576,7 +2607,7 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
                 </div>
                 <div className="flex justify-between w-full text-[10px] font-mono font-bold tracking-wider uppercase">
                   <span className={`${takeoffPercent >= 80 ? 'text-orange-500 animate-pulse' : 'text-zinc-400'}`}>
-                    {takeoffPercent >= 80 ? "🔥 LIGANDO MOTORES" : "⚡ PREPARANDO PROPULSORES"}
+                    {takeoffPercent >= 80 ? t.startingEngines : t.preparingThrusters}
                   </span>
                   <span className="text-orange-400">{Math.round(takeoffPercent)}%</span>
                 </div>
@@ -2652,7 +2683,7 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
             />
 
             {/* Desktop Control Info Panel (positioned on the right side of the screen) */}
-            <div className="flex absolute bottom-6 right-6 z-10 pointer-events-none flex-col gap-1.5 bg-black/60 backdrop-blur-md p-3 rounded-lg border border-white/5 w-[200px] font-mono select-none shadow-2xl">
+            <div className="flex absolute bottom-6 right-6 z-10 pointer-events-none flex-col gap-1.5 bg-black/60 backdrop-blur-md p-3 rounded-lg border border-white/5 w-[210px] font-mono select-none shadow-2xl">
               <div className="flex items-center justify-between border-b border-white/10 pb-1 text-[8px] tracking-wider text-zinc-400">
                 <span className="font-bold flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
@@ -2661,24 +2692,24 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
                 <span className="text-[7px] text-zinc-600">MANUAL</span>
               </div>
               <div className="flex items-center justify-between text-[8px] text-zinc-400 mt-1">
-                <span className="px-1 py-0.5 bg-white/10 rounded text-white/70 font-bold border border-white/5">ESC</span>
-                <span className="text-zinc-500 text-right uppercase">{t.unlockMouse}</span>
+                <span className="px-1 py-0.5 bg-white/10 rounded text-white/70 font-bold border border-white/5">MOUSE / WASD</span>
+                <span className="text-zinc-500 text-right uppercase">{t.driveShip}</span>
               </div>
               <div className="flex items-center justify-between text-[8px] text-zinc-400">
-                <span className="px-1 py-0.5 bg-white/10 rounded text-white/70 font-bold border border-white/5">MOUSE</span>
-                <span className="text-zinc-500 text-right uppercase">{t.yawPitch}</span>
-              </div>
-              <div className="flex items-center justify-between text-[8px] text-zinc-400">
-                <span className="px-1 py-0.5 bg-white/10 rounded text-white/70 font-bold border border-white/5">W / SHIFT</span>
+                <span className="px-1 py-0.5 bg-white/10 rounded text-white/70 font-bold border border-white/5">ESPAÇO / ↑</span>
                 <span className="text-zinc-500 text-right uppercase">{t.turbo}</span>
               </div>
               <div className="flex items-center justify-between text-[8px] text-zinc-400">
-                <span className="px-1 py-0.5 bg-white/10 rounded text-white/70 font-bold border border-white/5">S</span>
+                <span className="px-1 py-0.5 bg-white/10 rounded text-white/70 font-bold border border-white/5">← / →</span>
+                <span className="text-zinc-500 text-right uppercase">{t.roll}</span>
+              </div>
+              <div className="flex items-center justify-between text-[8px] text-zinc-400">
+                <span className="px-1 py-0.5 bg-white/10 rounded text-white/70 font-bold border border-white/5">↓</span>
                 <span className="text-zinc-500 text-right uppercase">{t.brake}</span>
               </div>
               <div className="flex items-center justify-between text-[8px] text-zinc-400">
-                <span className="px-1 py-0.5 bg-white/10 rounded text-white/70 font-bold border border-white/5">A / D</span>
-                <span className="text-zinc-500 text-right uppercase">{t.roll}</span>
+                <span className="px-1 py-0.5 bg-white/10 rounded text-white/70 font-bold border border-white/5">ESC</span>
+                <span className="text-zinc-500 text-right uppercase">{t.unlockMouse}</span>
               </div>
             </div>
           </motion.div>
@@ -2750,7 +2781,7 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
                 <span className="text-white font-bold">{currentShip.name}</span>
               </div>
               <div className="flex justify-between items-center py-0.5 border-t border-white/5 pt-3">
-                <span className="text-zinc-500 uppercase text-[10px] tracking-wider">XP COLETADO:</span>
+                <span className="text-zinc-500 uppercase text-[10px] tracking-wider">{t.xpCollected}:</span>
                 <span className="text-orange-400 font-bold">+{xpGained} XP</span>
               </div>
             </div>
@@ -2838,19 +2869,19 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
                 <span className="text-white font-bold">{currentShip.name}</span>
               </div>
               <div className="flex justify-between items-center py-1 border-t border-white/5">
-                <span className="text-zinc-500 uppercase text-[10px] tracking-wider">SEU TEMPO:</span>
+                <span className="text-zinc-500 uppercase text-[10px] tracking-wider">{t.yourTime}:</span>
                 <span className="text-amber-400 font-bold text-sm">{(finalTimeRef.current || 0).toFixed(3)}s</span>
               </div>
               {leaderboardInfo && (
                 <div className="flex justify-between items-center py-1 border-t border-white/5">
-                  <span className="text-zinc-500 uppercase text-[10px] tracking-wider">RECORD:</span>
+                  <span className="text-zinc-500 uppercase text-[10px] tracking-wider">{t.record}:</span>
                   <span className={`${leaderboardInfo.isNewRecord ? 'text-emerald-400' : 'text-zinc-400'} font-bold`}>
-                    {leaderboardInfo.isNewRecord ? 'NOVO RECORDE!' : `${leaderboardInfo.bestTime.toFixed(3)}s`}
+                    {leaderboardInfo.isNewRecord ? t.newRecord : `${leaderboardInfo.bestTime.toFixed(3)}s`}
                   </span>
                 </div>
               )}
               <div className="flex justify-between items-center py-1 border-t border-white/5">
-                <span className="text-zinc-500 uppercase text-[10px] tracking-wider">XP GANHO:</span>
+                <span className="text-zinc-500 uppercase text-[10px] tracking-wider">{t.xpGained}:</span>
                 <span className="text-emerald-400 font-bold">+{xpGained} XP</span>
               </div>
               <div className="flex justify-between items-center py-1 border-t border-white/5">
@@ -2862,9 +2893,9 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
             {/* Pilot Level Progress */}
             <div className="w-full flex flex-col gap-2 mt-2" style={{ transform: "translateZ(30px)" }}>
               <div className="flex justify-between items-center text-[10px] font-mono uppercase tracking-widest">
-                <span className="text-zinc-400">Nível Piloto {playerService.data.level}</span>
+                <span className="text-zinc-400">{t.pilotLevel} {playerService.data.level}</span>
                 {levelUpInfo?.levelUp && (
-                  <span className="text-orange-400 font-bold animate-bounce">LEVEL UP!</span>
+                  <span className="text-orange-400 font-bold animate-bounce">{t.levelUp}</span>
                 )}
                 <span className="text-zinc-500">{Math.round(playerService.getLevelProgress())}%</span>
               </div>
@@ -2878,7 +2909,7 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
               </div>
               {playerService.data.level < 10 && (
                 <span className="text-[8px] font-mono text-zinc-600 text-right uppercase">
-                  {playerService.getXpToNextLevel()} XP para o próximo nível
+                  {playerService.getXpToNextLevel()} {t.xpToNextLevel}
                 </span>
               )}
             </div>
@@ -2902,7 +2933,7 @@ export default function SpaceSimulator({ currentShip, selectedColor, isMuted, on
       )}
     </div>
   );
-}
+});
 
 function SpeedParticles({ velocityRef, shipRef }: { velocityRef: React.MutableRefObject<number>, shipRef: React.RefObject<THREE.Group> }) {
   const pointsRef = useRef<THREE.Points>(null); 
@@ -3201,7 +3232,22 @@ function TelemetryHUD({
       activeRing: "ARO ATIVO",
       distance: "DISTÂNCIA",
       totalTime: "TEMPO DE TRAJETO",
-      sector: "SETOR"
+      sector: "SETOR",
+      tutorial: "TUTORIAL",
+      ringAlignment: "ALINHAMENTO COM ANÉIS",
+      outOfTrack: "FORA DA TRILHA",
+      aligned: "ALINHADO",
+      shockwaveAbsorbed: "ONDA SOLAR ABSORVIDA POR ASTEROIDE ✓",
+      shockwaveDevastating: "ONDA SOLAR DEVASTADORA! VELOCIDADE REDUZIDA",
+      shockwaveTimerWarning: "SOMBREIE EM UM ASTEROIDE",
+      attractionCritical: "CAMPO DE ATRAÇÃO CRÍTICO: ACELERAÇÃO MÁXIMA!",
+      thrustersFrozen: "PROPULSORES MANOBRA CONGELADOS",
+      slowControl: "CONTROLE LENTO",
+      reversePolarity: "⚡ POLARIDADE REVERSA",
+      invertedControls: "CONTROLES DE MANOBRA INVERTIDOS!",
+      laserBarrier: "🚨 BARRIÈRE LASER EN COURS ! ESQUIVEZ !",
+      o2ReserveCritical: "🔴 RESERVA DE O2 CRÍTICA",
+      rechargeThroughRings: "ATRAVÉS DE AROS RECARREGA"
     },
     en: {
       sectorStatus: "SECTOR STATUS",
@@ -3225,26 +3271,41 @@ function TelemetryHUD({
       automatedLaser: "AUTOMATED LASER",
       laserActive: "🚨 LASER ACTIVE",
       securePortal: "SECURE PORTAL",
-      oxygenFuel: "O2 FUEL LEVEL",
-      criticalAnomaly: "CRITICAL ENV ANOMALY",
-      criticalWarning: "CRITICAL WARNING EVENT",
+      oxygenFuel: "O2 FUEL",
+      criticalAnomaly: "CRITICAL ENVIRONMENTAL ANOMALY",
+      criticalWarning: "CRITICAL EVENT WARNING",
       skillMultiplier: "MULTIPLIER",
       nextRing: "NEXT RING",
       activeRing: "ACTIVE RING",
       distance: "DISTANCE",
-      totalTime: "TOTAL TIME",
-      sector: "SECTOR"
+      totalTime: "TRAJECTORY TIME",
+      sector: "SECTOR",
+      tutorial: "TUTORIAL",
+      ringAlignment: "RING ALIGNMENT",
+      outOfTrack: "OUT OF TRACK",
+      aligned: "ALIGNED",
+      shockwaveAbsorbed: "SOLAR SHOCKWAVE ABSORBED BY ASTEROID ✓",
+      shockwaveDevastating: "DEVASTATING SOLAR SHOCKWAVE! SPEED REDUCED",
+      shockwaveTimerWarning: "SHADE BEHIND AN ASTEROID",
+      attractionCritical: "CRITICAL ATTRACTION FIELD: MAXIMUM ACCELERATION!",
+      thrustersFrozen: "MANEUVER THRUSTERS FROZEN",
+      slowControl: "SLOW CONTROL",
+      reversePolarity: "⚡ REVERSE POLARITY",
+      invertedControls: "MANEUVER CONTROLS INVERTED!",
+      laserBarrier: "🚨 LASER BARRIER IN PROGRESS! DODGE!",
+      o2ReserveCritical: "🔴 O2 RESERVE CRITICAL",
+      rechargeThroughRings: "RECHARGE THROUGH RINGS"
     },
     es: {
       sectorStatus: "ESTADO DEL SECTOR",
       stable: "ESTABLE",
-      engineTemp: "TEMP. MOTOR",
+      engineTemp: "TEMP. MOTORES",
       iceFriction: "FRICCIÓN DE HIELO",
       outOfLine: "🔴 ¡FUERA DE LÍNEA!",
       excellent: "🟢 EXCELENTE",
-      solarShockwave: "ONDA SOLAR",
+      solarShockwave: "ONDA DE CHOQUE SOLAR",
       waveIn: "ONDA EN: ",
-      gravityWell: "POZO GRAVEDAD G",
+      gravityWell: "POZO DE GRAVEDAD",
       vacuumDraft: "DRAFT DE VACÍO",
       enteringDraft: "🔥 ENTRANDO EN DRAFT",
       seekingLine: "BUSCANDO LÍNEA",
@@ -3261,43 +3322,73 @@ function TelemetryHUD({
       criticalAnomaly: "ANOMALÍA AMBIENTAL CRÍTICA",
       criticalWarning: "AVISO DE EVENTO CRÍTICO",
       skillMultiplier: "MULTIPLICADOR",
-      nextRing: "PRÓX. ANILLO",
-      activeRing: "ANILLO ACTIVO",
+      nextRing: "PRÓX. ARO",
+      activeRing: "ARO ATIVO",
       distance: "DISTANCIA",
-      totalTime: "TIEMPO TOTAL",
-      sector: "SECTOR"
+      totalTime: "TIEMPO DE TRAYECTO",
+      sector: "SECTOR",
+      tutorial: "TUTORIAL",
+      ringAlignment: "ALINEACIÓN CON ANILLOS",
+      outOfTrack: "FUERA DE LA PISTA",
+      aligned: "ALINEADO",
+      shockwaveAbsorbed: "ONDA SOLAR ABSORBIDA POR ASTEROIDE ✓",
+      shockwaveDevastating: "¡ONDA SOLAR DEVASTADORA! VELOCIDAD REDUCIDA",
+      shockwaveTimerWarning: "SOMBREE EN UN ASTEROIDE",
+      attractionCritical: "¡CAMPO DE ATRACCIÓN CRÍTICO: ACELERACIÓN MÁXIMA!",
+      thrustersFrozen: "PROPULSORES DE MANIOBRA CONGELADOS",
+      slowControl: "CONTROL LENTO",
+      reversePolarity: "⚡ POLARIDAD INVERSA",
+      invertedControls: "¡CONTROLES DE MANIOBRA INVERTIDOS!",
+      laserBarrier: "🚨 ¡BARRERA LÁSER EN CURSO! ¡ESQUIVA!",
+      o2ReserveCritical: "🔴 RESERVA DE O2 CRÍTICA",
+      rechargeThroughRings: "RECARGA A TRAVÉS DE LOS AROS"
     },
     fr: {
       sectorStatus: "ÉTAT DU SECTEUR",
       stable: "STABLE",
-      engineTemp: "TEMP. MOTEUR",
+      engineTemp: "TEMP. MOTEURS",
       iceFriction: "FRICTION DE GLACE",
       outOfLine: "🔴 HORS LIGNE !",
       excellent: "🟢 EXCELLENT",
-      solarShockwave: "ONDE SOLAIRE",
+      solarShockwave: "ONDE DE CHOC SOLAIRE",
       waveIn: "ONDE DANS : ",
-      gravityWell: "PUITS GRAVITÉ G",
-      vacuumDraft: "ASPIRATION VIDE",
-      enteringDraft: "🔥 ASPIRATION ACTIVE",
-      seekingLine: "RECHERCHE LIGNE",
+      gravityWell: "PUITS DE GRAVITÉ",
+      vacuumDraft: "ASPIRATION DE VIDE",
+      enteringDraft: "🔥 ENTRÉE EN ASPIRATION",
+      seekingLine: "RECHERCHE DE LIGNE",
       iceAccumulated: "GLACE ACCUMULÉE",
       empDischarge: "DÉCHARGE EMP",
       reversal: "⚡ INVERSION !",
       normal: "NORMAL",
       finished: "TERMINÉ",
       routeComplete: "ROUTE COMPLÈTE ✓",
-      automatedLaser: "LASER AUTOMATIQUE",
+      automatedLaser: "LASER AUTOMATISÉ",
       laserActive: "🚨 LASER ACTIF",
       securePortal: "PORTAIL SÉCURISÉ",
       oxygenFuel: "CARBURANT O2",
-      criticalAnomaly: "ANOMALIE ENV. CRITIQUE",
-      criticalWarning: "ALERTE ÉVÈNEMENT CRITIQUE",
+      criticalAnomaly: "ANOMALIE ENVIRONNEMENTALE CRITIQUE",
+      criticalWarning: "AVERTISSEMENT D'ÉVÉNEMENT CRITIQUE",
       skillMultiplier: "MULTIPLICATEUR",
-      nextRing: "PROCH. ANNEAU",
+      nextRing: "PROCHAIN ANNEAU",
       activeRing: "ANNEAU ACTIF",
       distance: "DISTANCE",
-      totalTime: "TEMPS TOTAL",
-      sector: "SECTEUR"
+      totalTime: "TEMPS DE TRAJET",
+      sector: "SECTEUR",
+      tutorial: "TUTORIEL",
+      ringAlignment: "ALIGNEMENT DES ANNEAUX",
+      outOfTrack: "HORS PISTE",
+      aligned: "ALIGNÉ",
+      shockwaveAbsorbed: "ONDE SOLAIRE ABSORBÉE PAR L'ASTÉROÏDE ✓",
+      shockwaveDevastating: "ONDE SOLAIRE DÉVASTATRICE ! VITESSE RÉDUITE",
+      shockwaveTimerWarning: "METTEZ-VOUS À L'OMBRE D'UN ASTÉROÏDE",
+      attractionCritical: "CHAMP D'ATTRACTION CRITIQUE : ACCÉLÉRATION MAXIMALE !",
+      thrustersFrozen: "PROPULSEURS DE MANOEUVRE GELÉS",
+      slowControl: "CONTRÔLE LENT",
+      reversePolarity: "⚡ INVERSION DE POLARITÉ",
+      invertedControls: "COMMANDES DE MANOEUVRE INVERSÉES !",
+      laserBarrier: "🚨 BARRIÈRE LASER EN COURS ! ESQUIVEZ !",
+      o2ReserveCritical: "🔴 RÉSERVE D'O2 CRITIQUE",
+      rechargeThroughRings: "RECHARGEZ VIA LES ANNEAUX"
     }
   };
 
@@ -3652,14 +3743,33 @@ function TelemetryHUD({
           if (data.warningActive && data.warningText) {
             // Tradução simples para o warningText dinâmico se necessário
             let translatedWarning = data.warningText;
-            if (data.warningText.includes("FORA DA LINHA") || data.warningText.includes("OUT OF LINE")) {
+            const w = data.warningText;
+            if (w.includes("FORA DA LINHA") || w.includes("OUT OF LINE")) {
               translatedWarning = currEnv.outOfLine;
-            } else if (data.warningText.includes("SUPERNOVA EM") || data.warningText.includes("SUPERNOVA IN")) {
+            } else if (w.includes("SUPERNOVA EM") || w.includes("SUPERNOVA IN")) {
               translatedWarning = `${currEnv.solarShockwave} - ${data.shockwaveTimer.toFixed(1)}s`;
-            } else if (data.warningText.includes("REVERSÃO") || data.warningText.includes("REVERSAL")) {
-              translatedWarning = currEnv.reversal;
-            } else if (data.warningText.includes("LASER")) {
+            } else if (w.includes("REVERSÃO") || w.includes("REVERSAL") || w.includes("POLARIDADE REVERSA")) {
+              translatedWarning = currEnv.invertedControls;
+            } else if (w.includes("LASER")) {
               translatedWarning = currEnv.laserActive;
+            } else if (w.includes("TEMPERATURA DOS MOTORES CRÍTICA")) {
+              translatedWarning = `${currEnv.engineTemp} CRÍTICA!`;
+            } else if (w.includes("FORA DA TRILHA DE POEIRA")) {
+              translatedWarning = currEnv.outOfTrack;
+            } else if (w.includes("ONDA SOLAR ABSORVIDA")) {
+              translatedWarning = currEnv.shockwaveAbsorbed;
+            } else if (w.includes("ONDA SOLAR DEVASTADORA")) {
+              translatedWarning = currEnv.shockwaveDevastating;
+            } else if (w.includes("SOMBREIE EM UM ASTEROIDE")) {
+              translatedWarning = currEnv.shockwaveTimerWarning;
+            } else if (w.includes("CAMPO DE ATRAÇÃO CRÍTICO")) {
+              translatedWarning = currEnv.attractionCritical;
+            } else if (w.includes("PROPULSORES MANOBRA CONGELADOS")) {
+              translatedWarning = `${currEnv.thrustersFrozen} (${Math.round(data.ice)}%): ${currEnv.slowControl}`;
+            } else if (w.includes("BARREIRA DE LASER EM CURSO")) {
+              translatedWarning = currEnv.laserBarrier;
+            } else if (w.includes("RESERVA DE O2 CRÍTICA")) {
+              translatedWarning = `${currEnv.o2ReserveCritical}: ${Math.round(data.fuel)}%! ${currEnv.rechargeThroughRings}`;
             }
             dangerText.innerText = translatedWarning;
             dangerAlert.classList.remove("opacity-0", "scale-95", "translate-y-[-10px]");
@@ -3748,7 +3858,7 @@ function TelemetryHUD({
           {/* Instrução contextual de auxílio visual caso o pointer lock não esteja ativo */}
           {!document.pointerLockElement && (
             <span className="text-[8px] font-bold font-mono tracking-widest text-zinc-500 uppercase mt-3 animate-pulse">
-              Controle de Mouse Ativo (Mova para Girar)
+              {t.mouseControlActive}
             </span>
           )}
         </div>
@@ -3857,6 +3967,7 @@ function TelemetryHUD({
   );
 }
 
+
 function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHangarActive, takeoffProgressRef, pointerRef, keysRef, scoreRef, multiplierRef, planets, asteroids, satellites, abilityActive, setAbilityActive, energyRef, currentShip, createExplosion, localMuted, shieldRef, armorRef, setIsGameOver, setIsVictory, trafficShips, shakeRef, explosionsRef, selectedColor, countdown, stats, neonRingsRef, selectedRoute, customRouteDataRef, asteroidsChangedRef, flightVectorRef }: any) {
   const cameraOffset = useRef(new THREE.Vector3(0, 2.5, 15));
   const collisionCooldownRef = useRef(0);
@@ -3896,13 +4007,20 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
     const ship = shipRef.current; if (!ship) return; const dt = Math.min(delta, 0.1);
     
     // Atualizar som do motor e turbo (Web Audio API)
-    audioService.updateEngine(velocityRef.current, keysRef.current[' '], localMuted);
+    audioService.updateEngine(velocityRef.current, keysRef.current[' '] || keysRef.current.ArrowUp, localMuted);
 
     // Amortecimento dinâmico: os controles retornam suavemente ao centro quando não há input ativo
     // Sempre aplicamos damping para evitar que a nave fique girando eternamente se o pointer lock cair
     const damping = Math.exp(-dt * 2.8); 
     pointerRef.current.x *= damping;
     pointerRef.current.y *= damping;
+
+    // WASD steering support (same function as mouse)
+    const kbRate = 3.5 * dt;
+    if (keysRef.current.w) pointerRef.current.y = Math.min(1.5, pointerRef.current.y + kbRate);
+    if (keysRef.current.s) pointerRef.current.y = Math.max(-1.5, pointerRef.current.y - kbRate);
+    if (keysRef.current.a) pointerRef.current.x = Math.max(-1.5, pointerRef.current.x - kbRate);
+    if (keysRef.current.d) pointerRef.current.x = Math.min(1.5, pointerRef.current.x + kbRate);
     
     // Zona morta mínima para evitar micro-oscilações
     if (Math.abs(pointerRef.current.x) < 0.001) pointerRef.current.x = 0;
@@ -3952,7 +4070,7 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
       const drainPerSecond = 100.0 / drainTimeSeconds;
       const rechargePerSecond = 100.0 / rechargeTimeSeconds;
       
-      const isAttemptingBoost = keysRef.current.w || keysRef.current.ArrowUp || keysRef.current.Shift || keysRef.current.e;
+      const isAttemptingBoost = keysRef.current[' '] || keysRef.current.ArrowUp || keysRef.current.Shift || keysRef.current.e;
       
       // Para iniciar o turbo, é necessário pelo menos 20% de energia para prevenir oscilação rápida em 0%
       const canStartBoost = !abilityActive && energyRef.current >= 20;
@@ -3962,7 +4080,7 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
         if (!abilityActive) {
           setAbilityActive(true);
           playSimSound("ability", localMuted);
-          if (currentShip.id === "nave-jogador") {
+          if (currentShip.id === "sparrow-01") {
             playSimSound("warp", localMuted);
           }
         }
@@ -4310,7 +4428,7 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
     // Dynamic camera distance based on speed - smoothly pulls back when boosting instead of lagging
     const currentSpeed = velocityRef.current;
     const speedFactor = Math.max(0, Math.min(1.0, currentSpeed / currentMaxSpeed));
-    const isBoost = keysRef.current.w || keysRef.current.ArrowUp || keysRef.current.Shift || keysRef.current.e || abilityActive;
+    const isBoost = keysRef.current[' '] || keysRef.current.ArrowUp || keysRef.current.Shift || keysRef.current.e || abilityActive;
     
     // Câmera posicionada ainda mais distante para enfatizar a escala e velocidade
     const targetSpaceZ = isBoost ? 60.0 : 40.0 + (speedFactor * 10.0);
@@ -4345,7 +4463,21 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
     state.camera.lookAt(hangarLookAt.lerp(spaceLookAt, transitionFactor));
 
     if (shakeRef.current > 0.01) { state.camera.position.x += (Math.random() - 0.5) * shakeRef.current; state.camera.position.y += (Math.random() - 0.5) * shakeRef.current; shakeRef.current = THREE.MathUtils.lerp(shakeRef.current, 0, dt * 6); }
-    for (let i = explosionsRef.current.length - 1; i >= 0; i--) { const e = explosionsRef.current[i]; e.life -= dt * 1.8; if (e.life <= 0) { explosionsRef.current.splice(i, 1); continue; } e.particles.forEach(p => p.pos.add(p.vel.clone().multiplyScalar(dt))); }
+    for (let i = explosionsRef.current.length - 1; i >= 0; i--) {
+      const e = explosionsRef.current[i];
+      e.life -= dt * 1.8;
+      if (e.life <= 0) {
+        explosionsRef.current.splice(i, 1);
+        continue;
+      }
+      for (let j = 0; j < e.particles.length; j++) {
+        const p = e.particles[j];
+        // Optimized: Use scratchpad vector to update position without cloning
+        v_temp1.current.copy(p.vel).multiplyScalar(dt);
+        p.pos.add(v_temp1.current);
+      }
+    }
   });
   return null;
 }
+export default SpaceSimulator;

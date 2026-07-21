@@ -2,6 +2,27 @@ import { audioService } from "./audioService";
 
 export type AdType = 'midroll' | 'rewarded';
 
+export type CrazyGamesUserInfo = {
+  username?: string;
+  userId?: string;
+  avatar?: string;
+  displayName?: string;
+};
+
+const DEBUG = (import.meta as any).env?.DEV ?? true;
+
+function logDebug(...args: any[]) {
+  if (DEBUG) console.log(...args);
+}
+
+function warnDebug(...args: any[]) {
+  if (DEBUG) console.warn(...args);
+}
+
+function errorDebug(...args: any[]) {
+  if (DEBUG) console.error(...args);
+}
+
 export class CrazyGamesService {
   private get sdk() {
     if (typeof window !== 'undefined') {
@@ -13,7 +34,7 @@ export class CrazyGamesService {
   public isEnabled(): boolean {
     if (typeof window === 'undefined') return false;
     try {
-      const sdk = (window as any).CrazyGames?.SDK;
+      const sdk = this.sdk;
       if (!sdk) return false;
       
       const env = sdk.environment;
@@ -41,32 +62,32 @@ export class CrazyGamesService {
   public async init(): Promise<void> {
     if (typeof window === 'undefined') return;
     if (this.hasInitialized) {
-      console.log('[CrazyGames] SDK already initialized');
+      logDebug('[CrazyGames] SDK already initialized');
       return;
     }
     try {
-      const sdk = (window as any).CrazyGames?.SDK;
+      const sdk = this.sdk;
       if (sdk && typeof sdk.init === 'function') {
         if (sdk.environment === 'disabled') {
-          console.log('[CrazyGames] SDK is disabled on this domain. Skipping init.');
+          logDebug('[CrazyGames] SDK is disabled on this domain. Skipping init.');
           return;
         }
-        console.log('[CrazyGames] Calling sdk.init()...');
+        logDebug('[CrazyGames] Calling sdk.init()...');
         await sdk.init();
         this.hasInitialized = true;
-        console.log('[CrazyGames] SDK Initialized successfully');
+        logDebug('[CrazyGames] SDK Initialized successfully');
       } else {
-        console.log('[CrazyGames] SDK or sdk.init() not found. sdk:', !!sdk, 'sdk.init:', typeof sdk?.init);
+        logDebug('[CrazyGames] SDK or sdk.init() not found. sdk:', !!sdk, 'sdk.init:', typeof sdk?.init);
       }
     } catch (e) {
-      console.error('[CrazyGames] SDK Init failed', e);
+      errorDebug('[CrazyGames] SDK Init failed', e);
     }
   }
 
   public loadingStart() {
     if (!this.isEnabled() || !this.hasInitialized) return;
     try {
-      const sdk = (window as any).CrazyGames?.SDK;
+      const sdk = this.sdk;
       if (sdk?.game && typeof sdk.game.loadingStart === 'function') {
         sdk.game.loadingStart();
       }
@@ -76,7 +97,7 @@ export class CrazyGamesService {
   public loadingStop() {
     if (!this.isEnabled() || !this.hasInitialized) return;
     try {
-      const sdk = (window as any).CrazyGames?.SDK;
+      const sdk = this.sdk;
       if (sdk?.game && typeof sdk.game.loadingStop === 'function') {
         sdk.game.loadingStop();
       }
@@ -86,10 +107,10 @@ export class CrazyGamesService {
   public gameplayStart() {
     if (!this.isEnabled() || !this.hasInitialized) return;
     try {
-      const sdk = (window as any).CrazyGames?.SDK;
+      const sdk = this.sdk;
       if (sdk?.game && typeof sdk.game.gameplayStart === 'function') {
         sdk.game.gameplayStart();
-        console.log('[CrazyGames] Gameplay started');
+        logDebug('[CrazyGames] Gameplay started');
       }
     } catch (e) {}
   }
@@ -97,10 +118,10 @@ export class CrazyGamesService {
   public gameplayStop() {
     if (!this.isEnabled() || !this.hasInitialized) return;
     try {
-      const sdk = (window as any).CrazyGames?.SDK;
+      const sdk = this.sdk;
       if (sdk?.game && typeof sdk.game.gameplayStop === 'function') {
         sdk.game.gameplayStop();
-        console.log('[CrazyGames] Gameplay stopped');
+        logDebug('[CrazyGames] Gameplay stopped');
       }
     } catch (e) {}
   }
@@ -117,32 +138,50 @@ export class CrazyGamesService {
       this.lastMidrollTime = now;
     }
     try {
-      const sdk = (window as any).CrazyGames?.SDK;
+      const sdk = this.sdk;
       const adInterface = sdk?.ad;
       if (!adInterface || typeof adInterface.requestAd !== 'function') {
         return true;
       }
       return new Promise((resolve) => {
         audioService.setAdMute(true);
+        let resolved = false;
+        const safeResolve = (val: boolean) => {
+          if (resolved) return;
+          resolved = true;
+          audioService.setAdMute(false);
+          if (typeof window !== 'undefined') window.focus();
+          resolve(val);
+        };
+
+        const timer = setTimeout(() => {
+          warnDebug('[CrazyGames] Ad request timeout (8s). Continuing gameplay...');
+          safeResolve(true);
+        }, 8000);
+
         try {
           adInterface.requestAd(type, {
-            adStarted: () => console.log('[CrazyGames] Ad started'),
+            adStarted: () => logDebug('[CrazyGames] Ad started'),
             adFinished: () => {
-              console.log('[CrazyGames] Ad finished');
-              audioService.setAdMute(false);
-              if (typeof window !== 'undefined') window.focus();
-              resolve(true);
+              logDebug('[CrazyGames] Ad finished');
+              clearTimeout(timer);
+              safeResolve(true);
             },
             adError: (error: any) => {
-              console.warn('[CrazyGames] Ad error', error);
-              audioService.setAdMute(false);
-              if (typeof window !== 'undefined') window.focus();
-              resolve(false);
+              warnDebug('[CrazyGames] Ad error', error);
+              clearTimeout(timer);
+              // Se for erro de No Fill ou erro genérico de anúncio, não bloqueamos o jogador
+              const errStr = String(error?.message || error || '').toLowerCase();
+              if (errStr.includes('no fill') || errStr.includes('nofill') || errStr.includes('fill') || type === 'midroll') {
+                safeResolve(true);
+              } else {
+                safeResolve(true); // Resolve true em caso de falha de exibição de anúncio para não travar o jogador
+              }
             }
           });
         } catch (e) {
-          audioService.setAdMute(false);
-          resolve(false);
+          clearTimeout(timer);
+          safeResolve(true);
         }
       });
     } catch (e) {
@@ -150,26 +189,37 @@ export class CrazyGamesService {
     }
   }
 
+  public async requestRewardedAd(): Promise<boolean> {
+    return this.requestAd('rewarded');
+  }
+
   public happyTime() {
     if (!this.isEnabled() || !this.hasInitialized) return;
     try {
-      const sdk = (window as any).CrazyGames?.SDK;
+      const sdk = this.sdk;
       if (sdk?.game && typeof sdk.game.happyTime === 'function') {
         sdk.game.happyTime();
       }
     } catch (e) {}
   }
 
-  public async getUserInfo(): Promise<{ username: string } | null> {
+  public async getUserInfo(): Promise<CrazyGamesUserInfo | null> {
     try {
       if (!this.isEnabled() || !this.hasInitialized) return null;
-      const sdk = (window as any).CrazyGames?.SDK;
+      const sdk = this.sdk;
       const userInterface = sdk?.user;
       if (!userInterface) return null;
 
       if (typeof userInterface.getUser === 'function') {
         const user = await userInterface.getUser();
-        if (user && user.username) return { username: user.username };
+        if (user) {
+          return {
+            username: user.username,
+            userId: user.userId || user.id,
+            avatar: user.avatar || user.profilePictureUrl || user.avatarUrl,
+            displayName: user.displayName || user.username
+          };
+        }
       }
       return null;
     } catch (e) {
@@ -180,7 +230,7 @@ export class CrazyGamesService {
   public async showAuthPrompt(): Promise<void> {
     if (!this.isEnabled() || !this.hasInitialized) return;
     try {
-      const sdk = (window as any).CrazyGames?.SDK;
+      const sdk = this.sdk;
       if (sdk?.user && typeof sdk.user.showAuthPrompt === 'function') {
         await sdk.user.showAuthPrompt();
       }
@@ -190,7 +240,7 @@ export class CrazyGamesService {
   public addAuthListener(callback: (user: any) => void): () => void {
     if (!this.isEnabled() || !this.hasInitialized) return () => {};
     try {
-      const sdk = (window as any).CrazyGames?.SDK;
+      const sdk = this.sdk;
       if (sdk?.user && typeof sdk.user.addAuthListener === 'function') {
         sdk.user.addAuthListener(callback);
         return () => {
@@ -203,61 +253,29 @@ export class CrazyGamesService {
     return () => {};
   }
 
-  // Ad Support
-  public async requestRewardedAd(): Promise<boolean> {
-    return new Promise((resolve) => {
-      if (this.isEnabled()) {
-        const sdk = (window as any).CrazyGames?.SDK;
-        if (sdk?.ad?.requestAd) {
-          sdk.ad.requestAd('rewarded', {
-            adStarted: () => {
-              console.log('[CrazyGames] Rewarded ad started');
-            },
-            adFinished: () => {
-              console.log('[CrazyGames] Rewarded ad finished');
-              resolve(true);
-            },
-            adError: (error: any) => {
-              console.warn('[CrazyGames] Ad error:', error);
-              resolve(false);
-            }
-          });
-          return;
-        }
-      }
-      
-      // Simulation for Production Environment
-      console.log('[Simulation] Starting simulated rewarded ad...');
-      // We will handle the UI for this in the component level or via a global state
-      // For now, let's return true after a simulated delay handled by the caller
-      // or just assume the UI will trigger this.
-      resolve(true);
-    });
-  }
-
   // Leaderboard Support
   public async submitScore(leaderboardId: string, score: number): Promise<void> {
     if (!this.isEnabled() || !this.hasInitialized) return;
     try {
-      const sdk = (window as any).CrazyGames?.SDK;
+      const sdk = this.sdk;
       if (sdk?.leaderboard && typeof sdk.leaderboard.setScore === 'function') {
         await sdk.leaderboard.setScore(leaderboardId, score);
-        console.log(`[CrazyGames] Score ${score} submitted to leaderboard ${leaderboardId}`);
+        logDebug(`[CrazyGames] Score ${score} submitted to leaderboard ${leaderboardId}`);
       }
     } catch (e) {
-      console.warn('[CrazyGames] Failed to submit score', e);
+      warnDebug('[CrazyGames] Failed to submit score', e);
     }
   }
 
   public async getScores(leaderboardId: string): Promise<any> {
     if (!this.isEnabled() || !this.hasInitialized) return null;
     try {
-      const sdk = (window as any).CrazyGames?.SDK;
+      const sdk = this.sdk;
       if (sdk?.leaderboard && typeof sdk.leaderboard.getScores === 'function') {
         return await sdk.leaderboard.getScores(leaderboardId);
       }
     } catch (e) {
-      console.warn('[CrazyGames] Failed to get scores', e);
+      warnDebug('[CrazyGames] Failed to get scores', e);
     }
     return null;
   }

@@ -5,6 +5,7 @@ import { ModalCard } from "../ui/ModalCard";
 import { LeaderboardEntry } from "../../lib/leaderboardService";
 import { SHIPS_DATA, ROUTES_DATA } from "../../data";
 import { playerService } from "../../services/playerService";
+import { Language, routeTranslations } from "../../translations";
 
 interface LeaderboardModalProps {
   isLeaderboardOpen: boolean;
@@ -14,7 +15,47 @@ interface LeaderboardModalProps {
   onClose: () => void;
   playSound: (type: string, isMuted: boolean) => void;
   isMuted: boolean;
+  language: Language;
 }
+
+const localTranslations: Record<Language, Record<string, string>> = {
+  pt: {
+    globalLeaderboard: "CLASSIFICAÇÃO GLOBAL",
+    loadingData: "Carregando dados...",
+    noTimesRegistered: "Nenhum tempo registrado",
+    beFirst: "Seja o primeiro a completar este trajeto e registrar o recorde!",
+    you: "VOCÊ",
+    unknownShip: "Nave Desconhecida",
+    level: "Nível"
+  },
+  en: {
+    globalLeaderboard: "GLOBAL LEADERBOARD",
+    loadingData: "Loading data...",
+    noTimesRegistered: "No times registered",
+    beFirst: "Be the first to complete this track and set a record!",
+    you: "YOU",
+    unknownShip: "Unknown Ship",
+    level: "Level"
+  },
+  es: {
+    globalLeaderboard: "CLASIFICACIÓN GLOBAL",
+    loadingData: "Cargando datos...",
+    noTimesRegistered: "Ningún tiempo registrado",
+    beFirst: "¡Sé el primero en completar este trayecto y registrar el récord!",
+    you: "TÚ",
+    unknownShip: "Nave Desconocida",
+    level: "Nivel"
+  },
+  fr: {
+    globalLeaderboard: "CLASSEMENT GLOBAL",
+    loadingData: "Chargement des données...",
+    noTimesRegistered: "Aucun temps enregistré",
+    beFirst: "Soyez le premier à compléter ce trajet et à enregistrer le record !",
+    you: "VOUS",
+    unknownShip: "Vaisseau Inconnu",
+    level: "Niveau"
+  }
+};
 
 export function LeaderboardModal({
   isLeaderboardOpen,
@@ -23,9 +64,14 @@ export function LeaderboardModal({
   leaderboardScores,
   onClose,
   playSound,
-  isMuted
+  isMuted,
+  language
 }: LeaderboardModalProps) {
   if (!isLeaderboardOpen) return null;
+
+  const lt = localTranslations[language] || localTranslations.pt;
+  const routeTrans = leaderboardRouteId ? routeTranslations[language]?.[leaderboardRouteId] : null;
+  const routeName = routeTrans ? routeTrans.name : (ROUTES_DATA.find(r => r.id === leaderboardRouteId)?.name || "");
 
   return (
     <motion.div
@@ -59,11 +105,11 @@ export function LeaderboardModal({
           <div className="flex items-center gap-2 text-orange-500 mb-0.5">
             <Trophy className="w-4 h-4 animate-pulse" />
             <span className="text-[9px] font-mono tracking-[0.3em] font-bold uppercase">
-              CLASSIFICAÇÃO GLOBAL
+              {lt.globalLeaderboard}
             </span>
           </div>
           <h2 className="text-white font-sans text-xl font-bold tracking-tight uppercase">
-            {ROUTES_DATA.find(r => r.id === leaderboardRouteId)?.name || ""}
+            {routeName}
           </h2>
           <div className="h-px w-12 bg-orange-500 mt-2" />
         </div>
@@ -73,17 +119,17 @@ export function LeaderboardModal({
             <div className="flex-1 flex flex-col items-center justify-center gap-3 py-12">
               <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
               <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest animate-pulse">
-                Carregando dados...
+                {lt.loadingData}
               </span>
             </div>
           ) : leaderboardScores.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center py-12 border border-dashed border-white/5 rounded-xl bg-zinc-900/30">
               <Trophy className="w-8 h-8 text-zinc-600 mb-1" />
               <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider font-bold">
-                Nenhum tempo registrado
+                {lt.noTimesRegistered}
               </span>
               <span className="text-[9px] font-mono text-zinc-500 max-w-[240px] leading-normal">
-                Seja o primeiro a completar este trajeto e registrar o recorde!
+                {lt.beFirst}
               </span>
             </div>
           ) : (
@@ -97,7 +143,7 @@ export function LeaderboardModal({
 
                 return (
                   <div
-                    key={idx}
+                    key={score.userId + score.time + idx}
                     className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-500 ${
                       isCurrentUser 
                         ? "bg-orange-500/10 border-orange-500/30 shadow-[0_0_15px_rgba(249,115,22,0.1)]" 
@@ -119,14 +165,14 @@ export function LeaderboardModal({
                           {score.userName || "Piloto Sparrow"}
                           {isCurrentUser && (
                             <span className="px-1 py-0.5 bg-orange-500/20 border border-orange-500/30 text-orange-400 text-[8px] rounded uppercase font-black tracking-widest scale-90">
-                              VOCÊ
+                              {lt.you}
                             </span>
                           )}
                         </span>
                         <span className="text-[9px] font-mono text-zinc-500 uppercase flex items-center gap-1">
-                          {ship ? ship.name : "Nave Desconhecida"}
+                          {ship ? ship.name : lt.unknownShip}
                           <span className="w-1 h-1 rounded-full bg-zinc-700" />
-                          Nível {score.level || 1}
+                          {lt.level} {score.level || 1}
                         </span>
                       </div>
                     </div>

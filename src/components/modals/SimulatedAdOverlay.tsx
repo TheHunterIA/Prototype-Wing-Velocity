@@ -2,12 +2,16 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ShieldAlert, TerminalSquare } from "lucide-react";
 
+import { Language, translations } from "../../translations";
+
 interface SimulatedAdOverlayProps {
   isAdShowing: boolean;
+  language: Language;
 }
 
-export function SimulatedAdOverlay({ isAdShowing }: SimulatedAdOverlayProps) {
+export function SimulatedAdOverlay({ isAdShowing, language }: SimulatedAdOverlayProps) {
   const [step, setStep] = useState(0);
+  const t = translations[language];
 
   useEffect(() => {
     if (isAdShowing) {
@@ -49,19 +53,19 @@ export function SimulatedAdOverlay({ isAdShowing }: SimulatedAdOverlayProps) {
 
         <div className="space-y-4 text-xs tracking-wider text-emerald-400">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            {"> AUTHORIZATION REQUEST..."}
+            {`> ${t.authRequest}`}
           </motion.div>
 
           {step >= 1 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              {"> CONNECTING..."}
+              {`> ${t.connecting}`}
               <div className="mt-1 animate-pulse">██████░░░░░░░</div>
             </motion.div>
           )}
 
           {step >= 2 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              {"> CHECKING LICENSE..."}
+              {`> ${t.checkingLicense}`}
               <div className="mt-1 animate-pulse">█████████░░░</div>
             </motion.div>
           )}
@@ -69,13 +73,13 @@ export function SimulatedAdOverlay({ isAdShowing }: SimulatedAdOverlayProps) {
           {step >= 3 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-amber-400 flex items-center gap-2">
               <ShieldAlert className="w-4 h-4" />
-              {"> TEMPORARY LICENSE FOUND"}
+              {`> ${t.tempLicenseFound}`}
             </motion.div>
           )}
 
           {step >= 4 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-white mt-4 font-bold">
-              {"> OPENING HANGAR..."}
+              {`> ${t.openingHangar}`}
             </motion.div>
           )}
         </div>

@@ -9,6 +9,7 @@ interface SpaceshipProps {
   modelFile: string;
   textureFile: string;
   position?: [number, number, number];
+  isLocked?: boolean;
 }
 
 interface SpaceshipViewProps {
@@ -16,13 +17,15 @@ interface SpaceshipViewProps {
   textureFile: string;
   position?: [number, number, number];
   isGlb?: boolean;
+  isLocked?: boolean;
 }
 
 function SpaceshipView({
   scene,
   textureFile,
   position = [0, 0, 0],
-  isGlb = false
+  isGlb = false,
+  isLocked = false
 }: SpaceshipViewProps) {
   // Base color texture
   const texture = useTexture(textureFile);
@@ -36,6 +39,8 @@ function SpaceshipView({
   });
 
   const groupRef = useRef<THREE.Group>(null);
+  const internalRef = useRef<THREE.Group>(null);
+  const scaleRef = useRef(0);
 
   // Apply the texture to the cloned object to avoid side-effects on cache
   const { clonedObj, sharedMaterial } = useMemo(() => {
@@ -59,9 +64,9 @@ function SpaceshipView({
       normalMap: pbrMaps.normalMap,
       roughnessMap: pbrMaps.roughnessMap,
       metalnessMap: pbrMaps.metalnessMap,
-      emissiveMap: pbrMaps.emissiveMap,
-      emissive: new THREE.Color(0xffffff),
-      emissiveIntensity: 0.5,
+      emissiveMap: isLocked ? null : pbrMaps.emissiveMap,
+      emissive: isLocked ? new THREE.Color(0x000000) : new THREE.Color(0xffffff),
+      emissiveIntensity: isLocked ? 0 : 0.5,
       roughness: 1,
       metalness: 1,
       side: THREE.DoubleSide,
@@ -95,10 +100,12 @@ function SpaceshipView({
     const box = new THREE.Box3().setFromObject(clone);
     const center = new THREE.Vector3();
     box.getCenter(center);
-    clone.position.sub(center);
+    clone.children.forEach((child) => {
+      child.position.sub(center);
+    });
 
     return { clonedObj: clone, sharedMaterial: material };
-  }, [scene, texture, pbrMaps, isGlb]);
+  }, [scene, texture, pbrMaps, isGlb, isLocked]);
 
   // Clean up material when clonedObj changes or unmounts to prevent memory leaks in GPU
   useEffect(() => {
@@ -107,68 +114,94 @@ function SpaceshipView({
     };
   }, [sharedMaterial]);
 
-  // Animate the spaceship with constant gentle rotation and floating motion
-  useFrame((state, delta) => {
-    if (groupRef.current) {
-      // Rotation on Y axis
-      groupRef.current.rotation.y += delta * 0.15;
-      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.4) * 0.05;
-      // Soft vertical floating motion
-      groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.6) * 0.6;
+  // Animate the spaceship with complex floating and tilting motion
+  useFrame((state) => {
+    if (groupRef.current && internalRef.current) {
+      const t = state.clock.elapsedTime;
+      
+      // Smooth entrance scale
+      scaleRef.current = THREE.MathUtils.lerp(scaleRef.current, 1, 0.05);
+      
+      // Base continuous rotation
+      groupRef.current.rotation.y += 0.005;
+      
+      // Multi-axis floating (Harmonic motion)
+      // Y-axis (Up/Down)
+      groupRef.current.position.y = position[1] + Math.sin(t * 0.7) * 0.15;
+      // X-axis (Side to Side)
+      groupRef.current.position.x = position[0] + Math.cos(t * 0.5) * 0.05;
+      
+      // Mouse Parallax Tilting (Removido para que a nave não siga o cursor no hangar)
+      internalRef.current.rotation.x = THREE.MathUtils.lerp(internalRef.current.rotation.x, 0, 0.05);
+      internalRef.current.rotation.z = THREE.MathUtils.lerp(internalRef.current.rotation.z, 0, 0.05);
+
+      // Idle Sway (Roll and Pitch)
+      groupRef.current.rotation.x = Math.sin(t * 0.5) * 0.02;
+      
+      // Subtle scale pulse (Breathing effect)
+      const scalePulse = (1 + Math.sin(t * 1.5) * 0.005) * scaleRef.current;
+      groupRef.current.scale.set(scalePulse, scalePulse, scalePulse);
     }
   });
 
   return (
     <group ref={groupRef} position={position}>
-      <primitive
-        object={clonedObj}
-        scale={0.015} // Appropriately scale the 1000-unit model to fit the scene
-        position={[0, 0, 0]}
-      />
-      {/* Luz principal do topo e ligeiramente frontal em intensidade bem suave */}
-      <directionalLight
-        intensity={0.8}
-        position={[0, 10, 6]}
-        color="#ffffff"
-      />
-      {/* Luz focalizada traseira (Spotlight) azul tecnológica de destaque suave */}
-      <spotLight
-        position={[0, 8, -8]}
-        angle={Math.PI / 2.5}
-        penumbra={0.9}
-        intensity={1.2}
-        color="#3b82f6"
-      />
-      {/* Luz de preenchimento inferior sutil em tom âmbar quente */}
-      <pointLight
-        position={[0, -6, 0]}
-        intensity={0.5}
-        color="#ff7f1e"
-        distance={30}
-      />
+      <group ref={internalRef}>
+        <primitive
+          object={clonedObj}
+          scale={0.015} // Appropriately scale the 1000-unit model to fit the scene
+          position={[0, 0, 0]}
+        />
+      </group>
+      {!isLocked && (
+        <>
+          {/* Luz principal do topo e ligeiramente frontal em intensidade bem suave */}
+          <directionalLight
+            intensity={0.8}
+            position={[0, 10, 6]}
+            color="#ffffff"
+          />
+          {/* Luz focalizada traseira (Spotlight) azul tecnológica de destaque suave */}
+          <spotLight
+            position={[0, 8, -8]}
+            angle={Math.PI / 2.5}
+            penumbra={0.9}
+            intensity={1.2}
+            color="#3b82f6"
+          />
+          {/* Luz de preenchimento inferior sutil em tom âmbar quente */}
+          <pointLight
+            position={[0, -6, 0]}
+            intensity={0.5}
+            color="#ff7f1e"
+            distance={30}
+          />
+        </>
+      )}
     </group>
   );
 }
 
-function GLTFSpaceship({ modelFile, textureFile, position }: SpaceshipProps) {
+function GLTFSpaceship({ modelFile, textureFile, position, isLocked }: SpaceshipProps) {
   const gltf = useLoader(GLTFLoader, modelFile);
-  return <SpaceshipView scene={gltf.scene} textureFile={textureFile} position={position} isGlb={true} />;
+  return <SpaceshipView scene={gltf.scene} textureFile={textureFile} position={position} isGlb={true} isLocked={isLocked} />;
 }
 
-function OBJSpaceship({ modelFile, textureFile, position }: SpaceshipProps) {
+function OBJSpaceship({ modelFile, textureFile, position, isLocked }: SpaceshipProps) {
   const obj = useLoader(OBJLoader, modelFile);
-  return <SpaceshipView scene={obj} textureFile={textureFile} position={position} isGlb={false} />;
+  return <SpaceshipView scene={obj} textureFile={textureFile} position={position} isGlb={false} isLocked={isLocked} />;
 }
 
 export default function Spaceship({ 
   modelFile, 
   textureFile, 
-  position = [0, 0, 0] 
+  position = [0, 0, 0],
+  isLocked = false
 }: SpaceshipProps) {
   const isGlb = modelFile.endsWith(".glb");
   if (isGlb) {
-    return <GLTFSpaceship modelFile={modelFile} textureFile={textureFile} position={position} />;
+    return <GLTFSpaceship modelFile={modelFile} textureFile={textureFile} position={position} isLocked={isLocked} />;
   } else {
-    return <OBJSpaceship modelFile={modelFile} textureFile={textureFile} position={position} />;
+    return <OBJSpaceship modelFile={modelFile} textureFile={textureFile} position={position} isLocked={isLocked} />;
   }
 }

@@ -1,9 +1,10 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronLeft, ChevronRight, Trophy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trophy, Lock } from "lucide-react";
 import { ROUTES_DATA } from "../../data";
 import { RouteData } from "../../types";
-import { Language, translateDifficulty } from "../../translations";
+import { Language, translateDifficulty, routeTranslations } from "../../translations";
+import { playerService } from "../../services/playerService";
 
 interface RouteCard3DProps {
   route: RouteData;
@@ -112,8 +113,16 @@ function RouteCard3D({
     playSound("hover", isMuted);
   };
 
+  const isRouteUnlocked = playerService.data.level >= route.requiredLevel;
+  const routeTrans = routeTranslations[language]?.[route.id];
+  const routeName = routeTrans ? routeTrans.name : route.name;
+
   const handleClick = () => {
     if (isActive) {
+      if (!isRouteUnlocked) {
+        playSound("click", isMuted);
+        return;
+      }
       playSound("click", isMuted);
       setSelectedRoute(route);
       setIsSimulatorActive(true);
@@ -194,7 +203,7 @@ function RouteCard3D({
       >
         <img 
           src={route.image} 
-          alt={route.name}
+          alt={routeName}
           className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${isActive ? 'scale-125 opacity-100' : 'scale-100 opacity-60'}`}
           referrerPolicy="no-referrer"
           style={{
@@ -234,7 +243,7 @@ function RouteCard3D({
             <div className="h-[1px] w-6 bg-orange-500/30" />
           </div>
           <h3 className="text-white font-display text-2xl font-black tracking-widest uppercase text-center drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">
-            {route.name}
+            {routeName}
           </h3>
         </div>
         
@@ -273,13 +282,22 @@ function RouteCard3D({
             </div>
           </div>
           
-          <button className={`w-full py-4 text-white font-black font-mono text-[11px] tracking-[0.2em] uppercase rounded-xl transition-all cursor-pointer shadow-xl relative overflow-hidden group ${
+          <button className={`w-full py-4 text-white font-black font-mono text-[11px] tracking-[0.2em] uppercase rounded-xl transition-all shadow-xl relative overflow-hidden group flex items-center justify-center gap-2 ${
             isActive 
-              ? "bg-gradient-to-br from-orange-600 via-orange-500 to-amber-600" 
+              ? isRouteUnlocked
+                ? "bg-gradient-to-br from-orange-600 via-orange-500 to-amber-600 cursor-pointer" 
+                : "bg-zinc-900/90 text-zinc-400 border border-zinc-700/80 cursor-not-allowed"
               : "bg-zinc-900/50 text-zinc-600 border border-white/5 cursor-default"
           }`}>
-            <span className="relative z-10">{isActive ? t.chooseRoute : t.selectRoute}</span>
-            {isActive && (
+            <span className="relative z-10 flex items-center gap-1.5">
+              {!isRouteUnlocked && <Lock className="w-3.5 h-3.5 text-orange-500 inline" />}
+              {isActive
+                ? isRouteUnlocked
+                  ? t.chooseRoute
+                  : `${t.requiredLevel} ${route.requiredLevel}`
+                : t.selectRoute}
+            </span>
+            {isActive && isRouteUnlocked && (
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shine_1.5s_ease-in-out_infinite]" />
             )}
           </button>
@@ -347,6 +365,8 @@ export function RouteSelectionOverlay({
 }: RouteSelectionOverlayProps) {
   if (!isRouteSelectionOpen) return null;
 
+  const lastScrollTime = useRef(0);
+
   const nextRoute = () => {
     playSound("click", isMuted);
     setRouteIndex((routeIndex + 1) % ROUTES_DATA.length);
@@ -355,6 +375,43 @@ export function RouteSelectionOverlay({
     playSound("click", isMuted);
     setRouteIndex((routeIndex - 1 + ROUTES_DATA.length) % ROUTES_DATA.length);
   };
+
+  React.useEffect(() => {
+    const handleWindowWheel = (e: WheelEvent) => {
+      const now = Date.now();
+      if (now - lastScrollTime.current < 220) return;
+      if (Math.abs(e.deltaY) > 8 || Math.abs(e.deltaX) > 8) {
+        if (e.deltaY > 0 || e.deltaX > 0) {
+          playSound("click", isMuted);
+          setRouteIndex((routeIndex + 1) % ROUTES_DATA.length);
+        } else {
+          playSound("click", isMuted);
+          setRouteIndex((routeIndex - 1 + ROUTES_DATA.length) % ROUTES_DATA.length);
+        }
+        lastScrollTime.current = now;
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") {
+        playSound("click", isMuted);
+        setRouteIndex((routeIndex + 1) % ROUTES_DATA.length);
+      } else if (e.key === "ArrowLeft") {
+        playSound("click", isMuted);
+        setRouteIndex((routeIndex - 1 + ROUTES_DATA.length) % ROUTES_DATA.length);
+      } else if (e.key === "Escape") {
+        playSound("click", isMuted);
+        setIsRouteSelectionOpen(false);
+      }
+    };
+
+    window.addEventListener("wheel", handleWindowWheel, { passive: true });
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("wheel", handleWindowWheel);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMuted, setIsRouteSelectionOpen, setRouteIndex, routeIndex, playSound]);
 
   return (
     <AnimatePresence>

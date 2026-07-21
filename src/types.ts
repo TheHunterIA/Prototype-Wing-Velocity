@@ -6,14 +6,15 @@ export interface ShipData {
   modelFile: string;
   class: ShipClass;
   description: string;
-  velocidade: number;     // 1 to 100
-  aceleracao: number;     // 1 to 100
-  turbo: number;          // 1 to 100
-  energia: number;        // 1 to 100
-  massa: number;          // physical mass
+  velocidade: number;     // Vel (1 to 10)
+  aceleracao: number;     // Ace (1 to 10)
+  turbo: number;          // Tur (1 to 10)
+  energia: number;        // Eng (1 to 10)
+  massa: number;          // Mas (1 to 10)
   price: number;
   abilityName: string;
   abilityDesc: string;
+  requiredLevel: number;
 }
 
 export interface SkinData {
@@ -45,5 +46,6 @@ export interface RouteData {
   hasMovingAsteroids: boolean;
   trafficShipCount: number; // how many AI ships are cruising around
   gravityWell?: boolean; // pulls the ship slightly
+  requiredLevel: number;
 }
 

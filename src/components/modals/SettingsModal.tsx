@@ -68,10 +68,10 @@ export function SettingsModal({
             </span>
             <div className="grid grid-cols-4 gap-2">
               {[
-                { code: "pt", flagUrl: "https://flagcdn.com/br.svg", label: "Brasil", short: "PT" },
-                { code: "en", flagUrl: "https://flagcdn.com/us.svg", label: "USA", short: "EN" },
-                { code: "es", flagUrl: "https://flagcdn.com/es.svg", label: "Espanha", short: "ES" },
-                { code: "fr", flagUrl: "https://flagcdn.com/fr.svg", label: "França", short: "FR" }
+                { code: "pt", flagUrl: "https://flagcdn.com/br.svg", label: t.countryBrazil, short: "PT" },
+                { code: "en", flagUrl: "https://flagcdn.com/us.svg", label: t.countryUSA, short: "EN" },
+                { code: "es", flagUrl: "https://flagcdn.com/es.svg", label: t.countrySpain, short: "ES" },
+                { code: "fr", flagUrl: "https://flagcdn.com/fr.svg", label: t.countryFrance, short: "FR" }
               ].map((lang) => {
                 const isSelected = language === lang.code;
                 return (
@@ -172,7 +172,7 @@ export function SettingsModal({
                     {!isMuted ? t.soundOn : t.soundOff}
                   </span>
                   <span className="text-[9px] text-zinc-600 font-medium">
-                    {isMuted ? "Muted" : "Active"}
+                    {isMuted ? t.muted : t.active}
                   </span>
                 </div>
               </div>

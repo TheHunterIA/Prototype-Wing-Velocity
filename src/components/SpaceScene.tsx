@@ -1,15 +1,17 @@
-import { Suspense, useState, useEffect, useMemo, useRef } from "react";
+import { Suspense, useState, useEffect, useMemo, useRef, useCallback, memo } from "react";
 import { Canvas, useLoader } from "@react-three/fiber";
 import { Environment, OrbitControls, useProgress, Html, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronLeft, ChevronRight, Volume2, VolumeX, Paintbrush, ChevronUp, ChevronDown, Rocket, Gauge, TrendingUp, Flame, Battery, Scale, Lock, Compass, Settings, Globe, X, Sparkles, Sliders, User, Trophy, BarChart3, Star, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Volume2, VolumeX, Paintbrush, ChevronUp, ChevronDown, Rocket, Gauge, TrendingUp, Flame, Battery, Scale, Lock, Compass, Settings, Globe, X, Sparkles, Sliders, User, Trophy, BarChart3, Star, Play, Wrench } from "lucide-react";
 import Spaceship from "./Spaceship";
 import SpaceSimulator from "./SpaceSimulator";
 import { SHIPS_DATA, calculateShipStats, SHIP_CLASS_PROFILES, ROUTES_DATA, SKINS_DATA } from "../data";
 import { RouteData } from "../types";
 import { translations, routeTranslations, translateDifficulty, translateClass, Language } from "../translations";
+import { shipDescriptions } from "../shipTranslations";
+import { skinTranslations, classProfileTranslations } from "../dataTranslations";
 import { crazyGamesService } from "../services/crazyGamesService";
 import { playerService } from "../services/playerService";
 import { audioService } from "../services/audioService";
@@ -23,6 +25,7 @@ import { SettingsModal } from "./modals/SettingsModal";
 import { RouteSelectionOverlay } from "./modals/RouteSelectionOverlay";
 import { PilotProfileModal } from "./modals/PilotProfileModal";
 import { LeaderboardModal } from "./modals/LeaderboardModal";
+import { ShipUpgradeModal } from "./modals/ShipUpgradeModal";
 
 
 // Immersive sci-fi sound effects using audioService
@@ -169,9 +172,14 @@ export default function SpaceScene() {
     setProfileGlowY(50);
   };
 
+  const handleExitSimulator = useCallback(() => {
+    setIsSimulatorActive(false);
+    setIsSimulatorHangarActive(false);
+  }, []);
   const [isAdShowing, setIsAdShowing] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [adTarget, setAdTarget] = useState<{ id: string, type: 'ship' | 'skin', name: string } | null>(null);
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
   // Update UI every second to refresh license timers
   useEffect(() => {
     audioService.init();
@@ -250,16 +258,16 @@ export default function SpaceScene() {
 
   const stats = useMemo(() => {
     return calculateShipStats(currentShip);
-  }, [currentShip]);
+  }, [currentShip, tick]);
 
   const classProfile = useMemo(() => {
-    return SHIP_CLASS_PROFILES[currentShip.class] || {
+    return classProfileTranslations[language]?.[currentShip.class] || SHIP_CLASS_PROFILES[currentShip.class] || {
       name: currentShip.class,
-      focus: "Geral",
-      advantage: "Equilibrado",
-      disadvantage: "Nenhuma"
+      focus: t.general,
+      advantage: t.balanced,
+      disadvantage: t.none
     };
-  }, [currentShip]);
+  }, [currentShip, language, t]);
 
   const handleNext = () => {
     playSound("transition", isMuted);
@@ -289,6 +297,8 @@ export default function SpaceScene() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isMuted]);
 
+  const isCurrentShipLocked = !playerService.hasLicense(currentShip.id, currentShip.requiredLevel);
+
   if (isSimulatorActive) {
     return (
       <SpaceSimulator
@@ -296,10 +306,7 @@ export default function SpaceScene() {
         selectedColor={selectedColor}
         isMuted={isMuted}
         selectedRoute={selectedRoute}
-        onExit={() => {
-          setIsSimulatorActive(false);
-          setIsSimulatorHangarActive(false);
-        }}
+        onExit={handleExitSimulator}
         graphicsQuality={graphicsQuality}
         setGraphicsQuality={setGraphicsQuality}
         language={language}
@@ -343,18 +350,23 @@ export default function SpaceScene() {
                 {currentShip.name}
               </motion.h1>
             </AnimatePresence>
-            {/* Subtitle / Category */}
+            {/* Subtitle / Category & Description */}
             <AnimatePresence mode="wait">
-              <motion.span
-                key={`class-${currentShip.id}`}
+              <motion.div
+                key={currentShip.id}
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 0.6 }}
+                animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="text-zinc-400 font-mono text-[10px] tracking-[0.2em] uppercase mt-1"
+                className="flex flex-col gap-1 mt-1"
               >
-                {t.classLabel}: {translateClass(currentShip.class, language)}
-              </motion.span>
+                <span className="text-zinc-400 font-mono text-[10px] tracking-[0.2em] uppercase">
+                  {t.classLabel}: {translateClass(currentShip.class, language)}
+                </span>
+                <p className="text-zinc-300 font-serif text-sm max-w-md leading-relaxed mt-1 italic">
+                  {shipDescriptions[language][currentShip.id] || currentShip.description}
+                </p>
+              </motion.div>
             </AnimatePresence>
           </div>
 
@@ -366,7 +378,7 @@ export default function SpaceScene() {
                 playSound("click", isMuted);
               }}
               className="p-2.5 bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/20 rounded-full text-white/70 hover:text-white transition-all cursor-pointer backdrop-blur-md active:scale-95 shadow-lg flex items-center justify-center group"
-              title="Perfil do Piloto"
+              title={t.pilotProfile}
             >
               <User className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform duration-300" />
             </button>
@@ -389,7 +401,7 @@ export default function SpaceScene() {
                 playSound("click", newMuted);
               }}
               className="p-2.5 bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/20 rounded-full text-white/70 hover:text-white transition-all cursor-pointer backdrop-blur-md active:scale-95 shadow-lg flex items-center justify-center"
-              title={isMuted ? "Ativar som" : "Mutar som"}
+              title={isMuted ? t.activateSound : t.muteSound}
             >
               {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />}
             </button>
@@ -410,34 +422,45 @@ export default function SpaceScene() {
             <OrbitControls 
               enablePan={false} 
               enableZoom={!isRouteSelectionOpen} 
+              enableRotate={true}
               makeDefault 
-              autoRotate={isRouteSelectionOpen}
-              autoRotateSpeed={1.5}
+              autoRotate={true}
+              autoRotateSpeed={1.0}
               maxDistance={25}
               minDistance={8}
               maxPolarAngle={Math.PI / 2 + 0.1}
               minPolarAngle={Math.PI / 4}
+              enableDamping={true}
+              dampingFactor={0.05}
             />
             
-             {/* Scene lighting configured to match the hangar mood */}
-            <ambientLight intensity={0.15} />
-            <hemisphereLight color="#ffffff" groundColor="#1e1e2f" intensity={0.3} />
+             {/* Scene lighting configured to match the hangar mood - adjusted for locked ship silhouette */}
+            <ambientLight intensity={isCurrentShipLocked ? 0.02 : 0.15} />
+            <hemisphereLight 
+              color={isCurrentShipLocked ? "#112233" : "#ffffff"} 
+              groundColor="#000005" 
+              intensity={isCurrentShipLocked ? 0.05 : 0.3} 
+            />
             
-            {/* Front main light */}
-            <directionalLight position={[5, 10, 8]} intensity={1.0} castShadow />
+            {/* Front main light - turned off when locked so front of ship stays in shadow */}
+            <directionalLight 
+              position={[5, 10, 8]} 
+              intensity={isCurrentShipLocked ? 0.0 : 1.0} 
+              castShadow={!isCurrentShipLocked} 
+            />
             
-            {/* Saturated cinematic side/rim lights to give high-end metallic highlights */}
-            <directionalLight position={[-8, 2, -5]} intensity={0.8} color="#00ffff" />
-            <directionalLight position={[8, -2, -5]} intensity={0.8} color="#ffaa00" />
-            <directionalLight position={[0, 8, -6]} intensity={0.6} color="#ffffff" />
+            {/* Saturated cinematic side/rim lights - subtle edge contour when locked */}
+            <directionalLight position={[-8, 2, -5]} intensity={isCurrentShipLocked ? 0.15 : 0.8} color={isCurrentShipLocked ? "#1e293b" : "#00ffff"} />
+            <directionalLight position={[8, -2, -5]} intensity={isCurrentShipLocked ? 0.15 : 0.8} color={isCurrentShipLocked ? "#1e293b" : "#ffaa00"} />
+            <directionalLight position={[0, 8, -6]} intensity={isCurrentShipLocked ? 0.2 : 0.6} color={isCurrentShipLocked ? "#334155" : "#ffffff"} />
 
             {/* Localized Suspense boundary to prevent unmounting lights and controls during load */}
             <Suspense fallback={null}>
               <Spaceship 
-                key={currentShip.id}
                 modelFile={currentShip.modelFile} 
                 textureFile={selectedColor.textureFile}
                 position={[0, -0.6, 0]} 
+                isLocked={isCurrentShipLocked}
               />
             </Suspense>
           </Canvas>
@@ -466,20 +489,20 @@ export default function SpaceScene() {
                 {/* Segmented Stats Rows */}
                 <div className="flex flex-col gap-1.5">
                   {[
-                    { label: t.speed, value: stats.maxVelocity, color: "bg-orange-400", empty: "bg-orange-950/40" },
-                    { label: t.acceleration, value: stats.acceleration, color: "bg-amber-400", empty: "bg-amber-950/40" },
-                    { label: t.turbo, value: stats.turbo, color: "bg-red-400", empty: "bg-red-950/40" },
-                    { label: t.energy, value: stats.energy, color: "bg-emerald-400", empty: "bg-emerald-950/40" },
-                    { label: t.mass, value: (stats.mass / 160) * 100, color: "bg-cyan-400", empty: "bg-cyan-950/40" }
+                    { id: 'vel', label: t.speed, score: stats.vel, color: "bg-orange-400", empty: "bg-orange-950/40" },
+                    { id: 'ace', label: t.acceleration, score: stats.ace, color: "bg-amber-400", empty: "bg-amber-950/40" },
+                    { id: 'tur', label: t.turboPower, score: stats.tur, color: "bg-red-400", empty: "bg-red-950/40" },
+                    { id: 'eng', label: t.energy, score: stats.eng, color: "bg-emerald-400", empty: "bg-emerald-950/40" },
+                    { id: 'mas', label: t.mass, score: stats.mas, color: "bg-cyan-400", empty: "bg-cyan-950/40" }
                   ].map(stat => (
-                    <div key={stat.label} className="flex flex-col gap-0.5">
-                      <div className="flex justify-between items-center">
-                        <span className="text-zinc-500 uppercase text-[9px] tracking-wider">{stat.label}</span>
+                    <div key={stat.id} className="flex flex-col gap-0.5">
+                      <div className="flex justify-between items-center text-[9px] font-mono">
+                        <span className="text-zinc-400 uppercase tracking-wider">{stat.label}</span>
+                        <span className="text-amber-400 font-bold">{stat.score}/10</span>
                       </div>
                       <div className="flex items-center gap-0.5 w-full">
-                        {Array.from({ length: 12 }).map((_, i) => {
-                          const threshold = (i / 11) * 100;
-                          const isActive = stat.value >= threshold;
+                        {Array.from({ length: 10 }).map((_, i) => {
+                          const isActive = i < stat.score;
                           return (
                             <div 
                               key={i} 
@@ -524,20 +547,66 @@ export default function SpaceScene() {
                     playSound('transition', isMuted);
                     setIsRouteSelectionOpen(true);
                   }}
-                  isLocked={false}
+                  isLocked={!playerService.hasLicense(currentShip.id, currentShip.requiredLevel)}
+                  requiredLevel={currentShip.requiredLevel}
+                  tempLicenseTimeLeft={playerService.getTempLicenseTimeLeft(currentShip.id)}
+                  onGetTempLicense={() => {
+                    playSound('click', isMuted);
+                    setAdTarget({ id: currentShip.id, type: 'ship', name: currentShip.name });
+                    setShowAdModal(true);
+                  }}
                   isMobile={isMobile}
                 />
               </div>
             </div>
 
-            <ColorSelector 
-              selectedColor={selectedColor}
-              isColorPanelOpen={isColorPanelOpen}
-              setIsColorPanelOpen={setIsColorPanelOpen}
-              handleSelectColor={handleSelectColor}
-              playSound={playSound}
-              isMuted={isMuted}
-            />
+            {/* Right side controls: Upgrade button & Color picker */}
+            <div className="absolute right-8 bottom-6 z-20 flex flex-col items-end gap-3 pointer-events-auto">
+              {/* Upgrade Button above Color Selector */}
+              <div className="relative flex items-center gap-2">
+                {playerService.getShipBoostTimeLeft(currentShip.id) > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="bg-black/80 backdrop-blur-md border border-amber-500/50 px-2.5 py-1 rounded-full text-[9px] font-mono font-bold text-amber-400 shadow-lg flex items-center gap-1.5 select-none"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                    <span>BOOST {Math.ceil(playerService.getShipBoostTimeLeft(currentShip.id) / 60000)}m</span>
+                  </motion.div>
+                )}
+
+                <button
+                  onClick={() => {
+                    playSound('click', isMuted);
+                    setShowUpgradeModal(true);
+                  }}
+                  className={`
+                    w-14 h-14 rounded-full bg-black/50 hover:bg-black/80 border transition-all duration-500 flex items-center justify-center cursor-pointer pointer-events-auto backdrop-blur-md active:scale-95 shadow-2xl relative group shrink-0
+                    ${playerService.getShipBoostTimeLeft(currentShip.id) > 0 
+                      ? 'border-amber-500/80 shadow-[0_0_20px_rgba(245,158,11,0.4)] bg-amber-500/10' 
+                      : 'border-white/10 hover:border-amber-500/50'}
+                  `}
+                  title={t.upgradeTitle || "Upgrade Tático / Atributos (+5 Pts)"}
+                >
+                  <Wrench className={`w-6 h-6 transition-transform duration-500 ${
+                    playerService.getShipBoostTimeLeft(currentShip.id) > 0
+                      ? 'text-amber-400 animate-pulse scale-110'
+                      : 'text-amber-400/90 group-hover:scale-115 group-hover:rotate-12'
+                  }`} />
+                </button>
+              </div>
+
+              <ColorSelector 
+                selectedColor={selectedColor}
+                isColorPanelOpen={isColorPanelOpen}
+                setIsColorPanelOpen={setIsColorPanelOpen}
+                handleSelectColor={handleSelectColor}
+                playSound={playSound}
+                isMuted={isMuted}
+                language={language}
+                t={t}
+              />
+            </div>
           </>
         )}
       </main>
@@ -587,7 +656,7 @@ export default function SpaceScene() {
         }}
       />
 
-      <SimulatedAdOverlay isAdShowing={isAdShowing} />
+      <SimulatedAdOverlay isAdShowing={isAdShowing} language={language} />
 
       <RouteSelectionOverlay 
         isRouteSelectionOpen={isRouteSelectionOpen}
@@ -618,19 +687,33 @@ export default function SpaceScene() {
       />
 
       <PilotProfileModal t={t} 
+        language={language}
         isProfileOpen={isProfileOpen}
-        onClose={() => {
-          setIsProfileOpen(false);
-          playSound('click', isMuted);
-        }}
+        onClose={() => setIsProfileOpen(false)}
+        playSound={playSound}
+        isMuted={isMuted}
       />
 
       <LeaderboardModal 
+        language={language}
         isLeaderboardOpen={isLeaderboardOpen}
         leaderboardRouteId={leaderboardRouteId}
         isLoadingLeaderboard={isLoadingLeaderboard}
         leaderboardScores={leaderboardScores as any}
         onClose={() => setIsLeaderboardOpen(false)}
+        playSound={playSound}
+        isMuted={isMuted}
+      />
+
+      <ShipUpgradeModal 
+        showUpgradeModal={showUpgradeModal}
+        ship={currentShip}
+        t={t}
+        language={language}
+        onClose={() => setShowUpgradeModal(false)}
+        onBoostApplied={() => {
+          setTick(prev => prev + 1);
+        }}
         playSound={playSound}
         isMuted={isMuted}
       />

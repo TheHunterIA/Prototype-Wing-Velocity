@@ -33,6 +33,33 @@ export interface TranslationDict {
   soundOff: string;
   exit: string;
   unlockMouse: string;
+  muted: string;
+  active: string;
+  countryBrazil: string;
+  countryUSA: string;
+  countrySpain: string;
+  countryFrance: string;
+  closeSelection: string;
+  openSelection: string;
+  requiredLevel: string;
+  pilotProfile: string;
+  activateSound: string;
+  muteSound: string;
+  tempLicenseActive: string;
+  testFor15Min: string;
+  adAuthDesc: string;
+  watchAdDesc: string;
+  tuning: string;
+  validity15Min: string;
+  cancel: string;
+  authRequest: string;
+  connecting: string;
+  checkingLicense: string;
+  tempLicenseFound: string;
+  openingHangar: string;
+  general: string;
+  balanced: string;
+  none: string;
   
   // Game HUD
   flightControls: string;
@@ -76,6 +103,24 @@ export interface TranslationDict {
   continueJourney: string;
   temporaryLicense: string;
   openHangar: string;
+  tuningTransmission: string;
+  watchAdDoubleXp: string;
+  rewardAvailableSoon: string;
+  simulationActive: string;
+  startingEngines: string;
+  preparingThrusters: string;
+  driveShip: string;
+  xpCollected: string;
+  yourTime: string;
+  record: string;
+  newRecord: string;
+  xpGained: string;
+  pilotLevel: string;
+  levelUp: string;
+  xpToNextLevel: string;
+  mouseControlActive: string;
+  upgradeTitle: string;
+  turboPower: string;
 }
 
 export const translations: Record<Language, TranslationDict> = {
@@ -112,6 +157,33 @@ export const translations: Record<Language, TranslationDict> = {
     soundOff: "Efeitos de Som: Mudo",
     exit: "Sair",
     unlockMouse: "ESC - Mostrar Mouse",
+    muted: "Mudo",
+    active: "Ativo",
+    countryBrazil: "Brasil",
+    countryUSA: "EUA",
+    countrySpain: "Espanha",
+    countryFrance: "França",
+    closeSelection: "Fechar seleção",
+    openSelection: "Abrir seleção",
+    requiredLevel: "REQUER NÍVEL",
+    pilotProfile: "Perfil do Piloto",
+    activateSound: "Ativar som",
+    muteSound: "Mutar som",
+    tempLicenseActive: "Licença Temporária",
+    testFor15Min: "Testar Por 15 Min",
+    adAuthDesc: "Esta é uma autorização temporária concedida pelo programa de testes para que você experimente tecnologias ainda não liberadas.",
+    watchAdDesc: "Assista ao vídeo para validar sua",
+    tuning: "Sintonizando...",
+    validity15Min: "Validade: 15 Minutos",
+    cancel: "Cancelar",
+    authRequest: "SOLICITAÇÃO DE AUTORIZAÇÃO...",
+    connecting: "CONECTANDO...",
+    checkingLicense: "VERIFICANDO LICENÇA...",
+    tempLicenseFound: "LICENÇA TEMPORÁRIA ENCONTRADA",
+    openingHangar: "ABRINDO HANGAR...",
+    general: "Geral",
+    balanced: "Equilibrado",
+    none: "Nenhuma",
 
     // Game HUD
     flightControls: "CONTROLES DO VOO",
@@ -154,7 +226,25 @@ export const translations: Record<Language, TranslationDict> = {
     skinLocked: "SKIN BLOQUEADA",
     continueJourney: "Continuar Jornada",
     temporaryLicense: "Licença Temporária",
-    openHangar: "[ OPEN HANGAR ]"
+    openHangar: "[ OPEN HANGAR ]",
+    tuningTransmission: "Sintonizando Transmissão...",
+    watchAdDoubleXp: "Assista ao vídeo para dobrar seus ganhos de XP e subir de nível mais rápido!",
+    rewardAvailableSoon: "Recompensa disponível em breve",
+    simulationActive: "Ambiente de Produção: Simulação Ativada",
+    startingEngines: "🔥 LIGANDO MOTORES",
+    preparingThrusters: "⚡ PREPARANDO PROPULSORES",
+    driveShip: "Conduzir Nave",
+    xpCollected: "XP COLETADO",
+    yourTime: "SEU TEMPO",
+    record: "RECORDE",
+    newRecord: "NOVO RECORDE!",
+    xpGained: "XP GANHO",
+    pilotLevel: "Nível Piloto",
+    levelUp: "LEVEL UP!",
+    xpToNextLevel: "XP para o próximo nível",
+    mouseControlActive: "Controle de Mouse Ativo (Mova para Girar)",
+    upgradeTitle: "Upgrade Tático de Nave",
+    turboPower: "Turbo (Boost)"
   },
   en: {
     prototypeWing: "Prototype Wing: Velocity",
@@ -189,6 +279,33 @@ export const translations: Record<Language, TranslationDict> = {
     soundOff: "Sound Effects: Muted",
     exit: "Exit",
     unlockMouse: "ESC - Show Mouse",
+    muted: "Muted",
+    active: "Active",
+    countryBrazil: "Brazil",
+    countryUSA: "USA",
+    countrySpain: "Spain",
+    countryFrance: "France",
+    closeSelection: "Close selection",
+    openSelection: "Open selection",
+    requiredLevel: "REQUIRES LEVEL",
+    pilotProfile: "Pilot Profile",
+    activateSound: "Unmute sound",
+    muteSound: "Mute sound",
+    tempLicenseActive: "Temporary License",
+    testFor15Min: "Test For 15 Min",
+    adAuthDesc: "This is a temporary authorization granted by the testing program to try unreleased technologies.",
+    watchAdDesc: "Watch the video to validate your",
+    tuning: "Tuning...",
+    validity15Min: "Validity: 15 Minutes",
+    cancel: "Cancel",
+    authRequest: "AUTHORIZATION REQUEST...",
+    connecting: "CONNECTING...",
+    checkingLicense: "CHECKING LICENSE...",
+    tempLicenseFound: "TEMPORARY LICENSE FOUND",
+    openingHangar: "OPENING HANGAR...",
+    general: "General",
+    balanced: "Balanced",
+    none: "None",
 
     // Game HUD
     flightControls: "FLIGHT CONTROLS",
@@ -231,7 +348,25 @@ export const translations: Record<Language, TranslationDict> = {
     skinLocked: "SKIN LOCKED",
     continueJourney: "Continue Journey",
     temporaryLicense: "Temporary License",
-    openHangar: "[ OPEN HANGAR ]"
+    openHangar: "[ OPEN HANGAR ]",
+    tuningTransmission: "Tuning Transmission...",
+    watchAdDoubleXp: "Watch the video to double your XP gains and level up faster!",
+    rewardAvailableSoon: "Reward available soon",
+    simulationActive: "Production Environment: Simulation Activated",
+    startingEngines: "🔥 STARTING ENGINES",
+    preparingThrusters: "⚡ PREPARING THRUSTERS",
+    driveShip: "Pilot Spaceship",
+    xpCollected: "XP COLLECTED",
+    yourTime: "YOUR TIME",
+    record: "RECORD",
+    newRecord: "NEW RECORD!",
+    xpGained: "XP GAINED",
+    pilotLevel: "Pilot Level",
+    levelUp: "LEVEL UP!",
+    xpToNextLevel: "XP to next level",
+    mouseControlActive: "Mouse Control Active (Move to Rotate)",
+    upgradeTitle: "Tactical Ship Upgrade",
+    turboPower: "Turbo (Boost)"
   },
   es: {
     prototypeWing: "Prototype Wing: Velocity",
@@ -266,6 +401,33 @@ export const translations: Record<Language, TranslationDict> = {
     soundOff: "Efectos: Silenciados",
     exit: "Salir",
     unlockMouse: "ESC - Mostrar Mouse",
+    muted: "Silenciado",
+    active: "Activo",
+    countryBrazil: "Brasil",
+    countryUSA: "EE. UU.",
+    countrySpain: "España",
+    countryFrance: "Francia",
+    closeSelection: "Cerrar selección",
+    openSelection: "Abrir selección",
+    requiredLevel: "REQUIERE NIVEL",
+    pilotProfile: "Perfil del Piloto",
+    activateSound: "Activar sonido",
+    muteSound: "Silenciar sonido",
+    tempLicenseActive: "Licencia Temporal",
+    testFor15Min: "Probar Por 15 Min",
+    adAuthDesc: "Esta es una autorización temporal otorgada por el programa de pruebas para experimentar tecnologías no liberadas.",
+    watchAdDesc: "Mira el video para validar tu",
+    tuning: "Sintonizando...",
+    validity15Min: "Validez: 15 Minutos",
+    cancel: "Cancelar",
+    authRequest: "SOLICITUD DE AUTORIZACIÓN...",
+    connecting: "CONECTANDO...",
+    checkingLicense: "VERIFICANDO LICENCIA...",
+    tempLicenseFound: "LICENCIA TEMPORAL ENCONTRADA",
+    openingHangar: "ABRIENDO HANGAR...",
+    general: "General",
+    balanced: "Equilibrado",
+    none: "Ninguna",
 
     // Game HUD
     flightControls: "CONTROLES DE VUELO",
@@ -308,7 +470,25 @@ export const translations: Record<Language, TranslationDict> = {
     skinLocked: "SKIN BLOQUEADA",
     continueJourney: "Continuar Viaje",
     temporaryLicense: "Licencia Temporal",
-    openHangar: "[ OPEN HANGAR ]"
+    openHangar: "[ OPEN HANGAR ]",
+    tuningTransmission: "Sintonizando Transmisión...",
+    watchAdDoubleXp: "¡Mira el video para duplicar tus ganancias de XP y subir de nivel más rápido!",
+    rewardAvailableSoon: "Recompensa disponible pronto",
+    simulationActive: "Entorno de Producción: Simulación Activada",
+    startingEngines: "🔥 ARRANCANDO MOTORES",
+    preparingThrusters: "⚡ PREPARANDO PROPULSORES",
+    driveShip: "Conducir Nave",
+    xpCollected: "XP RECOLECTADO",
+    yourTime: "TU TIEMPO",
+    record: "RÉCORD",
+    newRecord: "¡NUEVO RÉCORD!",
+    xpGained: "XP GANADO",
+    pilotLevel: "Nivel de Piloto",
+    levelUp: "¡SUBIDA DE NIVEL!",
+    xpToNextLevel: "XP para el siguiente nivel",
+    mouseControlActive: "Control de Mouse Activo (Mover para Girar)",
+    upgradeTitle: "Mejora Táctica de Nave",
+    turboPower: "Turbo (Impulso)"
   },
   fr: {
     prototypeWing: "Prototype Wing: Velocity",
@@ -343,6 +523,33 @@ export const translations: Record<Language, TranslationDict> = {
     soundOff: "Effets : Muets",
     exit: "Quitter",
     unlockMouse: "ESC - Afficher la Souris",
+    muted: "Muet",
+    active: "Actif",
+    countryBrazil: "Brésil",
+    countryUSA: "États-Unis",
+    countrySpain: "Espagne",
+    countryFrance: "France",
+    closeSelection: "Fermer la sélection",
+    openSelection: "Ouvrir la sélection",
+    requiredLevel: "NIVEAU REQUIS",
+    pilotProfile: "Profil du Pilote",
+    activateSound: "Activer le son",
+    muteSound: "Couper le son",
+    tempLicenseActive: "Licence Temporaire",
+    testFor15Min: "Tester Pendant 15 Min",
+    adAuthDesc: "Il s'agit d'une autorisation temporaire accordée par le programme de test pour essayer des technologies non publiées.",
+    watchAdDesc: "Regardez la vidéo pour valider votre",
+    tuning: "Réglage...",
+    validity15Min: "Validité : 15 Minutes",
+    cancel: "Annuler",
+    authRequest: "DEMANDE D'AUTORISATION...",
+    connecting: "CONNEXION...",
+    checkingLicense: "VÉRIFICATION DE LICENCE...",
+    tempLicenseFound: "LICENCE TEMPORAIRE TROUVÉE",
+    openingHangar: "OUVERTURE DU HANGAR...",
+    general: "Général",
+    balanced: "Équilibré",
+    none: "Aucune",
 
     // Game HUD
     flightControls: "COMMANDES DE VOL",
@@ -385,7 +592,25 @@ export const translations: Record<Language, TranslationDict> = {
     skinLocked: "SKIN VERROUILLÉE",
     continueJourney: "Continuer le Voyage",
     temporaryLicense: "Licence Temporaire",
-    openHangar: "[ OPEN HANGAR ]"
+    openHangar: "[ OPEN HANGAR ]",
+    tuningTransmission: "Syntonisation de la Transmission...",
+    watchAdDoubleXp: "Regardez la vidéo para doubler vos gains d'XP et monter de niveau plus vite !",
+    rewardAvailableSoon: "Récompense disponible bientôt",
+    simulationActive: "Environnement de Production : Simulation Activée",
+    startingEngines: "🔥 DÉMARRAGE DES MOTEURS",
+    preparingThrusters: "⚡ PRÉPARATION DES PROPULSEURS",
+    driveShip: "Conduire le Vaisseau",
+    xpCollected: "XP COLLECTÉS",
+    yourTime: "VOTRE TEMPS",
+    record: "RECORD",
+    newRecord: "NOUVEAU RECORD !",
+    xpGained: "XP GAGNÉS",
+    pilotLevel: "Niveau Pilote",
+    levelUp: "NIVEAU SUPÉRIEUR !",
+    xpToNextLevel: "XP pour o prochain niveau",
+    mouseControlActive: "Contrôle Souris Actif (Déplacer pour Tourner)",
+    upgradeTitle: "Amélioration Tactique de Vaisseau",
+    turboPower: "Turbo (Boost)"
   }
 };
 
