@@ -124,6 +124,20 @@ function RouteCard3D({
         return;
       }
       playSound("click", isMuted);
+
+      // Solicita o Pointer Lock AQUI, de forma síncrona, dentro do clique real do usuário.
+      // É o único momento em que o navegador aceita a chamada sem exigir um novo gesto:
+      // se pedirmos depois (ex: num setTimeout após a animação de decolagem, como era feito
+      // antes em SpaceSimulator.tsx), a "user activation" do clique já expirou e o navegador
+      // rejeita silenciosamente. Travamos em document.body porque o container do simulador
+      // ainda nem existe no DOM neste instante (o SpaceSimulator só monta a seguir).
+      if (document.body.requestPointerLock) {
+        document.body.requestPointerLock().catch(() => {
+          // Alguns navegadores exigem que o documento já esteja em foco/visível; se falhar
+          // aqui, o próprio SpaceSimulator ainda tenta de novo no primeiro clique dentro do jogo.
+        });
+      }
+
       setSelectedRoute(route);
       setIsSimulatorActive(true);
     } else {
