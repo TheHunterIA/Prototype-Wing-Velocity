@@ -176,13 +176,16 @@ function RouteCard3D({
         className="w-full h-1/2 relative bg-zinc-900 rounded-t-xl overflow-hidden border-b border-white/10"
         style={{ transform: isActive ? "translateZ(20px)" : "none", transformStyle: "preserve-3d" }}
       >
+        <img 
+          src={route.image} 
+          alt={route.name}
+          className="absolute inset-0 w-full h-full object-cover opacity-80"
+          referrerPolicy="no-referrer"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10" />
         {isActive && (
           <div className="absolute inset-0 bg-orange-500/10 z-10 mix-blend-overlay" />
         )}
-        <div className="absolute inset-0 flex items-center justify-center text-white/5 opacity-50 z-0">
-          <span className="font-display font-black text-6xl rotate-[-15deg] whitespace-nowrap uppercase tracking-widest">{route.name}</span>
-        </div>
       </div>
 
       <div 

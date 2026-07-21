@@ -1,6 +1,5 @@
 import React from "react";
-import { Play } from "lucide-react";
-import { SciFiButton } from "../ui/SciFiButton";
+import { Rocket, Lock } from "lucide-react";
 
 interface ChooseShipButtonProps {
   t: any;
@@ -9,31 +8,27 @@ interface ChooseShipButtonProps {
   isMobile: boolean;
 }
 
-export function ChooseShipButton({ t, onClick, isLocked, isMobile }: ChooseShipButtonProps) {
+export function ChooseShipButton({ t, onClick, isLocked }: ChooseShipButtonProps) {
   return (
-    <div className={`absolute ${isMobile ? 'bottom-8' : 'bottom-12'} left-1/2 -translate-x-1/2 z-40 w-full max-w-sm px-4 group`}>
-      <SciFiButton
-        variant="orange"
-        onClick={onClick}
-        className="w-full py-4 text-[12px] font-black uppercase tracking-[0.2em] relative overflow-hidden"
-      >
-        <span className="relative z-10 flex items-center gap-3">
-          {isLocked ? (
-            <>
-              {t.prototypeLocked}
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4 fill-black group-hover:scale-125 transition-transform duration-500" />
-              {t.openHangar || "[ OPEN HANGAR ]"}
-            </>
-          )}
-        </span>
-        {/* Glow effect passing over the button */}
-        {!isLocked && (
-          <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-[-20deg] group-hover:animate-[shine_1.5s_ease-in-out_infinite]" />
-        )}
-      </SciFiButton>
-    </div>
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 px-8 py-4 border rounded-full text-white font-black font-mono text-xs tracking-[0.2em] uppercase cursor-pointer pointer-events-auto transition-all duration-300 group hover:scale-105 active:scale-95 ${
+        isLocked 
+          ? "bg-zinc-800 border-zinc-600 text-zinc-400 shadow-[0_0_15px_rgba(0,0,0,0.5)]"
+          : "bg-gradient-to-r from-orange-600 to-amber-500 border-orange-400/40 shadow-[0_0_30px_rgba(249,115,22,0.4)] hover:shadow-[0_0_45px_rgba(249,115,22,0.6)]"
+      }`}
+    >
+      {isLocked ? (
+        <>
+          <Lock className="w-4 h-4 text-zinc-400" />
+          {t.prototypeLocked || "PROTÓTIPO BLOQUEADO"}
+        </>
+      ) : (
+        <>
+          <Rocket className="w-4 h-4 text-white group-hover:translate-y-[-2px] group-hover:translate-x-[2px] transition-transform duration-300 animate-pulse" />
+          {t.chooseShip}
+        </>
+      )}
+    </button>
   );
 }

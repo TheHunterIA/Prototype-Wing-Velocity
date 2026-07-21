@@ -445,7 +445,7 @@ export default function SpaceScene() {
 
         {/* Telemetry Dashboard (Left Side) - Super Compact & Low-Profile */}
         {!isRouteSelectionOpen && (
-          <div className="absolute left-6 bottom-4 z-20 pointer-events-none w-48">
+          <div className="absolute left-6 bottom-4 z-20 w-48">
             <AnimatePresence mode="wait">
               <motion.div 
                 key={currentShip.id}
@@ -516,7 +516,7 @@ export default function SpaceScene() {
             </div>
 
             {/* Centered Space Launch / Select Ship Button */}
-            <div className="absolute left-1/2 bottom-6 -translate-x-1/2 z-20 pointer-events-none">
+            <div className="absolute left-1/2 bottom-6 -translate-x-1/2 z-20">
               <div className="flex flex-col items-center gap-3">
                 <ChooseShipButton 
                   t={t}
