@@ -1,0 +1,22 @@
+{
+  "collections": {
+    "players": {
+      "xp": "number",
+      "level": "number",
+      "trackRecords": "object",
+      "temporaryLicenses": "object",
+      "totalRaces": "number",
+      "unlockedShips": "array",
+      "updatedAt": "timestamp"
+    },
+    "leaderboards": {
+      "userId": "string",
+      "userName": "string",
+      "trackId": "string",
+      "time": "number",
+      "shipId": "string",
+      "level": "number",
+      "updatedAt": "timestamp"
+    }
+  }
+}

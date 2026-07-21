@@ -1,0 +1,8 @@
+{
+  "name": "Galactic Odyssey",
+  "description": "Um simulador de corrida espacial imersivo com física avançada, combate e trilha sonora procedural.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
