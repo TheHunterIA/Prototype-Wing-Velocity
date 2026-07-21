@@ -180,14 +180,19 @@ export default function SpaceScene() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [adTarget, setAdTarget] = useState<{ id: string, type: 'ship' | 'skin', name: string } | null>(null);
   const [tick, setTick] = useState(0);
-  // Update UI every second to refresh license timers
+  // Atualiza a UI periodicamente para refletir a expiração de licenças/boosts temporários.
+  // - Não roda enquanto o simulador (jogo) está ativo, pois essa tela nem é renderizada
+  //   durante a corrida e o tick só causaria re-renders inúteis no componente pai.
+  // - Intervalo de 3s (em vez de 1s) é suficiente para timers de licença e reduz
+  //   a frequência de re-render de toda a árvore do hangar em ~66%.
   useEffect(() => {
     audioService.init();
+    if (isSimulatorActive) return;
     const interval = setInterval(() => {
       setTick(prev => prev + 1);
-    }, 1000);
+    }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isSimulatorActive]);
 
   useEffect(() => {
     audioService.setMute(isMuted);
@@ -311,6 +316,7 @@ export default function SpaceScene() {
         setGraphicsQuality={setGraphicsQuality}
         language={language}
         onHangarStateChange={setIsSimulatorHangarActive}
+        isMobile={isMobile}
       />
     );
   }

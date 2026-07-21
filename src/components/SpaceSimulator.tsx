@@ -1610,6 +1610,7 @@ interface SpaceSimulatorProps {
   setGraphicsQuality: (quality: "high" | "low") => void;
   language?: Language;
   onHangarStateChange?: (isActive: boolean) => void;
+  isMobile?: boolean;
 }
 
 function ShipThrusters({ currentShip, selectedColor, keysRef, abilityActive, velocityRef }: { currentShip: ShipData, selectedColor: any, keysRef: React.RefObject<any>, abilityActive: boolean, velocityRef: React.RefObject<number> }) {
@@ -1702,7 +1703,7 @@ function ShipCrosshair({ selectedColor }: { selectedColor: any }) {
   );
 }
 
-const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor, isMuted, onExit, selectedRoute, graphicsQuality, setGraphicsQuality, language, onHangarStateChange }: SpaceSimulatorProps) {
+const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor, isMuted, onExit, selectedRoute, graphicsQuality, setGraphicsQuality, language, onHangarStateChange, isMobile = false }: SpaceSimulatorProps) {
   const t = translations[language || "pt"];
   const scoreRef = useRef(0);
   const shieldRef = useRef(100);
@@ -1908,7 +1909,12 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
 
   const countdown = null;
   
-  const asteroidCount = Math.round((graphicsQuality === "high" ? 400 : 120) * selectedRoute.asteroidDensity);
+  // Em dispositivos móveis reduzimos a base de asteroides, já que GPUs móveis
+  // sofrem muito mais com o fill-rate de centenas de instâncias + partículas simultâneas.
+  const baseAsteroidCount = graphicsQuality === "high"
+    ? (isMobile ? 200 : 400)
+    : (isMobile ? 60 : 120);
+  const asteroidCount = Math.round(baseAsteroidCount * selectedRoute.asteroidDensity);
 
   // Função mestre para calcular a trajetória tridimensional específica e temática de cada pista
   const calculateRingPosition = useCallback((idx: number) => {
@@ -2172,6 +2178,10 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
     });
   }, [selectedRoute, getRouteCenterAtZ]);
 
+  // Máximo de explosões ativas ao mesmo tempo. Evita que colisões em sequência rápida
+  // (ex: bater em vários asteroides seguidos) empilhem partículas e derrubem o FPS.
+  const MAX_CONCURRENT_EXPLOSIONS = 8;
+
   const createExplosion = (pos: THREE.Vector3, color: string) => {
     const parsedColor = new THREE.Color(color);
     const r = parsedColor.r;
@@ -2184,6 +2194,12 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
       r, g, b,
       color 
     }));
+
+    // Se já atingiu o limite, remove a explosão mais antiga antes de adicionar a nova
+    if (explosionsRef.current.length >= MAX_CONCURRENT_EXPLOSIONS) {
+      explosionsRef.current.shift();
+    }
+
     explosionsRef.current.push({ id: Math.random().toString(), position: pos.clone(), particles, life: 1.0 });
   };
 
