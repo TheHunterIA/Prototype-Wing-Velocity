@@ -3097,6 +3097,9 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
 const RenderExplosions = memo(function RenderExplosions({ explosionsRef }: { explosionsRef: React.RefObject<ExplosionState[]> }) {
   const meshRef = useRef<THREE.Points>(null);
   const maxParticles = 3000;
+  // Rastreia se havia partículas ativas no frame anterior, para saber se ainda
+  // precisamos de um último upload que "limpe" o draw range (ex: última explosão acabou).
+  const hadParticlesLastFrame = useRef(false);
 
   // Pré-alocar arrays na CPU para reusar e evitar Garbage Collection
   const [positions, colors, sizes] = useMemo(() => {
@@ -3135,16 +3138,24 @@ const RenderExplosions = memo(function RenderExplosions({ explosionsRef }: { exp
 
       const geom = meshRef.current.geometry;
       if (geom) {
-        const posAttr = geom.attributes.position as THREE.BufferAttribute;
-        const colAttr = geom.attributes.color as THREE.BufferAttribute;
-        const sizAttr = geom.attributes.size as THREE.BufferAttribute;
+        // Sem isso, o Three.js reenviaria ~96KB de buffers pra GPU TODO frame,
+        // para sempre (inclusive no hangar e telas de fim de jogo), mesmo sem
+        // nenhuma explosão ativa. Só fazemos o upload quando há partículas agora
+        // ou havia no frame anterior (para "limpar" o último frame com dados).
+        const hasParticlesNow = particleIdx > 0;
+        if (hasParticlesNow || hadParticlesLastFrame.current) {
+          const posAttr = geom.attributes.position as THREE.BufferAttribute;
+          const colAttr = geom.attributes.color as THREE.BufferAttribute;
+          const sizAttr = geom.attributes.size as THREE.BufferAttribute;
 
-        if (posAttr && colAttr && sizAttr) {
-          posAttr.needsUpdate = true;
-          colAttr.needsUpdate = true;
-          sizAttr.needsUpdate = true;
+          if (posAttr && colAttr && sizAttr) {
+            posAttr.needsUpdate = true;
+            colAttr.needsUpdate = true;
+            sizAttr.needsUpdate = true;
+          }
+          geom.setDrawRange(0, particleIdx);
         }
-        geom.setDrawRange(0, particleIdx);
+        hadParticlesLastFrame.current = hasParticlesNow;
       }
     }
   });
