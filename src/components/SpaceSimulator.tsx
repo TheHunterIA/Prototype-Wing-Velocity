@@ -1365,8 +1365,9 @@ const RenderAsteroids = memo(function RenderAsteroids({ asteroids, texture, sele
     }
   }, [selectedRoute.id, asteroidGeometry, dysonScrapGeometry, highwayGeometry, plasmaGeometry]);
 
-  const updateAsteroidMatrices = () => {
+  const updateAsteroidMatrices = useCallback(() => {
     if (!meshRef.current) return;
+    const mesh = meshRef.current;
     for (let i = 0; i < count; i++) {
       const a = asteroids[i];
       if (!a) continue;
@@ -1375,22 +1376,24 @@ const RenderAsteroids = memo(function RenderAsteroids({ asteroids, texture, sele
       const s = a.scale * 2.5;
       dummy.scale.set(s, s, s);
       dummy.updateMatrix();
-      meshRef.current.setMatrixAt(i, dummy.matrix);
+      mesh.setMatrixAt(i, dummy.matrix);
     }
-    meshRef.current.instanceMatrix.needsUpdate = true;
-  };
+    mesh.instanceMatrix.needsUpdate = true;
+  }, [asteroids, count, dummy]);
 
   // Definir matrizes estáticas apenas quando asteroides ou geometria mudarem
   useEffect(() => {
-    const t = setTimeout(() => {
-      updateAsteroidMatrices();
-    }, 50);
-    return () => clearTimeout(t);
-  }, [asteroids, count, geometryToUse]);
+    updateAsteroidMatrices();
+  }, [asteroids, count, geometryToUse, updateAsteroidMatrices]);
 
-  // Executar a atualização a cada frame apenas quando houver asteroides se movendo ou se alguma posição tiver mudado (como wrap de asteroide)
+  // Executar a atualização a cada frame apenas quando necessário (wrap de asteroide ou movimento)
+  const frameCounterRef = useRef(0);
   useFrame(() => {
-    if (selectedRoute.hasMovingAsteroids || (asteroidsChangedRef && asteroidsChangedRef.current)) {
+    frameCounterRef.current++;
+    const shouldUpdateMoving = selectedRoute.hasMovingAsteroids && (frameCounterRef.current % 2 === 0);
+    const shouldUpdateWrap = asteroidsChangedRef && asteroidsChangedRef.current;
+
+    if (shouldUpdateMoving || shouldUpdateWrap) {
       updateAsteroidMatrices();
       if (asteroidsChangedRef) {
         asteroidsChangedRef.current = false;
@@ -2067,8 +2070,8 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
   // Em dispositivos móveis reduzimos a base de asteroides, já que GPUs móveis
   // sofrem muito mais com o fill-rate de centenas de instâncias + partículas simultâneas.
   const baseAsteroidCount = graphicsQuality === "high"
-    ? (isMobile ? 200 : 400)
-    : (isMobile ? 60 : 120);
+    ? (isMobile ? 100 : 200)
+    : (isMobile ? 40 : 80);
   const asteroidCount = Math.round(baseAsteroidCount * selectedRoute.asteroidDensity);
 
   // Função mestre para calcular a trajetória tridimensional específica e temática de cada pista
@@ -2644,8 +2647,8 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
       <div className="absolute inset-0 z-0">
         <Canvas 
           camera={{ position: [0, 6, 26], fov: 45, far: 200000 }} 
-          shadows="soft"
-          gl={{ logarithmicDepthBuffer: true, antialias: true }}
+          shadows={graphicsQuality === "high" ? "soft" : false}
+          gl={{ logarithmicDepthBuffer: true, antialias: graphicsQuality === "high" }}
         >
           <PerformanceController graphicsQuality={graphicsQuality} setGraphicsQuality={setGraphicsQuality} />
           <DynamicFOV velocityRef={velocityRef} />
@@ -2661,7 +2664,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
             <directionalLight 
               position={[10, 25, 15]} 
               intensity={3.5} 
-              castShadow 
+              castShadow={graphicsQuality === "high"}
               shadow-mapSize={[2048, 2048]}
               shadow-camera-near={1}
               shadow-camera-far={200}
@@ -2752,18 +2755,13 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
 
           {graphicsQuality === "high" && (
             <EffectComposer key="sim-composer-high">
-              <Bloom luminanceThreshold={0.8} mipmapBlur intensity={0.35} />
-              <ChromaticAberration offset={[0.001, 0.001]} radialModulation modulationOffset={0.3} />
-              <BrightnessContrast brightness={0} contrast={0.08} />
-              <HueSaturation hue={0} saturation={-0.05} />
-              <Noise opacity={0.02} />
-              <Vignette eskil={false} offset={0.1} darkness={0.9} />
+              <Bloom luminanceThreshold={0.82} intensity={0.3} />
+              <Vignette eskil={false} offset={0.1} darkness={0.8} />
             </EffectComposer>
           )}
           {graphicsQuality === "low" && (
             <EffectComposer key="sim-composer-low">
-              <Bloom luminanceThreshold={0.9} intensity={0.25} />
-              <Vignette eskil={false} offset={0.1} darkness={0.85} />
+              <Bloom luminanceThreshold={0.92} intensity={0.2} />
             </EffectComposer>
           )}
         </Canvas>
@@ -4862,10 +4860,10 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
             }
           }
         }
-      } else if (zDiff > 25000) {
-        // Wrap asteroids that are left far behind
-        tempScatter.set((Math.random() - 0.5) * 40000, (Math.random() - 0.5) * 15000, (Math.random() - 0.5) * 40000);
-        a.pos.copy(ship.position).addScaledVector(fd, 30000 + Math.random() * 20000).add(tempScatter);
+      } else if (zDiff > 12000) {
+        // Reenvelopar asteroides que ficaram para trás, posicionando-os à frente na rota
+        tempScatter.set((Math.random() - 0.5) * 20000, (Math.random() - 0.5) * 8000, (Math.random() - 0.5) * 10000);
+        a.pos.copy(ship.position).addScaledVector(fd, 18000 + Math.random() * 15000).add(tempScatter);
         if (asteroidsChangedRef) {
           asteroidsChangedRef.current = true;
         }

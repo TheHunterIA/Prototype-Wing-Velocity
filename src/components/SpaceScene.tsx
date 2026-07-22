@@ -439,7 +439,12 @@ export default function SpaceScene() {
       {/* Main interactive viewport */}
       <main className="flex-1 relative min-h-0 z-0">
         <div className="absolute inset-0">
-          <Canvas camera={{ position: [0, 1.5, 16], fov: 40 }} dpr={[1, 2]} shadows="soft">
+          <Canvas
+            camera={{ position: [0, 1.5, 16], fov: 40 }}
+            dpr={graphicsQuality === "high" ? [1, 2] : [1, 1]}
+            shadows={graphicsQuality === "high"}
+            gl={{ antialias: graphicsQuality === "high" }}
+          >
             <OrbitControls 
               enablePan={false} 
               enableZoom={!isRouteSelectionOpen} 
@@ -467,7 +472,7 @@ export default function SpaceScene() {
             <directionalLight 
               position={[5, 10, 8]} 
               intensity={isCurrentShipLocked ? 0.0 : 1.0} 
-              castShadow={!isCurrentShipLocked} 
+              castShadow={!isCurrentShipLocked && graphicsQuality === "high"} 
             />
             
             {/* Saturated cinematic side/rim lights - subtle edge contour when locked */}
@@ -477,7 +482,9 @@ export default function SpaceScene() {
 
             {/* Localized Suspense boundary to prevent unmounting lights and controls during load */}
             <Suspense fallback={null}>
-              <Environment preset="night" environmentIntensity={isCurrentShipLocked ? 0.2 : 0.8} />
+              {graphicsQuality === "high" && (
+                <Environment preset="night" environmentIntensity={isCurrentShipLocked ? 0.2 : 0.8} />
+              )}
               <Spaceship 
                 modelFile={currentShip.modelFile} 
                 textureFile={selectedColor.textureFile}
