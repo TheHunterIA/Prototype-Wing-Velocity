@@ -1381,10 +1381,31 @@ const RenderAsteroids = memo(function RenderAsteroids({ asteroids, texture, sele
     meshRef.current.instanceMatrix.needsUpdate = true;
   };
 
+  const dummyColor = useMemo(() => new THREE.Color(), []);
+  // Variação de tonalidade por instância (composição mineral "diferente" por asteroide) -
+  // usa o instanceColor nativo do InstancedMesh, que o Three.js já multiplica pelo
+  // material.color no shader padrão. Zero draw calls extras, zero shader customizado.
+  const updateAsteroidColors = () => {
+    if (!meshRef.current) return;
+    for (let i = 0; i < count; i++) {
+      const a = asteroids[i];
+      if (!a) continue;
+      // Seed determinística por asteroide (mesmo índice = mesma variação sempre, sem "piscar"
+      // ao recalcular). Varia só brilho/leve tonalidade - sutil o bastante pra não parecer bug.
+      const seed = Math.sin(i * 12.9898) * 43758.5453;
+      const variation = seed - Math.floor(seed); // 0..1 determinístico
+      const brightness = 0.82 + variation * 0.36; // ±18% em torno do brilho base
+      dummyColor.setRGB(brightness, brightness, brightness);
+      meshRef.current.setColorAt(i, dummyColor);
+    }
+    if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
+  };
+
   // Definir matrizes estáticas apenas quando asteroides ou geometria mudarem
   useEffect(() => {
     const t = setTimeout(() => {
       updateAsteroidMatrices();
+      updateAsteroidColors();
     }, 50);
     return () => clearTimeout(t);
   }, [asteroids, count, geometryToUse]);
@@ -2746,7 +2767,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
             {graphicsQuality === "high" && (
               <>
                 <SpeedPostFX velocityRef={velocityRef} chromaticRef={chromaticFXRef} dofRef={dofFXRef} />
-                <EffectComposer>
+                <EffectComposer multisampling={4}>
                   {/* Oclusão de ambiente: ancora visualmente nave/asteroides/planetas ao invés de "flutuarem" sem contato */}
                   <SSAO
                     blendFunction={BlendFunction.MULTIPLY}
@@ -2771,7 +2792,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
               </>
             )}
             {graphicsQuality === "low" && (
-              <EffectComposer>
+              <EffectComposer multisampling={4}>
                 <Bloom luminanceThreshold={0.9} intensity={0.25} />
                 <Vignette eskil={false} offset={0.1} darkness={0.85} />
               </EffectComposer>
@@ -3255,26 +3276,30 @@ function SpeedPostFX({ velocityRef, chromaticRef, dofRef }: {
     // Normaliza a velocidade num intervalo 0..1 (velocidade de cruzeiro ~450, turbo ~1125)
     const speedFactor = THREE.MathUtils.clamp(speed / 900, 0, 1);
 
-    if (chromaticRef.current) {
-      // Deslocamento bem sutil - isso é sobre reforçar velocidade, não simular danos na lente
-      const targetOffset = speedFactor * 0.0022;
-      const off = chromaticRef.current.offset as THREE.Vector2;
-      off.x = THREE.MathUtils.lerp(off.x, targetOffset, dt * 4);
-      off.y = THREE.MathUtils.lerp(off.y, targetOffset, dt * 4);
-    }
-
-    if (dofRef.current) {
-      // Em alta velocidade o foco "aperta" mais perto da nave, borrando levemente o fundo distante
-      const targetFocusDistance = THREE.MathUtils.lerp(0.02, 0.008, speedFactor);
-      dofRef.current.target?.set?.(0, 0, 0);
-      if (dofRef.current.circleOfConfusionMaterial) {
-        dofRef.current.circleOfConfusionMaterial.uniforms.focusDistance.value = THREE.MathUtils.lerp(
-          dofRef.current.circleOfConfusionMaterial.uniforms.focusDistance.value,
-          targetFocusDistance,
-          dt * 3
-        );
+    // Todo acesso abaixo mexe em propriedades internas da lib @react-three/postprocessing que
+    // não pude confirmar rodando o projeto de verdade (sem rede/node_modules neste ambiente).
+    // Cada bloco é blindado individualmente para nunca travar o loop de render caso algum nome
+    // de propriedade esteja diferente do esperado - na pior das hipóteses, o efeito
+    // correspondente simplesmente não anima, mas o jogo continua funcionando normalmente.
+    try {
+      if (chromaticRef.current && chromaticRef.current.offset) {
+        // Deslocamento bem sutil - isso é sobre reforçar velocidade, não simular danos na lente
+        const targetOffset = speedFactor * 0.0022;
+        const off = chromaticRef.current.offset as THREE.Vector2;
+        off.x = THREE.MathUtils.lerp(off.x, targetOffset, dt * 4);
+        off.y = THREE.MathUtils.lerp(off.y, targetOffset, dt * 4);
       }
-    }
+    } catch { /* efeito de aberração cromática não suporta esse acesso - ignora e segue */ }
+
+    try {
+      const cocMaterial = dofRef.current?.circleOfConfusionMaterial;
+      const focusUniform = cocMaterial?.uniforms?.focusDistance;
+      if (focusUniform) {
+        // Em alta velocidade o foco "aperta" mais perto da nave, borrando levemente o fundo distante
+        const targetFocusDistance = THREE.MathUtils.lerp(0.02, 0.008, speedFactor);
+        focusUniform.value = THREE.MathUtils.lerp(focusUniform.value, targetFocusDistance, dt * 3);
+      }
+    } catch { /* efeito de depth of field não suporta esse acesso - ignora e segue */ }
   });
   return null;
 }
@@ -3333,10 +3358,12 @@ const RenderNebulas = memo(function RenderNebulas({ nebulas }: { nebulas: any[] 
   const coreTexture = useMemo(() => generateNebulaCoreTexture(), []);
   const outerRefs = useRef<(THREE.Sprite | null)[]>([]);
   const innerRefs = useRef<(THREE.Sprite | null)[]>([]);
+  const farRefs = useRef<(THREE.Sprite | null)[]>([]);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     for (let i = 0; i < nebulas.length; i++) {
+      const neb = nebulas[i];
       // Leve rotação de parallax — cada camada gira numa velocidade levemente diferente,
       // o que já dá sensação de profundidade e movimento sem custo de CPU/GPU real
       // (apenas a propriedade `.rotation` do material, nenhum buffer é tocado).
@@ -3344,6 +3371,15 @@ const RenderNebulas = memo(function RenderNebulas({ nebulas }: { nebulas: any[] 
       if (outerMat) outerMat.rotation = t * 0.015 + i;
       const innerMat = innerRefs.current[i]?.material as THREE.SpriteMaterial | undefined;
       if (innerMat) innerMat.rotation = -t * 0.025 + i;
+      const farSprite = farRefs.current[i];
+      if (farSprite) {
+        (farSprite.material as THREE.SpriteMaterial).rotation = t * 0.008 + i * 1.7;
+        // "Respiração" bem sutil de escala - dá sensação de gás vivo em vez de sprite estático,
+        // sem precisar de shader/volume real. Amplitude pequena o bastante pra não parecer "pulsando".
+        const breathe = 1.0 + Math.sin(t * 0.12 + i * 2.1) * 0.035;
+        const baseScale = neb.scale * 2.1;
+        farSprite.scale.set(baseScale * breathe, baseScale * breathe, 1);
+      }
     }
   });
 
@@ -3351,6 +3387,9 @@ const RenderNebulas = memo(function RenderNebulas({ nebulas }: { nebulas: any[] 
     <group>
       {nebulas.map((neb, i) => (
         <group key={i}>
+          <sprite ref={(el) => { farRefs.current[i] = el; }} position={neb.pos} scale={[neb.scale * 2.1, neb.scale * 2.1, 1]}>
+            <spriteMaterial map={wispTexture} color={neb.color} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.025} />
+          </sprite>
           <sprite ref={(el) => { outerRefs.current[i] = el; }} position={neb.pos} scale={[neb.scale * 1.4, neb.scale * 1.4, 1]}>
             <spriteMaterial map={wispTexture} color={neb.color} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.05} />
           </sprite>
