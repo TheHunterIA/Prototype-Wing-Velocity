@@ -739,9 +739,12 @@ const EarthModel = memo(function EarthModel({ planet }: { planet: { id: string; 
   const planetRef = useRef<THREE.Mesh>(null);
   const cloudsRef = useRef<THREE.Mesh>(null);
 
-  const planetTexture = useMemo(() => {
+  // Textura real da Terra (Blue Marble/NASA) — cai para a versão procedural apenas se o arquivo não carregar
+  const realEarthTexture = useSafeTexture("/earth_texture.webp");
+  const proceduralEarthTexture = useMemo(() => {
     return generateNoiseTexture(1024, 512, "earth", "#0a3b8c");
   }, []);
+  const planetTexture = realEarthTexture || proceduralEarthTexture;
 
   const cloudsTexture = useMemo(() => {
     return generateCloudsTexture(1024, 512);
