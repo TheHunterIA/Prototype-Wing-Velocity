@@ -76,6 +76,7 @@ const SpaceshipView = memo(function SpaceshipView({
       emissiveIntensity: isLocked ? 0 : 0.5,
       roughness: 1,
       metalness: 1,
+      envMapIntensity: 1.15,
       side: THREE.DoubleSide,
     });
 

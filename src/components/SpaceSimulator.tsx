@@ -1,7 +1,8 @@
 import { Suspense, useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Environment, Html, useGLTF, useTexture, useProgress, Billboard } from "@react-three/drei";
-import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocessing";
+import { EffectComposer, Bloom, Noise, Vignette, SSAO, DepthOfField, ChromaticAberration, BrightnessContrast, HueSaturation } from "@react-three/postprocessing";
+import { BlendFunction } from "postprocessing";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as THREE from "three";
 import { motion, AnimatePresence } from "motion/react";
@@ -411,6 +412,73 @@ function generateNoiseTexture(width: number, height: number, type: string, baseC
   texture.colorSpace = THREE.SRGBColorSpace;
   textureCache.set(cacheKey, texture);
   return texture;
+}
+
+const normalMapCache = new Map<string, THREE.CanvasTexture>();
+
+// Deriva um normal map real a partir do mesmo canvas usado como albedo (filtro Sobel sobre
+// a luminância). Isso troca o "bumpMap reaproveitando a textura de cor" atual — que só
+// perturba a altura numa única direção escalar e é bem mais fraco — por normais de
+// verdade em X/Y, com resposta de luz por pixel muito mais próxima de um relevo real.
+// É o maior ganho de realismo possível nos planetas SEM depender de texturas fotográficas
+// baixadas — este ambiente de execução não tem acesso à rede para buscar assets PBR reais.
+function generateNormalMapFromAlbedo(albedo: THREE.CanvasTexture, cacheKey: string, strength = 1.4) {
+  if (normalMapCache.has(cacheKey)) return normalMapCache.get(cacheKey)!;
+
+  const src = albedo.image as HTMLCanvasElement;
+  if (!src || !src.getContext) return null;
+  const width = src.width, height = src.height;
+  const srcCtx = src.getContext("2d");
+  if (!srcCtx) return null;
+  const srcData = srcCtx.getImageData(0, 0, width, height).data;
+
+  // Luminância por pixel usada como "altura" do relevo
+  const heights = new Float32Array(width * height);
+  for (let i = 0; i < width * height; i++) {
+    const r = srcData[i * 4], g = srcData[i * 4 + 1], b = srcData[i * 4 + 2];
+    heights[i] = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext("2d")!;
+  const outData = ctx.createImageData(width, height);
+
+  const at = (x: number, y: number) => {
+    const wx = (x + width) % width; // esfera é contínua horizontalmente - wrap em X
+    const wy = Math.min(height - 1, Math.max(0, y)); // clamp nos polos - sem wrap em Y
+    return heights[wy * width + wx];
+  };
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      // Kernel Sobel 3x3 para estimar o gradiente de altura em X e Y
+      const tl = at(x - 1, y - 1), t = at(x, y - 1), tr = at(x + 1, y - 1);
+      const l = at(x - 1, y), r = at(x + 1, y);
+      const bl = at(x - 1, y + 1), b = at(x, y + 1), br = at(x + 1, y + 1);
+
+      const dx = (tr + 2 * r + br) - (tl + 2 * l + bl);
+      const dy = (bl + 2 * b + br) - (tl + 2 * t + tr);
+
+      const nx = -dx * strength;
+      const ny = -dy * strength;
+      const nz = 1.0;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+
+      const idx = (y * width + x) * 4;
+      outData.data[idx] = ((nx / len) * 0.5 + 0.5) * 255;
+      outData.data[idx + 1] = ((ny / len) * 0.5 + 0.5) * 255;
+      outData.data[idx + 2] = ((nz / len) * 0.5 + 0.5) * 255;
+      outData.data[idx + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(outData, 0, 0);
+  const normalTexture = new THREE.CanvasTexture(canvas);
+  normalTexture.wrapS = THREE.RepeatWrapping;
+  normalTexture.wrapT = THREE.ClampToEdgeWrapping;
+  normalMapCache.set(cacheKey, normalTexture);
+  return normalTexture;
 }
 
 function generateSunGlowTexture(size: number = 512) {
@@ -975,6 +1043,13 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
     return generateNoiseTexture(size.w, size.h, planet.id, baseColors[planet.id] || planet.color);
   }, [planet.id, planet.color]);
 
+  // Normal map real derivado do próprio albedo - substitui o bumpMap fraco por relevo
+  // com resposta de luz em X/Y de verdade (ver generateNormalMapFromAlbedo)
+  const normalTexture = useMemo(() => {
+    if (!texture || planet.id === "sun") return null;
+    return generateNormalMapFromAlbedo(texture as THREE.CanvasTexture, planet.id);
+  }, [texture, planet.id]);
+
   const sunGlowTexture = useMemo(() => {
     if (planet.id !== "sun") return null;
     return generateSunGlowTexture(512);
@@ -1063,12 +1138,8 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
         <meshStandardMaterial 
           map={texture || undefined} 
           emissiveMap={planet.id === "sun" ? (texture || undefined) : undefined}
-          bumpMap={planet.id !== "sun" ? (texture || undefined) : undefined}
-          bumpScale={
-            planet.id === "sun" ? 0 :
-            (planet.id === "jupiter" || planet.id === "saturn") ? planet.radius * 0.0015 :
-            planet.radius * 0.008
-          }
+          normalMap={normalTexture || undefined}
+          normalScale={normalTexture ? new THREE.Vector2(0.9, 0.9) : undefined}
           color={materialProps.color} 
           emissive={materialProps.emissive}
           emissiveIntensity={materialProps.emissiveIntensity}
@@ -1231,6 +1302,13 @@ const RenderAsteroids = memo(function RenderAsteroids({ asteroids, texture, sele
     return getRouteBehavior(selectedRoute.id).asteroidMaterialProps;
   }, [selectedRoute.id]);
 
+  // Normal map real derivado da textura procedural do asteroide (mesma técnica dos planetas) -
+  // troca o bumpMap fraco por relevo com resposta de luz em X/Y de verdade nas crateras
+  const asteroidNormalTexture = useMemo(() => {
+    if (!texture) return null;
+    return generateNormalMapFromAlbedo(texture as THREE.CanvasTexture, "asteroid_field");
+  }, [texture]);
+
   // Geometria de estilhaço metálico irregular e retorcido para a Rota de Dyson (sem retângulos/caixas)
   const dysonScrapGeometry = useMemo(() => {
     const geo = new THREE.CylinderGeometry(0.5, 0.9, 1.4, 5);
@@ -1325,8 +1403,8 @@ const RenderAsteroids = memo(function RenderAsteroids({ asteroids, texture, sele
     <instancedMesh ref={meshRef} args={[geometryToUse as any, null as any, count]} frustumCulled={true}>
       <meshStandardMaterial 
         map={materialProps.useTexture ? (texture || undefined) : undefined} 
-        bumpMap={materialProps.useTexture ? (texture || undefined) : undefined}
-        bumpScale={0.15}
+        normalMap={materialProps.useTexture ? (asteroidNormalTexture || undefined) : undefined}
+        normalScale={asteroidNormalTexture ? new THREE.Vector2(1.1, 1.1) : undefined}
         color={materialProps.color} 
         emissive={materialProps.emissive}
         emissiveIntensity={materialProps.emissiveIntensity}
@@ -1689,6 +1767,8 @@ function ShipThrusters({ currentShip, selectedColor, keysRef, abilityActive, vel
     return [[0, -0.4, (box.max.z - center.z) * 0.015]] as [number, number, number][];
   }, [scene]);
 
+  const engineLightRef = useRef<THREE.PointLight>(null);
+
   useFrame((state, delta) => {
     if (!groupRef.current || !keysRef.current) return;
     
@@ -1713,6 +1793,13 @@ function ShipThrusters({ currentShip, selectedColor, keysRef, abilityActive, vel
         flame.scale.y = THREE.MathUtils.lerp(flame.scale.y, pulse, delta * 25);
       }
     });
+
+    // Luz do motor: acompanha a opacidade/pulso da chama para que o propulsor realmente
+    // ilumine o casco da nave e detritos próximos, em vez de só ter um mesh brilhante
+    if (engineLightRef.current) {
+      const targetIntensity = isBraking ? 0 : (isBoost ? 14 : THREE.MathUtils.lerp(2, 9, Math.min(1, speed / 500)));
+      engineLightRef.current.intensity = THREE.MathUtils.lerp(engineLightRef.current.intensity, targetIntensity * pulse, delta * 10);
+    }
   });
 
   if (abilityActive && currentShip.id === "sparrow-03") return null;
@@ -1726,6 +1813,14 @@ function ShipThrusters({ currentShip, selectedColor, keysRef, abilityActive, vel
               <mesh geometry={geo1} material={mat1} />
               <mesh geometry={geo2} material={mat2} />
             </group>
+            <pointLight
+              ref={i === 0 ? engineLightRef : undefined}
+              position={[0, 0, 1.0]}
+              color={selectedColor.colorHex}
+              intensity={0}
+              distance={12}
+              decay={2}
+            />
           </group>
         ))}
       </group>
@@ -1908,6 +2003,8 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
   const multiplierRef = useRef(1);
   const keysRef = useRef<KeysPressed>({ w: false, s: false, a: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, Shift: false, e: false, ' ': false });
   const pointerRef = useRef({ x: 0, y: 0 }); const shakeRef = useRef(0);
+  const chromaticFXRef = useRef<any>(null);
+  const dofFXRef = useRef<any>(null);
   const explosionsRef = useRef<ExplosionState[]>([]);
   const customRouteDataRef = useRef({
     heat: 0,
@@ -2555,6 +2652,9 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
           <Suspense fallback={null}>
             <ambientLight intensity={0.5} />
             <hemisphereLight color={selectedRoute.ambientColor} groundColor="#111111" intensity={0.7} />
+            {/* Fonte de reflexo/iluminação indireta para materiais PBR (casco da nave, etc.) — sem isso,
+                MeshStandardMaterial nunca recebe envMap e fica com aparência "plástica" mesmo com boa luz direta */}
+            {graphicsQuality === "high" && <Environment preset="night" environmentIntensity={0.6} />}
             <directionalLight 
               position={[10, 25, 15]} 
               intensity={3.5} 
@@ -2644,10 +2744,36 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
               <directionalLight position={[5, 15, 15]} intensity={6.0} />
             </group>
             {graphicsQuality === "high" && (
+              <>
+                <SpeedPostFX velocityRef={velocityRef} chromaticRef={chromaticFXRef} dofRef={dofFXRef} />
+                <EffectComposer>
+                  {/* Oclusão de ambiente: ancora visualmente nave/asteroides/planetas ao invés de "flutuarem" sem contato */}
+                  <SSAO
+                    blendFunction={BlendFunction.MULTIPLY}
+                    samples={16}
+                    radius={12}
+                    intensity={18}
+                    luminanceInfluence={0.4}
+                    distanceScaling
+                    bias={0.02}
+                  />
+                  {/* Desfoque de profundidade sutil - fundo levemente suavizado, nave sempre nítida em primeiro plano */}
+                  <DepthOfField ref={dofFXRef} focusDistance={0.012} focalLength={0.02} bokehScale={2.5} />
+                  <Bloom luminanceThreshold={0.9} mipmapBlur intensity={0.3} />
+                  {/* Aberração cromática ligada à velocidade - offset atualizado dinamicamente por SpeedPostFX */}
+                  <ChromaticAberration ref={chromaticFXRef} offset={[0, 0]} radialModulation modulationOffset={0.3} />
+                  {/* Color grading sutil: leve contraste em S e dessaturação de sombras para acabamento de trailer */}
+                  <BrightnessContrast brightness={0} contrast={0.08} />
+                  <HueSaturation hue={0} saturation={-0.06} />
+                  <Noise opacity={0.02} />
+                  <Vignette eskil={false} offset={0.1} darkness={0.9} />
+                </EffectComposer>
+              </>
+            )}
+            {graphicsQuality === "low" && (
               <EffectComposer>
-                <Bloom luminanceThreshold={0.9} mipmapBlur intensity={0.3} />
-                <Noise opacity={0.02} />
-                <Vignette eskil={false} offset={0.1} darkness={0.9} />
+                <Bloom luminanceThreshold={0.9} intensity={0.25} />
+                <Vignette eskil={false} offset={0.1} darkness={0.85} />
               </EffectComposer>
             )}
           </Suspense>
@@ -3114,6 +3240,45 @@ function DynamicFOV({ velocityRef }: { velocityRef: React.MutableRefObject<numbe
   return null;
 }
 
+// Controla os efeitos de pós-processamento ligados à velocidade: aberração cromática
+// sutil e desfoque de profundidade se intensificam com a velocidade da nave, reforçando
+// a sensação de aceleração sem depender de partículas extras. Fica FORA do <EffectComposer>
+// (como irmão, não filho) só para poder guardar refs diretas nos efeitos via prop `ref` —
+// a atualização em si acontece aqui, não dentro da árvore de composição.
+function SpeedPostFX({ velocityRef, chromaticRef, dofRef }: {
+  velocityRef: React.MutableRefObject<number>;
+  chromaticRef: React.RefObject<any>;
+  dofRef: React.RefObject<any>;
+}) {
+  useFrame((state, dt) => {
+    const speed = Math.abs(velocityRef.current);
+    // Normaliza a velocidade num intervalo 0..1 (velocidade de cruzeiro ~450, turbo ~1125)
+    const speedFactor = THREE.MathUtils.clamp(speed / 900, 0, 1);
+
+    if (chromaticRef.current) {
+      // Deslocamento bem sutil - isso é sobre reforçar velocidade, não simular danos na lente
+      const targetOffset = speedFactor * 0.0022;
+      const off = chromaticRef.current.offset as THREE.Vector2;
+      off.x = THREE.MathUtils.lerp(off.x, targetOffset, dt * 4);
+      off.y = THREE.MathUtils.lerp(off.y, targetOffset, dt * 4);
+    }
+
+    if (dofRef.current) {
+      // Em alta velocidade o foco "aperta" mais perto da nave, borrando levemente o fundo distante
+      const targetFocusDistance = THREE.MathUtils.lerp(0.02, 0.008, speedFactor);
+      dofRef.current.target?.set?.(0, 0, 0);
+      if (dofRef.current.circleOfConfusionMaterial) {
+        dofRef.current.circleOfConfusionMaterial.uniforms.focusDistance.value = THREE.MathUtils.lerp(
+          dofRef.current.circleOfConfusionMaterial.uniforms.focusDistance.value,
+          targetFocusDistance,
+          dt * 3
+        );
+      }
+    }
+  });
+  return null;
+}
+
 // Textura da camada externa: nuvem ampla e esfumaçada com variação (não é um único
 // degradê perfeito) — várias manchas radiais sobrepostas simulando turbulência de gás.
 function generateNebulaWispTexture() {
@@ -3400,9 +3565,12 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
   );
 });
 
+const EXPLOSION_LIGHT_POOL_SIZE = 4;
+
 const RenderExplosions = memo(function RenderExplosions({ explosionsRef }: { explosionsRef: React.RefObject<ExplosionState[]> }) {
   const meshRef = useRef<THREE.Points>(null);
   const maxParticles = 3000;
+  const lightPoolRef = useRef<(THREE.PointLight | null)[]>([]);
 
   // Pré-alocar arrays na CPU para reusar e evitar Garbage Collection
   const [positions, colors, sizes] = useMemo(() => {
@@ -3466,10 +3634,37 @@ const RenderExplosions = memo(function RenderExplosions({ explosionsRef }: { exp
       }
 
       lastParticleCountRef.current = particleIdx;
+
+      // Distribui as explosões mais "vivas" (life mais alto = mais recente/brilhante) entre
+      // as luzes disponíveis do pool. As demais explosões continuam só com as partículas.
+      const sorted = [...explosions].sort((a, b) => b.life - a.life).slice(0, EXPLOSION_LIGHT_POOL_SIZE);
+      for (let i = 0; i < EXPLOSION_LIGHT_POOL_SIZE; i++) {
+        const light = lightPoolRef.current[i];
+        if (!light) continue;
+        const exp = sorted[i];
+        if (exp) {
+          light.position.copy(exp.position);
+          // Curva de intensidade: pico logo após a explosão, apaga suavemente com o life
+          light.intensity = Math.max(0, exp.life) * 22;
+          light.color.set(exp.particles[0]?.color || "#ff8a3d");
+        } else {
+          light.intensity = 0;
+        }
+      }
     }
   });
 
   return (
+    <>
+      {Array.from({ length: EXPLOSION_LIGHT_POOL_SIZE }).map((_, i) => (
+        <pointLight
+          key={i}
+          ref={(el) => { lightPoolRef.current[i] = el; }}
+          intensity={0}
+          distance={40}
+          decay={2}
+        />
+      ))}
     <points ref={meshRef}>
       <bufferGeometry>
         <bufferAttribute
@@ -3496,6 +3691,7 @@ const RenderExplosions = memo(function RenderExplosions({ explosionsRef }: { exp
       </bufferGeometry>
       <pointsMaterial size={1} vertexColors transparent blending={THREE.AdditiveBlending} sizeAttenuation />
     </points>
+    </>
   );
 });
 
@@ -4306,6 +4502,11 @@ function TelemetryHUD({
 
 function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHangarActive, takeoffProgressRef, pointerRef, keysRef, scoreRef, multiplierRef, planets, asteroids, satellites, abilityActive, setAbilityActive, energyRef, currentShip, createExplosion, localMuted, shieldRef, armorRef, setIsGameOver, setIsVictory, trafficShips, shakeRef, explosionsRef, selectedColor, countdown, stats, neonRingsRef, selectedRoute, customRouteDataRef, asteroidsChangedRef, flightVectorRef }: any) {
   const cameraOffset = useRef(new THREE.Vector3(0, 2.5, 15));
+  // Quaternion "atrasado" só para orientar a câmera (nunca a posição/física da nave) — dá um
+  // leve efeito de câmera cinematográfica em curvas fechadas sem tocar na física ou na
+  // ordem de atualização que corrigiu o bug de jitter original (ver comentário mais abaixo).
+  const cameraLagQuat = useRef(new THREE.Quaternion());
+  const cameraLagInitialized = useRef(false);
   const collisionCooldownRef = useRef(0);
   
 
@@ -4477,6 +4678,7 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
         movementDirRef.current.set(0, 0, -1);
         takeoffProgressRef.current = 1;
       }
+      cameraLagInitialized.current = false;
 
       // Camera stays locked in tight first-person view inside the cockpit
       const targetOff = v_targetOff.current.set(0, 0, -1);
@@ -4777,7 +4979,21 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
     
     // Lerp the offset smoothly
     cameraOffset.current.lerpVectors(hangarCamOffset, spaceCamOffset, transitionFactor);
-    const rco = v_rco.current.copy(cameraOffset.current).applyQuaternion(baseQuat.current); 
+
+    // Orientação "atrasada" da câmera: NÃO mexe na posição/translação da nave (que continua
+    // rígida, como antes) — só suaviza a rotação usada para orientar offset/up/lookAt, dando
+    // um leve efeito de câmera cinematográfica ao entrar em curvas fechadas. Como isso roda
+    // depois que a física da nave já se resolveu no frame (mesma ordem de sempre), não
+    // reintroduz o bug de jitter que o "rigidly attach" original corrigiu.
+    if (!cameraLagInitialized.current) {
+      cameraLagQuat.current.copy(baseQuat.current);
+      cameraLagInitialized.current = true;
+    } else {
+      cameraLagQuat.current.slerp(baseQuat.current, Math.min(1, dt * 9));
+    }
+    const camQuat = cameraLagQuat.current;
+
+    const rco = v_rco.current.copy(cameraOffset.current).applyQuaternion(camQuat); 
     
     const targetCamPos = v_targetCamPos.current.copy(ship.position).add(rco);
     
@@ -4786,17 +5002,28 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
     
     // Smoothly transition UP vector
     const hangarUp = v_hangarUp.current.set(0, 1, 0);
-    const spaceUp = v_spaceUp.current.set(0, 1, 0).applyQuaternion(baseQuat.current);
+    const spaceUp = v_spaceUp.current.set(0, 1, 0).applyQuaternion(camQuat);
     state.camera.up.copy(hangarUp.lerp(spaceUp, transitionFactor));
  
     // Smoothly transition lookAt target
-    const lookAtHangarVec = v_temp1.current.set(0, 0.1, -10).applyQuaternion(baseQuat.current);
+    const lookAtHangarVec = v_temp1.current.set(0, 0.1, -10).applyQuaternion(camQuat);
     const hangarLookAt = v_hangarLookAt.current.copy(ship.position).add(lookAtHangarVec);
     
-    const lookAtSpaceVec = v_temp2.current.set(0, 0, -12).applyQuaternion(baseQuat.current);
+    const lookAtSpaceVec = v_temp2.current.set(0, 0, -12).applyQuaternion(camQuat);
     const spaceLookAt = v_spaceLookAt.current.copy(ship.position).add(lookAtSpaceVec);
     
     state.camera.lookAt(hangarLookAt.lerp(spaceLookAt, transitionFactor));
+
+    // Head-bob sutil de cockpit em alta velocidade - vibração contínua e pequena, separada
+    // do shake de impacto abaixo (que é um evento pontual, não contínuo)
+    if (!isHangarActive && transitionFactor > 0.98) {
+      const bobStrength = speedFactor * (isBoost ? 1.6 : 1.0);
+      if (bobStrength > 0.01) {
+        const t = state.clock.elapsedTime;
+        state.camera.position.y += Math.sin(t * 22.0) * 0.045 * bobStrength;
+        state.camera.position.x += Math.sin(t * 14.5 + 1.3) * 0.03 * bobStrength;
+      }
+    }
 
     if (shakeRef.current > 0.01) { state.camera.position.x += (Math.random() - 0.5) * shakeRef.current; state.camera.position.y += (Math.random() - 0.5) * shakeRef.current; shakeRef.current = THREE.MathUtils.lerp(shakeRef.current, 0, dt * 6); }
     for (let i = explosionsRef.current.length - 1; i >= 0; i--) {
