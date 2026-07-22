@@ -756,8 +756,8 @@ function generateCloudsTexture(width: number, height: number) {
   if (!ctx) return null;
   ctx.clearRect(0, 0, width, height);
   
-  // Aplica um filtro de desfoque suave para nuvens leves e dispersas
-  ctx.filter = "blur(2.0px)";
+  // Aplica um filtro de desfoque sutil para que as nuvens da Terra pareçam realistas e fofas, sem bordas marcadas
+  ctx.filter = "blur(3.5px)";
   const drawBlob = (cx: number, cy: number, r: number, color: string, alpha: number) => {
     ctx.globalAlpha = alpha; ctx.fillStyle = color;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
@@ -765,11 +765,11 @@ function generateCloudsTexture(width: number, height: number) {
     ctx.beginPath(); ctx.arc(cx + width, cy, r, 0, Math.PI * 2); ctx.fill();
   };
   const isSmall = width <= 256;
-  const count = isSmall ? 25 : 75;
+  const count = isSmall ? 50 : 200;
   for (let i = 0; i < count; i++) {
     const y = Math.random() * height;
     const x = Math.random() * width;
-    drawBlob(x, y, (isSmall ? 4 : 12) + Math.random() * (isSmall ? 10 : 30), "#ffffff", 0.08 + Math.random() * 0.18);
+    drawBlob(x, y, (isSmall ? 5 : 20) + Math.random() * (isSmall ? 15 : 50), "#ffffff", 0.15 + Math.random() * 0.35);
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -850,41 +850,41 @@ const EarthModel = memo(function EarthModel({ planet }: { planet: { id: string; 
         />
       </mesh>
 
-      {/* Camada Dinâmica de Nuvens Leves e Translucidas */}
+      {/* Camada Dinâmica de Nuvens em Paralaxe */}
       <mesh ref={cloudsRef}>
-        <sphereGeometry args={[planet.radius * 1.012, 64, 64]} />
+        <sphereGeometry args={[planet.radius * 1.035, 64, 64]} />
         <meshStandardMaterial
           map={cloudsTexture || undefined}
           transparent
-          opacity={0.35}
-          roughness={0.8}
+          opacity={0.8}
+          roughness={0.9}
           metalness={0.0}
           blending={THREE.NormalBlending}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Atmosfera sutil em Additive Blending */}
+      {/* Atmosfera brilhante em Additive Blending */}
       <mesh>
-        <sphereGeometry args={[planet.radius * 1.025, 32, 32]} />
+        <sphereGeometry args={[planet.radius * 1.05, 32, 32]} />
         <meshBasicMaterial
           color="#3b82f6"
           transparent
-          opacity={0.12}
+          opacity={0.18}
           blending={THREE.AdditiveBlending}
           side={THREE.BackSide}
         />
       </mesh>
 
-      {/* Halo atmosférico leve à distância */}
+      {/* Glow Billboard para dar desfoque suave e halo volumétrico atmosférico à distância */}
       {earthGlowTexture && (
         <Billboard>
           <mesh>
-            <planeGeometry args={[planet.radius * 1.8, planet.radius * 1.8]} />
+            <planeGeometry args={[planet.radius * 2.1, planet.radius * 2.1]} />
             <meshBasicMaterial
               map={earthGlowTexture}
               transparent
-              opacity={0.15}
+              opacity={0.32}
               blending={THREE.AdditiveBlending}
               depthWrite={false}
             />
@@ -1072,62 +1072,84 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
 
   // Determine material attributes matching the scenery
   const materialProps = useMemo(() => {
+    let baseColor = new THREE.Color(planet.color);
+    let emissiveColor = planet.emissive ? new THREE.Color(planet.emissive) : new THREE.Color("#000000");
+    let emissiveIntensity = 0.1;
+    let roughness = 0.8;
+    let metalness = 0.1;
+    let toneMapped = true;
+
     switch (planet.id) {
       case "sun":
-        return {
-          color: new THREE.Color("#ffffff"),
-          emissive: new THREE.Color("#ff9d1f"),
-          emissiveIntensity: 2.2,
-          roughness: 0.1,
-          metalness: 0.0,
-          toneMapped: false,
-        };
+        baseColor = new THREE.Color("#e2e8f0"); // desaturated white
+        emissiveColor = new THREE.Color("#d2a477"); // desaturated orange-yellow
+        emissiveIntensity = 1.0; // reduced from 2.2
+        roughness = 0.1;
+        metalness = 0.0;
+        toneMapped = false;
+        break;
       case "jupiter":
-        return {
-          color: planet.color,
-          emissive: new THREE.Color("#3f2211"),
-          emissiveIntensity: 0.25,
-          roughness: 0.5,
-          metalness: 0.1,
-          toneMapped: true,
-        };
+        baseColor = new THREE.Color(planet.color);
+        emissiveColor = new THREE.Color("#3f2211");
+        emissiveIntensity = 0.12; // reduced from 0.25
+        roughness = 0.5;
+        metalness = 0.1;
+        break;
       case "saturn":
-        return {
-          color: planet.color,
-          emissive: new THREE.Color("#332c1e"),
-          emissiveIntensity: 0.2,
-          roughness: 0.55,
-          metalness: 0.15,
-          toneMapped: true,
-        };
+        baseColor = new THREE.Color(planet.color);
+        emissiveColor = new THREE.Color("#332c1e");
+        emissiveIntensity = 0.1; // reduced from 0.2
+        roughness = 0.55;
+        metalness = 0.15;
+        break;
       case "mars":
-        return {
-          color: planet.color,
-          emissive: new THREE.Color("#441105"),
-          emissiveIntensity: 0.25,
-          roughness: 0.7,
-          metalness: 0.05,
-          toneMapped: true,
-        };
+        baseColor = new THREE.Color(planet.color);
+        emissiveColor = new THREE.Color("#441105");
+        emissiveIntensity = 0.12; // reduced from 0.25
+        roughness = 0.7;
+        metalness = 0.05;
+        break;
       case "venus":
-        return {
-          color: planet.color,
-          emissive: new THREE.Color("#332205"),
-          emissiveIntensity: 0.15,
-          roughness: 0.9,
-          metalness: 0.05,
-          toneMapped: true,
-        };
+        baseColor = new THREE.Color(planet.color);
+        emissiveColor = new THREE.Color("#332205");
+        emissiveIntensity = 0.07; // reduced from 0.15
+        roughness = 0.9;
+        metalness = 0.05;
+        break;
       default:
-        return {
-          color: planet.color,
-          emissive: new THREE.Color(planet.emissive),
-          emissiveIntensity: 0.1,
-          roughness: 0.8,
-          metalness: 0.1,
-          toneMapped: true,
-        };
+        baseColor = new THREE.Color(planet.color);
+        emissiveColor = new THREE.Color(planet.emissive || "#000000");
+        emissiveIntensity = 0.05; // reduced from 0.1
+        roughness = 0.8;
+        metalness = 0.1;
+        break;
     }
+
+    // Apply desaturation and brightness reduction to satisfy:
+    // - remover saturação excessiva (remove excessive saturation)
+    // - reduzir brilho (reduce brightness)
+    // - evitar RGB puro (avoid pure RGB)
+    // - usar tons dessaturados (use desaturated tones)
+    if (planet.id !== "sun") {
+      baseColor.lerp(new THREE.Color("#7f7f7f"), 0.5); // 50% desaturation
+      baseColor.multiplyScalar(0.55); // 55% brightness reduction
+      emissiveColor.lerp(new THREE.Color("#000000"), 0.5);
+      emissiveIntensity *= 0.5;
+    } else {
+      // Sun subtle desaturation
+      baseColor.lerp(new THREE.Color("#e2e8f0"), 0.2);
+      emissiveColor.lerp(new THREE.Color("#cca47a"), 0.3);
+      emissiveIntensity *= 0.6;
+    }
+
+    return {
+      color: baseColor,
+      emissive: emissiveColor,
+      emissiveIntensity,
+      roughness,
+      metalness,
+      toneMapped,
+    };
   }, [planet.id, planet.color, planet.emissive]);
 
   return (
@@ -1150,7 +1172,7 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
       {planet.moons && planet.moons.map((moon) => <MoonModel key={moon.id} moon={moon} />)}
       {planet.id === "sun" ? (
         <>
-          {/* 1. Halo luminoso difuso gigante (Glow) que acompanha a câmera suavemente */}
+          {/* 1. Halo luminoso difuso gigante (Glow) que acompanha a câmera suavemente - opacidade menor */}
           {sunGlowTexture && (
             <Billboard>
               <mesh>
@@ -1158,7 +1180,7 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
                 <meshBasicMaterial 
                   map={sunGlowTexture} 
                   transparent 
-                  opacity={0.9} 
+                  opacity={0.35} 
                   blending={THREE.AdditiveBlending} 
                   depthWrite={false}
                 />
@@ -1166,7 +1188,7 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
             </Billboard>
           )}
 
-          {/* 2. Alargamento de lens estelar (Lens Flares) que gira lentamente dando dinamismo */}
+          {/* 2. Alargamento de lens estelar (Lens Flares) que gira lentamente dando dinamismo - opacidade menor */}
           {sunFlareTexture && (
             <Billboard>
               <mesh ref={flareRef}>
@@ -1174,7 +1196,7 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
                 <meshBasicMaterial 
                   map={sunFlareTexture} 
                   transparent 
-                  opacity={0.7} 
+                  opacity={0.25} 
                   blending={THREE.AdditiveBlending} 
                   depthWrite={false}
                 />
@@ -1182,13 +1204,13 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
             </Billboard>
           )}
 
-          {/* 3. Atmosfera de borda 3D sutil para integrar a esfera sólida com o glow espacial */}
+          {/* 3. Atmosfera de borda 3D sutil para integrar a esfera sólida com o glow espacial - opacidade menor */}
           <mesh>
             <sphereGeometry args={[planet.radius * 1.025, 32, 32]} />
             <meshBasicMaterial 
-              color="#ffe169" 
+              color="#ffd38c" 
               transparent 
-              opacity={0.4} 
+              opacity={0.15} 
               blending={THREE.AdditiveBlending} 
               side={THREE.BackSide} 
             />
@@ -1198,12 +1220,12 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
         planet.id !== "mercury" && (
           <mesh>
             <sphereGeometry args={[planet.radius * 1.04, 32, 32]} />
-            <meshBasicMaterial color={planet.color} transparent opacity={0.18} blending={THREE.AdditiveBlending} side={THREE.BackSide} />
+            <meshBasicMaterial color={planet.color} transparent opacity={0.06} blending={THREE.AdditiveBlending} side={THREE.BackSide} />
           </mesh>
         )
       )}
 
-      {/* Glow Billboard para dar desfoque suave e halo volumétrico ao redor dos planetas */}
+      {/* Glow Billboard para dar desfoque suave e halo volumétrico ao redor dos planetas - opacidade menor */}
       {planetGlowTexture && (
         <Billboard>
           <mesh>
@@ -1211,7 +1233,7 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
             <meshBasicMaterial 
               map={planetGlowTexture} 
               transparent 
-              opacity={0.32} 
+              opacity={0.12} 
               blending={THREE.AdditiveBlending} 
               depthWrite={false}
             />
@@ -1222,11 +1244,10 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
       {planet.id === "saturn" && <SaturnRingsInstanced radius={planet.radius} />}
       {planet.id === "sun" && (
         <>
-          {/* Luz solar intensa de longo alcance (sem sombra própria: uma point light com castShadow força 6 render
-              passes de cubemap por frame, e a directional light da cena já cobre o papel de projetar sombras) */}
-          <pointLight distance={150000} decay={1.0} intensity={8.0} color={planet.color} />
-          {/* Luz de preenchimento ambiente mais suave ao redor do sol */}
-          <pointLight distance={30000} decay={1.5} intensity={5.0} color="#ffaa00" />
+          {/* Luz solar intensa de longo alcance (ajustada para evitar ofuscamento excessivo e reduzir brilho) */}
+          <pointLight distance={150000} decay={1.2} intensity={4.0} color={planet.color} castShadow />
+          {/* Luz de preenchimento ambiente mais suave ao redor do sol - tom mais frio/dessaturado */}
+          <pointLight distance={30000} decay={1.8} intensity={1.5} color="#90a2be" />
         </>
       )}
     </group>
@@ -1366,9 +1387,8 @@ const RenderAsteroids = memo(function RenderAsteroids({ asteroids, texture, sele
     }
   }, [selectedRoute.id, asteroidGeometry, dysonScrapGeometry, highwayGeometry, plasmaGeometry]);
 
-  const updateAsteroidMatrices = useCallback(() => {
+  const updateAsteroidMatrices = () => {
     if (!meshRef.current) return;
-    const mesh = meshRef.current;
     for (let i = 0; i < count; i++) {
       const a = asteroids[i];
       if (!a) continue;
@@ -1377,24 +1397,22 @@ const RenderAsteroids = memo(function RenderAsteroids({ asteroids, texture, sele
       const s = a.scale * 2.5;
       dummy.scale.set(s, s, s);
       dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
+      meshRef.current.setMatrixAt(i, dummy.matrix);
     }
-    mesh.instanceMatrix.needsUpdate = true;
-  }, [asteroids, count, dummy]);
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  };
 
   // Definir matrizes estáticas apenas quando asteroides ou geometria mudarem
   useEffect(() => {
-    updateAsteroidMatrices();
-  }, [asteroids, count, geometryToUse, updateAsteroidMatrices]);
+    const t = setTimeout(() => {
+      updateAsteroidMatrices();
+    }, 50);
+    return () => clearTimeout(t);
+  }, [asteroids, count, geometryToUse]);
 
-  // Executar a atualização a cada frame apenas quando necessário (wrap de asteroide ou movimento)
-  const frameCounterRef = useRef(0);
+  // Executar a atualização a cada frame apenas quando houver asteroides se movendo ou se alguma posição tiver mudado (como wrap de asteroide)
   useFrame(() => {
-    frameCounterRef.current++;
-    const shouldUpdateMoving = selectedRoute.hasMovingAsteroids && (frameCounterRef.current % 2 === 0);
-    const shouldUpdateWrap = asteroidsChangedRef && asteroidsChangedRef.current;
-
-    if (shouldUpdateMoving || shouldUpdateWrap) {
+    if (selectedRoute.hasMovingAsteroids || (asteroidsChangedRef && asteroidsChangedRef.current)) {
       updateAsteroidMatrices();
       if (asteroidsChangedRef) {
         asteroidsChangedRef.current = false;
@@ -1678,7 +1696,7 @@ function RenderNeonRings({ ringsRef, shipRef }: { ringsRef: React.MutableRefObje
               const light = child.children[2] as THREE.PointLight;
               
               // Apenas o aro atual e o seguinte devem ser visíveis
-              const isVisible = !ring.passed && (i === currentRingIndex || i === currentRingIndex + 1);
+              const isVisible = !ring.passed && (i === currentRingIndex);
               
               if (meshMain) {
                 meshMain.visible = isVisible;
@@ -1755,7 +1773,7 @@ interface SpaceSimulatorProps {
   isMobile?: boolean;
 }
 
-function ShipThrusters({ currentShip, selectedColor, keysRef, abilityActive, velocityRef }: { currentShip: ShipData, selectedColor: any, keysRef: React.RefObject<any>, abilityActive: boolean, velocityRef: React.RefObject<number> }) {
+function ShipThrusters({ currentShip, selectedColor, keysRef, abilityActive, velocityRef, takeoffProgressRef }: { currentShip: ShipData, selectedColor: any, keysRef: React.RefObject<any>, abilityActive: boolean, velocityRef: React.RefObject<number>, takeoffProgressRef?: React.RefObject<number> }) {
   const gltf = useLoader(GLTFLoader, currentShip.modelFile);
   const scene = gltf.scene;
   const groupRef = useRef<THREE.Group>(null); 
@@ -1789,19 +1807,23 @@ function ShipThrusters({ currentShip, selectedColor, keysRef, abilityActive, vel
     const pulse = !isBraking ? 0.9 + Math.sin(state.clock.elapsedTime * 45) * 0.15 : 1.0;
     
     groupRef.current.children.forEach(engine => {
-      const flame = engine.children.find(c => c.name === "flameScale");
-      if (flame) {
-        flame.scale.z = THREE.MathUtils.lerp(flame.scale.z, targetScaleZ, delta * 12);
-        flame.scale.x = THREE.MathUtils.lerp(flame.scale.x, pulse, delta * 25);
-        flame.scale.y = THREE.MathUtils.lerp(flame.scale.y, pulse, delta * 25);
-      }
+       const flame = engine.children.find(c => c.name === "flameScale");
+       if (flame) {
+         flame.scale.z = THREE.MathUtils.lerp(flame.scale.z, targetScaleZ, delta * 12);
+         flame.scale.x = THREE.MathUtils.lerp(flame.scale.x, pulse, delta * 25);
+         flame.scale.y = THREE.MathUtils.lerp(flame.scale.y, pulse, delta * 25);
+       }
     });
 
     // Luz do motor: acompanha a opacidade/pulso da chama para que o propulsor realmente
-    // ilumine o casco da nave e detritos próximos, em vez de só ter um mesh brilhante
+    // ilumine o casco da nave e detritos próximos, em vez de só ter um mesh brilhante.
+    // Modulamos a intensidade pelo nível de proximidade da câmera no início (takeoffProgressRef) para evitar ofuscamento.
     if (engineLightRef.current) {
-      const targetIntensity = isBraking ? 0 : (isBoost ? 14 : THREE.MathUtils.lerp(2, 9, Math.min(1, speed / 500)));
-      engineLightRef.current.intensity = THREE.MathUtils.lerp(engineLightRef.current.intensity, targetIntensity * pulse, delta * 10);
+      const progress = takeoffProgressRef ? takeoffProgressRef.current : 1;
+      const cameraClosenessFade = progress < 0.1 ? 0 : THREE.MathUtils.smoothstep(progress, 0.1, 0.95);
+      
+      const targetIntensity = isBraking ? 0 : (isBoost ? 4.5 : THREE.MathUtils.lerp(0.8, 2.8, Math.min(1, speed / 500)));
+      engineLightRef.current.intensity = THREE.MathUtils.lerp(engineLightRef.current.intensity, targetIntensity * pulse * cameraClosenessFade, delta * 10);
     }
   });
 
@@ -2071,8 +2093,8 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
   // Em dispositivos móveis reduzimos a base de asteroides, já que GPUs móveis
   // sofrem muito mais com o fill-rate de centenas de instâncias + partículas simultâneas.
   const baseAsteroidCount = graphicsQuality === "high"
-    ? (isMobile ? 100 : 200)
-    : (isMobile ? 40 : 80);
+    ? (isMobile ? 200 : 400)
+    : (isMobile ? 60 : 120);
   const asteroidCount = Math.round(baseAsteroidCount * selectedRoute.asteroidDensity);
 
   // Função mestre para calcular a trajetória tridimensional específica e temática de cada pista
@@ -2146,6 +2168,8 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
           if (progressZ < 0.5) {
             safetyRadius = 4500; // Super limpo no início do tutorial
           }
+        } else if (pos.z > -4000) {
+          safetyRadius = 3500; // Super limpo nos primeiros 4000 metros de voo de qualquer rota
         }
 
         if (distXY < safetyRadius) {
@@ -2257,27 +2281,45 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
     return rawPlanets.map(p => {
       let finalPos = p.pos.clone();
 
-      // Avoid overlay with flight ring path
+      // 1. Aumentar a escala massivamente para que cubram cerca de 20% do campo de visão da tela (escala imponente de 15x a 25x o tamanho original)
+      const seedVal = p.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
+      const scaleMultiplier = 15.0 + (seedVal % 3) * 5.0; // 15x, 20x, ou 25x
+      const newRadius = p.radius * scaleMultiplier;
+
+      // 2. Posicionar muito mais distantes horizontalmente no fundo para dar uma linda e autêntica perspectiva de escala cósmica (push de 6.0x)
+      finalPos.x *= 6.0;
+      finalPos.y *= 6.0;
+
+      let newMoons = p.moons;
+      if (p.moons) {
+        newMoons = p.moons.map((m: any) => ({
+          ...m,
+          radius: m.radius * scaleMultiplier,
+          distance: m.distance * scaleMultiplier
+        }));
+      }
+
+      // Evitar sobreposição com o trajeto central dos anéis de voo de forma segura
       if (finalPos.z < 2000 && finalPos.z > -totalDist - 15000) {
         const routeCenter = getRouteCenterAtZ(finalPos.z);
         const dx = finalPos.x - routeCenter.x;
         const dy = finalPos.y - routeCenter.y;
         const distXY = Math.sqrt(dx * dx + dy * dy);
 
-        const maxMoonDist = p.moons ? Math.max(...p.moons.map((m: any) => m.distance + m.radius)) : 0;
-        // Se for o planeta Saturno na rota de Saturno, a segurança deve considerar apenas o corpo físico sólido do planeta, não as luas distantes.
+        const maxMoonDist = newMoons ? Math.max(...newMoons.map((m: any) => m.distance + m.radius)) : 0;
+        // Se for o planeta Saturno na rota de Saturno, a segurança considera apenas o corpo sólido do planeta, não os anéis ou luas distantes.
         const safetyRadius = (p.id === "saturn" && selectedRoute.id === "route-saturn-rings")
-          ? p.radius + 1500
-          : p.radius + maxMoonDist + 2800;
+          ? newRadius + 1500
+          : newRadius + maxMoonDist + 2800;
 
         if (distXY < safetyRadius) {
-          const angle = distXY > 1 ? Math.atan2(dy, dx) : (p.radius % (Math.PI * 2));
-          finalPos.x = routeCenter.x + Math.cos(angle) * (safetyRadius + 1000);
-          finalPos.y = routeCenter.y + Math.sin(angle) * (safetyRadius + 1000);
+          const angle = distXY > 1 ? Math.atan2(dy, dx) : (newRadius % (Math.PI * 2));
+          finalPos.x = routeCenter.x + Math.cos(angle) * (safetyRadius + 4000);
+          finalPos.y = routeCenter.y + Math.sin(angle) * (safetyRadius + 4000);
         }
       }
 
-      return { ...p, pos: finalPos };
+      return { ...p, radius: newRadius, moons: newMoons, pos: finalPos };
     });
   }, [selectedRoute, getRouteCenterAtZ]);
 
@@ -2287,11 +2329,27 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
       const x = Math.sin(seed + i) * 10000;
       return x - Math.floor(x);
     };
-    return Array.from({ length: selectedRoute.nebulaCount }).map((_, i) => ({ 
-      pos: new THREE.Vector3((random(i * 1) - 0.5) * 400000, (random(i * 2) - 0.5) * 400000, (random(i * 3) - 0.5) * 400000), 
-      scale: 40000 + random(i * 4) * 80000, 
-      color: new THREE.Color().setHSL(random(i * 5), 0.7, 0.5) 
-    }));
+    
+    // Tons: azul petróleo, cinza, violeta escuro (evitando rosa neon)
+    const nebulaColors = [
+      new THREE.Color("#16283b"), // Azul petróleo escuro
+      new THREE.Color("#252830"), // Cinza escuro azulado
+      new THREE.Color("#1a142e"), // Violeta escuro profundo
+      new THREE.Color("#201e2b"), // Cinza violeta discreto
+    ];
+
+    return Array.from({ length: selectedRoute.nebulaCount }).map((_, i) => {
+      const idx = Math.floor(random(i * 5) * nebulaColors.length);
+      const col = nebulaColors[idx].clone();
+      // Variação tonal sutil
+      col.addScalar((random(i * 6) - 0.5) * 0.04);
+      
+      return { 
+        pos: new THREE.Vector3((random(i * 1) - 0.5) * 400000, (random(i * 2) - 0.5) * 400000, (random(i * 3) - 0.5) * 400000), 
+        scale: 40000 + random(i * 4) * 80000, 
+        color: col
+      };
+    });
   }, [selectedRoute.id, selectedRoute.nebulaCount]);
 
   const satellites = useMemo(() => {
@@ -2522,9 +2580,11 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
         await crazyGamesService.requestAd('midroll');
         
         setIsHangarActive(false);
-        velocityRef.current = 1400;
+        // Iniciar de forma extremamente veloz mas estável (no topo da velocidade máxima da nave atual), evitando freadas bruscas de IA
+        const startSpeed = 150 + (stats.maxVelocity / 100) * 280;
+        velocityRef.current = startSpeed;
         takeoffProgressRef.current = 0;
-        shakeRef.current = 3.5; // Dramatic camera shake on warp breakthrough
+        shakeRef.current = 0.8; // Vibração cinética imersiva e elegante, sem distorção visual violenta
         playSimSound("warp", localMuted);
         crazyGamesService.gameplayStart();
 
@@ -2648,18 +2708,18 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
       <div className="absolute inset-0 z-0">
         <Canvas 
           camera={{ position: [0, 6, 26], fov: 45, far: 200000 }} 
-          shadows={graphicsQuality === "high" ? "soft" : "basic"}
-          dpr={[1, 1.5]}
+          shadows="soft"
           gl={{ logarithmicDepthBuffer: true, antialias: true }}
         >
           <PerformanceController graphicsQuality={graphicsQuality} setGraphicsQuality={setGraphicsQuality} />
           <DynamicFOV velocityRef={velocityRef} />
           <SpeedParticles velocityRef={velocityRef} shipRef={shipRef} />
+          <SpaceDust shipRef={shipRef} />
           <color attach="background" args={[selectedRoute.ambientColor === "#09090b" ? "#000000" : "#020205"]} />
           <fog attach="fog" args={[selectedRoute.ambientColor, 1000, 100000]} />
           <Suspense fallback={null}>
-            <ambientLight intensity={0.5} />
-            <hemisphereLight color={selectedRoute.ambientColor} groundColor="#111111" intensity={0.7} />
+            <ambientLight intensity={0.25} color="#5e6d8a" />
+            <hemisphereLight color="#7186a8" groundColor="#010103" intensity={0.4} />
             {/* Fonte de reflexo/iluminação indireta para materiais PBR (casco da nave, etc.) — sem isso,
                 MeshStandardMaterial nunca recebe envMap e fica com aparência "plástica" mesmo com boa luz direta */}
             {graphicsQuality === "high" && <Environment preset="night" environmentIntensity={0.6} />}
@@ -2667,7 +2727,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
               position={[10, 25, 15]} 
               intensity={3.5} 
               castShadow 
-              shadow-mapSize={graphicsQuality === "high" ? [2048, 2048] : [1024, 1024]}
+              shadow-mapSize={[2048, 2048]}
               shadow-camera-near={1}
               shadow-camera-far={200}
               shadow-camera-left={-60}
@@ -2680,10 +2740,8 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
             <directionalLight position={[0, -20, 0]} intensity={0.8} color="#0d1127" />
             {/* Ambient Environment (Always visible for seamless transition) */}
             <RenderMilkyWay />
-            <RenderDeepSpaceGalaxies />
             <RenderNebulas nebulas={nebulas} />
             <RenderBackgroundStars />
-            <RenderSpaceDust shipRef={shipRef} />
             
               <GameEngine 
                 shipRef={shipRef} 
@@ -2745,7 +2803,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
 
             <group ref={shipRef} visible={!isHangarActive}>
               <PilotShip currentShip={currentShip} selectedColor={selectedColor} abilityActive={abilityActive} isHangarActive={isHangarActive} />
-              <ShipThrusters currentShip={currentShip} selectedColor={selectedColor} keysRef={keysRef} abilityActive={abilityActive} velocityRef={velocityRef} />
+              <ShipThrusters currentShip={currentShip} selectedColor={selectedColor} keysRef={keysRef} abilityActive={abilityActive} velocityRef={velocityRef} takeoffProgressRef={takeoffProgressRef} />
               <ShipCrosshair selectedColor={selectedColor} />
 
               {/* Luzes locais de altíssimo brilho atreladas à nave para destacá-la no espaço */}
@@ -2757,13 +2815,20 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
 
           {graphicsQuality === "high" && (
             <EffectComposer key="sim-composer-high">
-              <Bloom luminanceThreshold={0.82} intensity={0.3} />
-              <Vignette eskil={false} offset={0.1} darkness={0.8} />
+              <Bloom luminanceThreshold={0.88} mipmapBlur intensity={0.14} />
+              <ChromaticAberration offset={[0.001, 0.001]} radialModulation modulationOffset={0.3} />
+              <BrightnessContrast brightness={-0.03} contrast={0.22} />
+              <HueSaturation hue={0} saturation={-0.22} />
+              <Noise opacity={0.02} />
+              <Vignette eskil={false} offset={0.1} darkness={0.9} />
             </EffectComposer>
           )}
           {graphicsQuality === "low" && (
             <EffectComposer key="sim-composer-low">
-              <Bloom luminanceThreshold={0.92} intensity={0.2} />
+              <Bloom luminanceThreshold={0.92} intensity={0.08} />
+              <BrightnessContrast brightness={-0.03} contrast={0.22} />
+              <HueSaturation hue={0} saturation={-0.22} />
+              <Vignette eskil={false} offset={0.1} darkness={0.85} />
             </EffectComposer>
           )}
         </Canvas>
@@ -3083,45 +3148,174 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
   );
 });
 
+const DUST_VERTEX_SHADER = `
+  uniform vec3 uShipPosition;
+  uniform float uTime;
+  varying float vAlpha;
+  void main() {
+    vec3 pos = position;
+    
+    // Wave movement
+    pos.y += sin(uTime * 0.15 + pos.x * 0.05 + pos.z * 0.05) * 4.0;
+    pos.x += cos(uTime * 0.1 + pos.y * 0.05) * 2.0;
+    
+    vec3 diff = pos - uShipPosition;
+    vec3 wrapped = mod(diff + vec3(400.0), 800.0) - vec3(400.0);
+    vec3 finalPos = uShipPosition + wrapped;
+    
+    // Fade edge to prevent pop-in
+    float distToEdge = min(min(400.0 - abs(wrapped.x), 400.0 - abs(wrapped.y)), 400.0 - abs(wrapped.z));
+    vAlpha = smoothstep(0.0, 60.0, distToEdge) * 0.22;
+    
+    vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
+    gl_PointSize = 0.85 * (400.0 / -mvPosition.z);
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+
+const DUST_FRAGMENT_SHADER = `
+  varying float vAlpha;
+  void main() {
+    vec2 uv = gl_PointCoord - vec2(0.5);
+    float dist = length(uv) * 2.0;
+    float alpha = smoothstep(1.0, 0.0, dist);
+    gl_FragColor = vec4(vec3(0.37, 0.43, 0.54) * alpha * vAlpha, alpha * vAlpha);
+  }
+`;
+
+const SPEED_PARTICLES_VERTEX_SHADER = `
+  uniform vec3 uShipPosition;
+  uniform float uTravelOffset;
+  uniform float uOpacity;
+  attribute float aSpeed;
+  varying float vAlpha;
+  void main() {
+    vec3 pos = position;
+    
+    float zDiff = pos.z - uShipPosition.z - uTravelOffset * aSpeed;
+    float wrappedZ = mod(zDiff + 300.0, 600.0) - 300.0;
+    
+    vec3 finalPos = vec3(pos.xy + uShipPosition.xy, uShipPosition.z + wrappedZ);
+    
+    float distToEdge = min(300.0 - abs(wrappedZ), 100.0);
+    vAlpha = smoothstep(0.0, 50.0, distToEdge) * uOpacity;
+    
+    vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
+    gl_PointSize = 0.45 * (400.0 / -mvPosition.z);
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+
+const SPEED_PARTICLES_FRAGMENT_SHADER = `
+  varying float vAlpha;
+  void main() {
+    vec2 uv = gl_PointCoord - vec2(0.5);
+    float dist = length(uv) * 2.0;
+    float alpha = smoothstep(1.0, 0.0, dist);
+    gl_FragColor = vec4(vec3(0.63, 0.71, 0.79) * alpha * vAlpha, alpha * vAlpha);
+  }
+`;
+
 function SpeedParticles({ velocityRef, shipRef }: { velocityRef: React.MutableRefObject<number>, shipRef: React.RefObject<THREE.Group> }) {
   const pointsRef = useRef<THREE.Points>(null); 
-  const matRef = useRef<THREE.PointsMaterial>(null);
-  const count = 500;
-  const [positions, velocities] = useMemo(() => {
-    const pos = new Float32Array(count * 3); const vel = new Float32Array(count);
-    for (let i = 0; i < count; i++) { pos[i * 3] = (Math.random() - 0.5) * 600; pos[i * 3 + 1] = (Math.random() - 0.5) * 600; pos[i * 3 + 2] = (Math.random() - 0.5) * 600; vel[i] = 1 + Math.random() * 2; }
-    return [pos, vel];
-  }, []);
-  useFrame((state, dt) => {
-    if (!pointsRef.current) return;
-    const absVelocity = Math.abs(velocityRef.current);
-    if (matRef.current) {
-      matRef.current.opacity = Math.min(1, absVelocity / 500);
-    }
-    if (shipRef.current) { pointsRef.current.position.copy(shipRef.current.position); pointsRef.current.quaternion.copy(shipRef.current.quaternion); }
-
-    // Nave parada (velocidade ≈ 0): nenhuma partícula se move, então pulamos o
-    // loop de CPU e o upload do buffer de posições pra GPU nesse frame.
-    if (absVelocity < 0.01) return;
-
-    const attr = pointsRef.current.geometry.attributes.position as THREE.BufferAttribute;
-    const array = attr.array as Float32Array;
-    const speedMultiplier = (absVelocity * 0.15 + 100) * dt;
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const count = 1000; // mais partículas menores para sensação de velocidade refinada
+  
+  const [positions, speeds] = useMemo(() => {
+    const pos = new Float32Array(count * 3);
+    const speed = new Float32Array(count);
     for (let i = 0; i < count; i++) {
-      const idx = i * 3;
-      array[idx + 2] += speedMultiplier * velocities[i];
-      if (array[idx + 2] > 300) { 
-        array[idx + 2] = -300; 
-        array[idx] = (Math.random() - 0.5) * 600; 
-        array[idx + 1] = (Math.random() - 0.5) * 600; 
+      pos[i * 3] = (Math.random() - 0.5) * 600;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 600;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 600;
+      speed[i] = 1.5 + Math.random() * 3.5;
+    }
+    return [pos, speed];
+  }, []);
+
+  const uniforms = useMemo(() => ({
+    uShipPosition: { value: new THREE.Vector3() },
+    uTravelOffset: { value: 0 },
+    uOpacity: { value: 0 }
+  }), []);
+
+  const travelOffsetRef = useRef(0);
+
+  useFrame((state, dt) => {
+    const absVelocity = Math.abs(velocityRef.current);
+    travelOffsetRef.current += (absVelocity * 0.22 + 150) * dt;
+    
+    if (materialRef.current) {
+      materialRef.current.uniforms.uTravelOffset.value = travelOffsetRef.current;
+      materialRef.current.uniforms.uOpacity.value = Math.min(0.65, absVelocity / 400);
+      if (shipRef.current) {
+        materialRef.current.uniforms.uShipPosition.value.copy(shipRef.current.position);
       }
     }
-    attr.needsUpdate = true;
   });
+
   return (
     <points ref={pointsRef}>
-      <bufferGeometry><bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} /></bufferGeometry>
-      <pointsMaterial ref={matRef} size={1.2} color="#ffffff" transparent opacity={0} sizeAttenuation blending={THREE.AdditiveBlending} />
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+        <bufferAttribute attach="attributes-aSpeed" count={count} array={speeds} itemSize={1} />
+      </bufferGeometry>
+      <shaderMaterial
+        ref={materialRef}
+        uniforms={uniforms}
+        vertexShader={SPEED_PARTICLES_VERTEX_SHADER}
+        fragmentShader={SPEED_PARTICLES_FRAGMENT_SHADER}
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
+  );
+}
+
+function SpaceDust({ shipRef }: { shipRef: React.RefObject<THREE.Group> }) {
+  const pointsRef = useRef<THREE.Points>(null);
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const count = 1200; // extremamente leve, única chamada de desenho
+  
+  const positions = useMemo(() => {
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 800;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 800;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 800;
+    }
+    return pos;
+  }, []);
+
+  const uniforms = useMemo(() => ({
+    uShipPosition: { value: new THREE.Vector3() },
+    uTime: { value: 0 }
+  }), []);
+
+  useFrame((state) => {
+    if (materialRef.current) {
+      materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+      if (shipRef.current) {
+        materialRef.current.uniforms.uShipPosition.value.copy(shipRef.current.position);
+      }
+    }
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+      </bufferGeometry>
+      <shaderMaterial
+        ref={materialRef}
+        uniforms={uniforms}
+        vertexShader={DUST_VERTEX_SHADER}
+        fragmentShader={DUST_FRAGMENT_SHADER}
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
     </points>
   );
 }
@@ -3143,26 +3337,22 @@ function DynamicFOV({ velocityRef }: { velocityRef: React.MutableRefObject<numbe
   return null;
 }
 
-// ============================================================================
-// SISTEMA DE RENDERIZAÇÃO ESPACIAL DE ALTA FIDELIDADE
-// ============================================================================
-
-// Textura da camada externa da nebulosa: nuvem gasosa ampla, orgânica e esfumaçada
+// Textura da camada externa: nuvem ampla e esfumaçada com variação (não é um único
+// degradê perfeito) — várias manchas radiais sobrepostas simulando turbulência de gás.
 function generateNebulaWispTexture() {
-  const cacheKey = "nebula_wisp_v3";
+  const cacheKey = "nebula_wisp_v2";
   if (textureCache.has(cacheKey)) return textureCache.get(cacheKey)!;
-  const size = 512;
+  const size = 256;
   const c = document.createElement("canvas"); c.width = size; c.height = size;
   const ctx = c.getContext("2d")!;
-  
-  ctx.filter = "blur(12px)";
-  for (let i = 0; i < 12; i++) {
+  ctx.filter = "blur(6px)";
+  for (let i = 0; i < 9; i++) {
     const cx = size / 2 + (Math.random() - 0.5) * size * 0.35;
     const cy = size / 2 + (Math.random() - 0.5) * size * 0.35;
-    const r = size * (0.25 + Math.random() * 0.25);
+    const r = size * (0.28 + Math.random() * 0.24);
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    g.addColorStop(0, "rgba(255,255,255,0.28)");
-    g.addColorStop(0.5, "rgba(255,255,255,0.08)");
+    g.addColorStop(0, "rgba(255,255,255,0.32)");
+    g.addColorStop(0.55, "rgba(255,255,255,0.09)");
     g.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
@@ -3172,22 +3362,21 @@ function generateNebulaWispTexture() {
   return texture;
 }
 
-// Textura do núcleo denso da nebulosa: concentração energética e filamentos internos
+// Textura do núcleo: densidade mais concentrada, pra dar sensação de camadas (core + halo)
 function generateNebulaCoreTexture() {
-  const cacheKey = "nebula_core_v3";
+  const cacheKey = "nebula_core_v2";
   if (textureCache.has(cacheKey)) return textureCache.get(cacheKey)!;
-  const size = 512;
+  const size = 256;
   const c = document.createElement("canvas"); c.width = size; c.height = size;
   const ctx = c.getContext("2d")!;
-  
-  ctx.filter = "blur(6px)";
-  for (let i = 0; i < 7; i++) {
-    const cx = size / 2 + (Math.random() - 0.5) * size * 0.22;
-    const cy = size / 2 + (Math.random() - 0.5) * size * 0.22;
-    const r = size * (0.15 + Math.random() * 0.18);
+  ctx.filter = "blur(3px)";
+  for (let i = 0; i < 5; i++) {
+    const cx = size / 2 + (Math.random() - 0.5) * size * 0.18;
+    const cy = size / 2 + (Math.random() - 0.5) * size * 0.18;
+    const r = size * (0.16 + Math.random() * 0.14);
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    g.addColorStop(0, "rgba(255,255,255,0.65)");
-    g.addColorStop(0.4, "rgba(255,255,255,0.2)");
+    g.addColorStop(0, "rgba(255,255,255,0.55)");
+    g.addColorStop(0.6, "rgba(255,255,255,0.15)");
     g.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
@@ -3200,52 +3389,31 @@ function generateNebulaCoreTexture() {
 const RenderNebulas = memo(function RenderNebulas({ nebulas }: { nebulas: any[] }) {
   const wispTexture = useMemo(() => generateNebulaWispTexture(), []);
   const coreTexture = useMemo(() => generateNebulaCoreTexture(), []);
-  
   const outerRefs = useRef<(THREE.Sprite | null)[]>([]);
   const innerRefs = useRef<(THREE.Sprite | null)[]>([]);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     for (let i = 0; i < nebulas.length; i++) {
+      // Leve rotação de parallax — cada camada gira numa velocidade levemente diferente,
+      // o que já dá sensação de profundidade e movimento sem custo de CPU/GPU real
+      // (apenas a propriedade `.rotation` do material, nenhum buffer é tocado).
       const outerMat = outerRefs.current[i]?.material as THREE.SpriteMaterial | undefined;
-      if (outerMat) outerMat.rotation = t * 0.008 + i;
+      if (outerMat) outerMat.rotation = t * 0.015 + i;
       const innerMat = innerRefs.current[i]?.material as THREE.SpriteMaterial | undefined;
-      if (innerMat) innerMat.rotation = -t * 0.015 + i;
+      if (innerMat) innerMat.rotation = -t * 0.025 + i;
     }
   });
 
   return (
     <group>
       {nebulas.map((neb, i) => (
-        <group key={i} position={neb.pos}>
-          {/* Camada Gasosa Externa */}
-          <sprite 
-            ref={(el) => { outerRefs.current[i] = el; }} 
-            scale={[neb.scale * 1.6, neb.scale * 1.6, 1]}
-          >
-            <spriteMaterial 
-              map={wispTexture} 
-              color={neb.color} 
-              transparent 
-              blending={THREE.AdditiveBlending} 
-              depthWrite={false} 
-              opacity={0.16} 
-            />
+        <group key={i}>
+          <sprite ref={(el) => { outerRefs.current[i] = el; }} position={neb.pos} scale={[neb.scale * 1.4, neb.scale * 1.4, 1]}>
+            <spriteMaterial map={wispTexture} color={neb.color} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.02} />
           </sprite>
-
-          {/* Núcleo Energético Interno */}
-          <sprite 
-            ref={(el) => { innerRefs.current[i] = el; }} 
-            scale={[neb.scale * 0.8, neb.scale * 0.8, 1]}
-          >
-            <spriteMaterial 
-              map={coreTexture} 
-              color={neb.color} 
-              transparent 
-              blending={THREE.AdditiveBlending} 
-              depthWrite={false} 
-              opacity={0.28} 
-            />
+          <sprite ref={(el) => { innerRefs.current[i] = el; }} position={neb.pos} scale={[neb.scale * 0.7, neb.scale * 0.7, 1]}>
+            <spriteMaterial map={coreTexture} color={neb.color} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.04} />
           </sprite>
         </group>
       ))}
@@ -3253,40 +3421,41 @@ const RenderNebulas = memo(function RenderNebulas({ nebulas }: { nebulas: any[] 
   );
 });
 
-// Faixa de "Via Láctea" de fundo e poeira estelar galáctica
+// Faixa de "Via Láctea" de fundo: um único plano bem distante e sutil, mesmo esquema
+// econômico das nebulosas (1 draw call a mais, textura gerada e cacheada uma única vez).
 function generateMilkyWayTexture() {
-  const cacheKey = "milkyway_band_v2";
+  const cacheKey = "milkyway_band_v1";
   if (textureCache.has(cacheKey)) return textureCache.get(cacheKey)!;
   const w = 1024, h = 512;
   const c = document.createElement("canvas"); c.width = w; c.height = h;
   const ctx = c.getContext("2d")!;
   const grad = ctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0.0, "rgba(120,140,255,0)");
-  grad.addColorStop(0.32, "rgba(160,170,255,0.08)");
-  grad.addColorStop(0.48, "rgba(220,200,255,0.22)");
-  grad.addColorStop(0.5, "rgba(240,230,255,0.28)");
-  grad.addColorStop(0.52, "rgba(220,200,255,0.22)");
-  grad.addColorStop(0.68, "rgba(160,170,255,0.08)");
-  grad.addColorStop(1.0, "rgba(120,140,255,0)");
+  grad.addColorStop(0.0, "rgba(150,165,255,0)");
+  grad.addColorStop(0.32, "rgba(175,180,255,0.05)");
+  grad.addColorStop(0.48, "rgba(215,205,255,0.16)");
+  grad.addColorStop(0.5, "rgba(230,220,255,0.2)");
+  grad.addColorStop(0.52, "rgba(215,205,255,0.16)");
+  grad.addColorStop(0.68, "rgba(175,180,255,0.05)");
+  grad.addColorStop(1.0, "rgba(150,165,255,0)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
-  
+  // Poeira estelar/nuvens escuras sutis quebrando a uniformidade da faixa
   ctx.filter = "blur(2px)";
-  for (let i = 0; i < 320; i++) {
+  for (let i = 0; i < 260; i++) {
     const x = Math.random() * w;
-    const y = h * 0.5 + (Math.random() - 0.5) * h * 0.36;
-    const r = 4 + Math.random() * 16;
-    ctx.globalAlpha = 0.06 + Math.random() * 0.08;
-    ctx.fillStyle = "#03020a";
+    const y = h * 0.5 + (Math.random() - 0.5) * h * 0.34;
+    const r = 4 + Math.random() * 14;
+    ctx.globalAlpha = 0.05 + Math.random() * 0.05;
+    ctx.fillStyle = "#050308";
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
   }
   ctx.filter = "none";
   ctx.globalAlpha = 1;
-
-  for (let i = 0; i < 300; i++) {
+  // Pontinhos brilhantes espalhados pela faixa, simulando aglomerados estelares densos
+  for (let i = 0; i < 220; i++) {
     const x = Math.random() * w;
-    const y = h * 0.5 + (Math.random() - 0.5) * h * 0.32;
-    ctx.globalAlpha = 0.2 + Math.random() * 0.4;
+    const y = h * 0.5 + (Math.random() - 0.5) * h * 0.3;
+    ctx.globalAlpha = 0.15 + Math.random() * 0.25;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(x, y, 1, 1);
   }
@@ -3294,8 +3463,8 @@ function generateMilkyWayTexture() {
   ctx.globalCompositeOperation = "destination-in";
   const edgeMask = ctx.createLinearGradient(0, 0, w, 0);
   edgeMask.addColorStop(0.0, "rgba(0,0,0,0)");
-  edgeMask.addColorStop(0.15, "rgba(0,0,0,1)");
-  edgeMask.addColorStop(0.85, "rgba(0,0,0,1)");
+  edgeMask.addColorStop(0.18, "rgba(0,0,0,1)");
+  edgeMask.addColorStop(0.82, "rgba(0,0,0,1)");
   edgeMask.addColorStop(1.0, "rgba(0,0,0,0)");
   ctx.fillStyle = edgeMask;
   ctx.fillRect(0, 0, w, h);
@@ -3311,6 +3480,7 @@ const RenderMilkyWay = memo(function RenderMilkyWay() {
 
   useFrame((state) => {
     if (meshRef.current) {
+      // Rotação extremamente lenta, quase imperceptível — só pra dar uma sensação viva de fundo
       meshRef.current.rotation.z = state.clock.elapsedTime * 0.00012;
     }
   });
@@ -3321,7 +3491,7 @@ const RenderMilkyWay = memo(function RenderMilkyWay() {
       <meshBasicMaterial
         map={texture}
         transparent
-        opacity={0.5}
+        opacity={0.45}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
         side={THREE.DoubleSide}
@@ -3331,109 +3501,14 @@ const RenderMilkyWay = memo(function RenderMilkyWay() {
   );
 });
 
-// Componente para Galáxias Espirais de Fundo Distante
-const RenderDeepSpaceGalaxies = memo(function RenderDeepSpaceGalaxies() {
-  const texture = useMemo(() => {
-    const cacheKey = "spiral_galaxy_v1";
-    if (textureCache.has(cacheKey)) return textureCache.get(cacheKey)!;
-    const size = 256;
-    const c = document.createElement("canvas"); c.width = size; c.height = size;
-    const ctx = c.getContext("2d")!;
-    const cx = size / 2, cy = size / 2;
-    
-    // Core glow
-    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.45);
-    coreGrad.addColorStop(0, "rgba(255, 245, 220, 0.9)");
-    coreGrad.addColorStop(0.2, "rgba(180, 200, 255, 0.5)");
-    coreGrad.addColorStop(0.5, "rgba(100, 120, 255, 0.15)");
-    coreGrad.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = coreGrad;
-    ctx.fillRect(0, 0, size, size);
-
-    // Spiral arms
-    for (let arm = 0; arm < 2; arm++) {
-      const armOffset = arm * Math.PI;
-      for (let i = 0; i < 400; i++) {
-        const dist = (i / 400) * (size * 0.42);
-        const angle = armOffset + dist * 0.08;
-        const x = cx + Math.cos(angle) * dist + (Math.random() - 0.5) * 12;
-        const y = cy + Math.sin(angle) * dist + (Math.random() - 0.5) * 12;
-        const alpha = (1 - dist / (size * 0.42)) * 0.4 * Math.random();
-        ctx.fillStyle = `rgba(210, 225, 255, ${alpha})`;
-        ctx.fillRect(x, y, 1.5, 1.5);
-      }
-    }
-    const tex = new THREE.CanvasTexture(c);
-    textureCache.set(cacheKey, tex);
-    return tex;
-  }, []);
-
-  const groupRef = useRef<THREE.Group>(null);
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.z = state.clock.elapsedTime * 0.0003;
-    }
-  });
-
-  return (
-    <group ref={groupRef}>
-      <mesh position={[-18000, 8000, -32000]} rotation={[0.8, -0.5, 0.4]}>
-        <planeGeometry args={[14000, 14000]} />
-        <meshBasicMaterial map={texture} transparent opacity={0.65} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-      <mesh position={[22000, -10000, -36000]} rotation={[-0.6, 0.7, -0.3]}>
-        <planeGeometry args={[18000, 18000]} />
-        <meshBasicMaterial map={texture} transparent opacity={0.5} blending={THREE.AdditiveBlending} depthWrite={false} color="#ffb0d0" />
-      </mesh>
-    </group>
-  );
-});
-
-// Poeira Cósmica Interativa (Partículas de Velocidade Mota Espacial)
-const RenderSpaceDust = memo(function RenderSpaceDust({ shipRef }: { shipRef: React.RefObject<THREE.Group> }) {
-  const count = 1000;
-  const pointsRef = useRef<THREE.Points>(null);
-
-  const [positions] = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 1200;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 1200;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 1200;
-    }
-    return [pos];
-  }, []);
-
-  useFrame(() => {
-    if (pointsRef.current && shipRef.current) {
-      pointsRef.current.position.copy(shipRef.current.position);
-    }
-  });
-
-  return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
-      </bufferGeometry>
-      <pointsMaterial
-        size={2.2}
-        color="#88c0ff"
-        transparent
-        opacity={0.38}
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-        sizeAttenuation
-      />
-    </points>
-  );
-});
-
 function PerformanceController({ graphicsQuality, setGraphicsQuality }: { graphicsQuality: "high" | "low", setGraphicsQuality: (q: "high" | "low") => void }) {
   usePerformanceMonitor({ graphicsQuality, setGraphicsQuality });
   return null;
 }
 
-// Shader Estelar Limpo, Suave e Sem Glitch
+// Shader super leve: o "twinkle" e o sprite circular suave são resolvidos inteiramente
+// na GPU (matemática por vértice/fragmento). A cada frame só atualizamos um único
+// uniform (uTime) — nenhum buffer de posição/tamanho é reenviado pra GPU.
 const STAR_VERTEX_SHADER = `
   attribute vec3 aColor;
   attribute float aSize;
@@ -3442,10 +3517,10 @@ const STAR_VERTEX_SHADER = `
   uniform float uTime;
   varying vec3 vColor;
   varying float vTwinkle;
-
   void main() {
     vColor = aColor;
-    vTwinkle = aBrightness * (0.8 + 0.2 * sin(uTime * (0.8 + aPhase * 0.9) + aPhase * 6.2831));
+    // Cintilação sutil: cada estrela tem uma fase própria pra não piscarem em sincronia
+    vTwinkle = aBrightness * (0.78 + 0.22 * sin(uTime * (0.6 + aPhase * 0.9) + aPhase * 6.2831));
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     gl_PointSize = aSize * (420.0 / -mvPosition.z);
     gl_Position = projectionMatrix * mvPosition;
@@ -3455,11 +3530,10 @@ const STAR_VERTEX_SHADER = `
 const STAR_FRAGMENT_SHADER = `
   varying vec3 vColor;
   varying float vTwinkle;
-
   void main() {
+    // Sprite circular suave (em vez do ponto quadrado padrão do PointsMaterial)
     vec2 uv = gl_PointCoord - vec2(0.5);
     float dist = length(uv) * 2.0;
-    if (dist > 1.0) discard;
     float alpha = smoothstep(1.0, 0.0, dist);
     gl_FragColor = vec4(vColor * vTwinkle, alpha * vTwinkle);
   }
@@ -3469,7 +3543,7 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
   const pointsRef = useRef<THREE.Points>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
 
-  const count = 3000;
+  const count = 5000; // Mais estrelas pequenas no campo estelar
 
   const { positions, colors, sizes, phases, brightnesses } = useMemo(() => {
     const pos = new Float32Array(count * 3);
@@ -3478,21 +3552,23 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
     const phase = new Float32Array(count);
     const brightness = new Float32Array(count);
 
+    // Cores de estrelas astronômicas levemente dessaturadas para um visual mais refinado e frio
     const starColors = [
-      new THREE.Color("#9bb0ff"), // Azul
-      new THREE.Color("#aabfff"), // Azul-Branco
-      new THREE.Color("#ffffff"), // Branco
-      new THREE.Color("#fbf8ff"), // Amarelo-Branco
-      new THREE.Color("#ffddb4"), // Laranja
-      new THREE.Color("#ffb4b4"), // Vermelho
+      new THREE.Color("#dce4ff"), // Azul suave dessaturado
+      new THREE.Color("#e6eeff"), // Azul-Branco dessaturado
+      new THREE.Color("#ffffff"), // Branco Puro
+      new THREE.Color("#faf7fc"), // Amarelo-Branco
+      new THREE.Color("#ffeedb"), // Laranja suave dessaturado
+      new THREE.Color("#ffdcdc"), // Vermelho suave dessaturado
     ];
 
     for (let i = 0; i < count; i++) {
+      // Posicionar estrelas em uma esfera celeste maciça muito distante para dar senso de escala infinita
       const u = Math.random();
       const v = Math.random();
       const theta = u * 2.0 * Math.PI;
       const phi = Math.acos(2.0 * v - 1.0);
-      const r = 38000 + Math.random() * 12000;
+      const r = 38000 + Math.random() * 12000; // Esfera distante
 
       pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
@@ -3503,9 +3579,11 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
       col[i * 3 + 1] = color.g;
       col[i * 3 + 2] = color.b;
 
-      const magnitude = Math.pow(Math.random(), 4);
-      size[i] = 1.2 + magnitude * 7.0;
-      brightness[i] = 0.5 + magnitude * 0.85;
+      // Distribuição tipo "magnitude estelar": muito mais estrelas pequenas, pouquíssimas grandes
+      // (rand^12 concentra a grande maioria das estrelas em tamanhos minúsculos)
+      const magnitude = Math.pow(Math.random(), 12);
+      size[i] = 0.4 + magnitude * 6.5; // Tamanhos variados (de minúsculo a proeminente)
+      brightness[i] = 0.15 + Math.random() * 0.85; // Brilho totalmente aleatório para cada estrela
       phase[i] = Math.random() * 10.0;
     }
     return { positions: pos, colors: col, sizes: size, phases: phase, brightnesses: brightness };
@@ -3515,8 +3593,9 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
 
   useFrame((state) => {
     if (pointsRef.current) {
-      pointsRef.current.rotation.y = state.clock.elapsedTime * 0.0004;
-      pointsRef.current.rotation.x = state.clock.elapsedTime * 0.00015;
+      // Rotação celeste ultra-suave para dar vida e dinamismo de rotação galáctica de fundo
+      pointsRef.current.rotation.y = state.clock.elapsedTime * 0.0006;
+      pointsRef.current.rotation.x = state.clock.elapsedTime * 0.0002;
     }
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
@@ -3534,9 +3613,9 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
       </bufferGeometry>
       <shaderMaterial
         ref={materialRef}
+        uniforms={uniforms}
         vertexShader={STAR_VERTEX_SHADER}
         fragmentShader={STAR_FRAGMENT_SHADER}
-        uniforms={uniforms}
         transparent
         depthWrite={false}
         blending={THREE.AdditiveBlending}
@@ -4862,10 +4941,10 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
             }
           }
         }
-      } else if (zDiff > 12000) {
-        // Reenvelopar asteroides que ficaram para trás, posicionando-os à frente na rota
-        tempScatter.set((Math.random() - 0.5) * 20000, (Math.random() - 0.5) * 8000, (Math.random() - 0.5) * 10000);
-        a.pos.copy(ship.position).addScaledVector(fd, 18000 + Math.random() * 15000).add(tempScatter);
+      } else if (zDiff > 25000) {
+        // Wrap asteroids that are left far behind
+        tempScatter.set((Math.random() - 0.5) * 40000, (Math.random() - 0.5) * 15000, (Math.random() - 0.5) * 40000);
+        a.pos.copy(ship.position).addScaledVector(fd, 30000 + Math.random() * 20000).add(tempScatter);
         if (asteroidsChangedRef) {
           asteroidsChangedRef.current = true;
         }

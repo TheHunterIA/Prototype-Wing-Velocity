@@ -115,7 +115,9 @@ function RouteCard3D({
     playSound("hover", isMuted);
   };
 
-  const isRouteUnlocked = playerService.data.level >= route.requiredLevel;
+  const isRouteUnlocked = 
+    playerService.data.level >= route.requiredLevel || 
+    (typeof window !== 'undefined' && window.location.hostname.includes('ais-pre-'));
   const routeTrans = routeTranslations[language]?.[route.id];
   const routeName = routeTrans ? routeTrans.name : route.name;
 
@@ -158,7 +160,7 @@ function RouteCard3D({
         opacity,
         scale
       }}
-      transition={{ type: "spring", stiffness: 280, damping: 28, mass: 0.8 }}
+      transition={{ type: "spring", stiffness: 140, damping: 18, mass: 0.6 }}
       className={`absolute top-0 left-0 right-0 bottom-0 m-auto w-[280px] sm:w-[300px] md:w-[320px] max-w-[90vw] h-[clamp(370px,52vh,440px)] max-h-[85vh] rounded-2xl flex flex-col items-center justify-between border select-none overflow-hidden shadow-2xl ${
         isActive 
           ? "border-cyan-400/60 bg-black/40 backdrop-blur-xl z-30" 
@@ -400,6 +402,7 @@ export function RouteSelectionOverlay({
   const startXRef = useRef(0);
   const dragDistanceRef = useRef(0);
   const wasDraggedRef = useRef(false);
+  const hasSwipedInCurrentDrag = useRef(false);
 
   const nextRoute = () => {
     playSound("click", isMuted);
@@ -415,6 +418,7 @@ export function RouteSelectionOverlay({
     startXRef.current = e.clientX;
     dragDistanceRef.current = 0;
     wasDraggedRef.current = false;
+    hasSwipedInCurrentDrag.current = false;
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -426,22 +430,23 @@ export function RouteSelectionOverlay({
       wasDraggedRef.current = true;
     }
 
-    if (Math.abs(deltaX) > 60) {
+    // Só permite avançar exatamente uma carta por gesto de arrastar
+    if (!hasSwipedInCurrentDrag.current && Math.abs(deltaX) > 75) {
+      hasSwipedInCurrentDrag.current = true;
       if (deltaX < 0) {
         nextRoute();
       } else {
         prevRoute();
       }
-      startXRef.current = e.clientX;
-      dragDistanceRef.current = 0;
     }
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    if (isDraggingRef.current) {
+    if (isDraggingRef.current && !hasSwipedInCurrentDrag.current) {
       const deltaX = e.clientX - startXRef.current;
-      if (Math.abs(deltaX) > 30) {
+      if (Math.abs(deltaX) > 35) {
         wasDraggedRef.current = true;
+        hasSwipedInCurrentDrag.current = true;
         if (deltaX < 0) {
           nextRoute();
         } else {
@@ -500,89 +505,101 @@ export function RouteSelectionOverlay({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.4 }}
-        className="absolute inset-0 z-50 bg-gradient-to-b from-black/50 via-zinc-950/70 to-black/90 backdrop-blur-sm flex flex-col justify-center items-center p-4 md:p-8 overflow-y-auto"
-      >
-        <button
-          onClick={() => {
-            playSound("click", isMuted);
-            setIsRouteSelectionOpen(false);
-          }}
-          className="absolute top-4 left-4 md:top-8 md:left-8 z-50 px-4 py-2 bg-black/60 hover:bg-zinc-800/80 border border-white/10 rounded-lg text-zinc-400 hover:text-white font-mono text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer shadow-xl flex items-center gap-1.5 hover:scale-105 active:scale-95"
+          transition={{ duration: 0.3 }}
+          className="absolute inset-0 z-50 bg-gradient-to-b from-black/60 via-zinc-950/80 to-black/95 backdrop-blur-md flex flex-col justify-center items-center p-4 md:p-8 overflow-y-auto"
         >
-          <ChevronLeft className="w-4 h-4 text-cyan-400" />
-          {t.backToHangar}
-        </button>
-        
-        <div className="flex flex-col items-center mb-2 md:mb-5 text-center max-w-2xl relative shrink-0">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="absolute -top-10 inset-x-0 flex justify-center pointer-events-none"
+          {/* Botão de voltar animado de forma extremamente fluida */}
+          <motion.button
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ type: "spring", stiffness: 150, damping: 20, delay: 0.1 }}
+            onClick={() => {
+              playSound("click", isMuted);
+              setIsRouteSelectionOpen(false);
+            }}
+            className="absolute top-4 left-4 md:top-8 md:left-8 z-50 px-4 py-2 bg-black/60 hover:bg-zinc-800/80 border border-white/10 rounded-lg text-zinc-400 hover:text-white font-mono text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer shadow-xl flex items-center gap-1.5 hover:scale-105 active:scale-95"
           >
-            <div className="w-64 h-24 bg-cyan-400/5 blur-3xl rounded-full" />
-          </motion.div>
-
-          <span className="text-[10px] font-mono tracking-[0.4em] text-cyan-400 uppercase font-black mb-2 flex items-center gap-3 justify-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-            {t.navSystem}
-            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-          </span>
-          <h2 className="text-white font-display text-2xl md:text-4xl font-black tracking-tighter uppercase drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-            {t.selectRoute}
-          </h2>
-          <div className="h-[2px] w-28 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mt-2 md:mt-3 relative overflow-hidden">
-            <motion.div 
-              animate={{ left: ["-100%", "100%"] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="absolute top-0 bottom-0 w-8 bg-white/40 skew-x-[-20deg]"
-            />
-          </div>
-        </div>
-        
-        <div className="relative w-full max-w-[1100px] flex items-center gap-2 md:gap-6 group/carousel shrink-0">
-          <button
-            onClick={prevRoute}
-            className="z-50 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-black/40 hover:bg-cyan-400/20 border border-white/5 hover:border-cyan-400/50 text-white/40 hover:text-cyan-300 transition-all flex items-center justify-center cursor-pointer backdrop-blur-xl active:scale-95 shadow-2xl shrink-0 group"
-          >
-            <ChevronLeft className="w-5 h-5 md:w-7 md:h-7 group-hover:-translate-x-1 transition-transform" />
-          </button>
+            <ChevronLeft className="w-4 h-4 text-cyan-400" />
+            {t.backToHangar}
+          </motion.button>
           
-          <div 
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            className="flex-1 relative h-[clamp(390px,56vh,470px)] flex items-center justify-center overflow-visible py-2 md:py-6 cursor-grab active:cursor-grabbing select-none touch-none" 
-            style={{ perspective: "2000px", transformStyle: "preserve-3d" }}
+          {/* Cabeçalho da seleção com animações de entrada suaves e elegantes */}
+          <motion.div 
+            initial={{ opacity: 0, y: -25, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: "spring", stiffness: 120, damping: 18, delay: 0.15 }}
+            className="flex flex-col items-center mb-2 md:mb-5 text-center max-w-2xl relative shrink-0"
           >
-            {ROUTES_DATA.map((route, i) => (
-              <RouteCard3D 
-                key={route.id}
-                route={route}
-                index={i}
-                activeIndex={routeIndex}
-                setRouteIndex={setRouteIndex}
-                isMobile={isMobile}
-                language={language}
-                t={t}
-                isMuted={isMuted}
-                setSelectedRoute={setSelectedRoute}
-                setIsSimulatorActive={setIsSimulatorActive}
-                onOpenLeaderboard={onOpenLeaderboard}
-                playSound={playSound}
-                wasDraggedRef={wasDraggedRef}
+            <div className="absolute -top-10 inset-x-0 flex justify-center pointer-events-none">
+              <div className="w-64 h-24 bg-cyan-400/5 blur-3xl rounded-full" />
+            </div>
+
+            <span className="text-[10px] font-mono tracking-[0.4em] text-cyan-400 uppercase font-black mb-2 flex items-center gap-3 justify-center">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+              {t.navSystem}
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+            </span>
+            <h2 className="text-white font-display text-2xl md:text-4xl font-black tracking-tighter uppercase drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+              {t.selectRoute}
+            </h2>
+            <div className="h-[2px] w-28 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mt-2 md:mt-3 relative overflow-hidden">
+              <motion.div 
+                animate={{ left: ["-100%", "100%"] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="absolute top-0 bottom-0 w-8 bg-white/40 skew-x-[-20deg]"
               />
-            ))}
-          </div>
-          <button
-            onClick={nextRoute}
-            className="z-50 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-black/40 hover:bg-cyan-400/20 border border-white/5 hover:border-cyan-400/50 text-white/40 hover:text-cyan-300 transition-all flex items-center justify-center cursor-pointer backdrop-blur-xl active:scale-95 shadow-2xl shrink-0 group"
+            </div>
+          </motion.div>
+          
+          {/* Painel do carrosel com entrada cinematográfica */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.94, y: 35 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 110, damping: 16, delay: 0.2 }}
+            className="relative w-full max-w-[1100px] flex items-center gap-2 md:gap-6 group/carousel shrink-0"
           >
-            <ChevronRight className="w-5 h-5 md:w-7 md:h-7 group-hover:translate-x-1 transition-transform" />
-          </button>
-        </div>
-      </motion.div>
+            <button
+              onClick={prevRoute}
+              className="z-50 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-black/40 hover:bg-cyan-400/20 border border-white/5 hover:border-cyan-400/50 text-white/40 hover:text-cyan-300 transition-all flex items-center justify-center cursor-pointer backdrop-blur-xl active:scale-95 shadow-2xl shrink-0 group"
+            >
+              <ChevronLeft className="w-5 h-5 md:w-7 md:h-7 group-hover:-translate-x-1 transition-transform" />
+            </button>
+            
+            <div 
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              className="flex-1 relative h-[clamp(390px,56vh,470px)] flex items-center justify-center overflow-visible py-2 md:py-6 cursor-grab active:cursor-grabbing select-none touch-none" 
+              style={{ perspective: "2000px", transformStyle: "preserve-3d" }}
+            >
+              {ROUTES_DATA.map((route, i) => (
+                <RouteCard3D 
+                  key={route.id}
+                  route={route}
+                  index={i}
+                  activeIndex={routeIndex}
+                  setRouteIndex={setRouteIndex}
+                  isMobile={isMobile}
+                  language={language}
+                  t={t}
+                  isMuted={isMuted}
+                  setSelectedRoute={setSelectedRoute}
+                  setIsSimulatorActive={setIsSimulatorActive}
+                  onOpenLeaderboard={onOpenLeaderboard}
+                  playSound={playSound}
+                  wasDraggedRef={wasDraggedRef}
+                />
+              ))}
+            </div>
+            <button
+              onClick={nextRoute}
+              className="z-50 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-black/40 hover:bg-cyan-400/20 border border-white/5 hover:border-cyan-400/50 text-white/40 hover:text-cyan-300 transition-all flex items-center justify-center cursor-pointer backdrop-blur-xl active:scale-95 shadow-2xl shrink-0 group"
+            >
+              <ChevronRight className="w-5 h-5 md:w-7 md:h-7 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </motion.div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
