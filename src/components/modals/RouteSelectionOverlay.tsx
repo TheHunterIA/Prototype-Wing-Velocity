@@ -245,7 +245,7 @@ function RouteCard3D({
       </motion.div>
 
       <div 
-        className="flex flex-col gap-1.5 md:gap-3 p-2.5 md:p-4 w-full flex-1 min-h-0 justify-between bg-gradient-to-b from-black/40 to-black/95 rounded-b-2xl relative z-20"
+        className="flex flex-col gap-1.5 md:gap-3 p-2.5 md:p-4 w-full flex-1 min-h-0 justify-between bg-gradient-to-b from-black/40 to-black/95 rounded-b-2xl relative z-20 overflow-hidden"
         style={{ transform: isActive ? "translateZ(80px)" : "none", transformStyle: "preserve-3d" }}
       >
         <div className="flex flex-col gap-2 items-center" style={{ transform: "translateZ(20px)" }}>
@@ -256,7 +256,7 @@ function RouteCard3D({
             </span>
             <div className="h-[1px] w-6 bg-cyan-400/30" />
           </div>
-          <h3 className="text-white font-display text-lg md:text-xl font-black tracking-widest uppercase text-center drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">
+          <h3 className="text-white font-display text-lg md:text-xl font-black tracking-widest uppercase text-center drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] line-clamp-2" title={routeName}>
             {routeName}
           </h3>
         </div>
@@ -264,9 +264,9 @@ function RouteCard3D({
         <div className="flex flex-col gap-2.5 w-full" style={{ transform: "translateZ(40px)" }}>
           <div className="flex flex-col gap-2 bg-white/5 p-2.5 md:p-3 rounded-xl border border-white/10 backdrop-blur-2xl relative overflow-hidden shadow-inner">
             {/* Display Stats like a Cockpit */}
-            <div className="flex justify-between items-center text-[10px] font-mono">
-              <span className="text-zinc-400 uppercase tracking-tighter opacity-70">{t.testRings}</span>
-              <div className="flex items-center gap-2">
+            <div className="flex justify-between items-center gap-2 text-[10px] font-mono">
+              <span className="text-zinc-400 uppercase tracking-tighter opacity-70 truncate min-w-0">{t.testRings}</span>
+              <div className="flex items-center gap-2 shrink-0">
                 <div className="flex gap-0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <div key={i} className={`w-1 h-3 skew-x-[-20deg] ${i < (route.numRings / 5) ? 'bg-cyan-400 shadow-[0_0_5px_rgba(34,211,238,0.5)]' : 'bg-zinc-800'}`} />
@@ -276,15 +276,15 @@ function RouteCard3D({
               </div>
             </div>
 
-            <div className="flex justify-between items-center text-[10px] font-mono">
-              <span className="text-zinc-400 uppercase tracking-tighter opacity-70">{t.totalDistance}</span>
-              <span className="text-white font-black">{route.totalDistance.toLocaleString()} M</span>
+            <div className="flex justify-between items-center gap-2 text-[10px] font-mono">
+              <span className="text-zinc-400 uppercase tracking-tighter opacity-70 truncate min-w-0">{t.totalDistance}</span>
+              <span className="text-white font-black shrink-0">{route.totalDistance.toLocaleString()} M</span>
             </div>
 
-            <div className="pt-2 border-t border-white/10 flex justify-between items-center text-[10px] font-mono">
-              <span className="text-zinc-400 uppercase tracking-tighter opacity-70">{t.difficulty}</span>
-              <div className="flex items-center gap-2">
-                <span className={`font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded-sm text-[9px] ${
+            <div className="pt-2 border-t border-white/10 flex justify-between items-center gap-2 text-[10px] font-mono">
+              <span className="text-zinc-400 uppercase tracking-tighter opacity-70 truncate min-w-0">{t.difficulty}</span>
+              <div className="flex items-center gap-2 shrink-0 max-w-[55%]">
+                <span className={`font-black uppercase tracking-[0.1em] px-2 py-0.5 rounded-sm text-[9px] truncate ${
                   route.difficulty === "Elite" || route.difficulty === "Sobrevivência" ? "text-red-500 bg-red-500/20 border border-red-500/30" :
                   route.difficulty === "Difícil" ? "text-orange-500 bg-orange-500/20 border border-orange-500/30" :
                   route.difficulty === "Médio" ? "text-amber-400 bg-amber-400/20 border border-amber-400/30" :
@@ -303,8 +303,8 @@ function RouteCard3D({
                 : "bg-zinc-900/90 text-zinc-400 border border-zinc-700/80 cursor-not-allowed"
               : "bg-zinc-900/50 text-zinc-600 border border-white/5 cursor-default"
           }`}>
-            <span className="relative z-10 flex items-center gap-1.5">
-              {!isRouteUnlocked && <Lock className="w-3.5 h-3.5 text-cyan-400 inline" />}
+            <span className="relative z-10 flex items-center gap-1.5 truncate">
+              {!isRouteUnlocked && <Lock className="w-3.5 h-3.5 text-cyan-400 inline shrink-0" />}
               {isActive
                 ? isRouteUnlocked
                   ? t.chooseRoute
