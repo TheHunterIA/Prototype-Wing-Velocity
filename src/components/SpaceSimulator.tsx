@@ -156,65 +156,118 @@ function generateNoiseTexture(width: number, height: number, type: string, baseC
       ctx.stroke();
     }
   } else if (type === "sun") {
-    const blobLoops = isSmall ? 40 : 120;
-    const flareLoops = isSmall ? 20 : 60;
-    const sunspots = isSmall ? 3 : 8;
-    const granulation = isSmall ? 300 : 1000; // de 20.000 para 300/1000! Uma redução colossal e imperceptível de longe!
+    // Densidade escala com a área do canvas para que a superfície continue detalhada em texturas maiores (1024x512)
+    const areaFactor = Math.max(1, (width * height) / (512 * 256));
+    const blobLoops = Math.round((isSmall ? 40 : 120) * areaFactor);
+    const flareLoops = Math.round((isSmall ? 20 : 60) * areaFactor);
+    const sunspots = Math.round((isSmall ? 3 : 9) * areaFactor);
+    const granulation = Math.round((isSmall ? 300 : 1400) * areaFactor);
 
-    // Fundação convectiva profunda de calor solar (vermelho escuro / laranja)
+    // Fundação convectiva profunda de calor solar (vermelho escuro / laranja), com variação de tom para dar profundidade
     for (let i = 0; i < blobLoops; i++) {
-      drawBlob(Math.random() * width, Math.random() * height, 15 + Math.random() * 30, "#d93800", 0.35);
+      const deep = Math.random() > 0.5;
+      drawBlob(Math.random() * width, Math.random() * height, 12 + Math.random() * 34, deep ? "#c22c00" : "#ff6a00", 0.32);
+    }
+    // Rede de células de supergranulação (bordas mais claras entre células convectivas)
+    for (let i = 0; i < blobLoops * 0.6; i++) {
+      const cx = Math.random() * width; const cy = Math.random() * height; const r = 6 + Math.random() * 14;
+      ctx.globalAlpha = 0.18;
+      ctx.strokeStyle = "#ffd873";
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
     }
     // Erupções solares, proeminências e filamentos brilhantes (arcos dourados)
     for (let i = 0; i < flareLoops; i++) {
-      const cx = Math.random() * width; const cy = Math.random() * height; const r = 10 + Math.random() * 20;
+      const cx = Math.random() * width; const cy = Math.random() * height; const r = 8 + Math.random() * 22;
       const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      g.addColorStop(0, "rgba(255, 205, 0, 0.9)");
-      g.addColorStop(0.5, "rgba(255, 105, 0, 0.4)");
+      g.addColorStop(0, "rgba(255, 230, 130, 0.95)");
+      g.addColorStop(0.45, "rgba(255, 140, 0, 0.5)");
       g.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = g;
-      ctx.globalAlpha = 0.45;
+      ctx.globalAlpha = 0.5;
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
     }
-    // Manchas Solares (manchas magnéticas frias: umbra escura com penumbra quente)
+    // Manchas Solares (manchas magnéticas frias: umbra escura com penumbra quente), agrupadas como pares/grupos reais
     for (let i = 0; i < sunspots; i++) {
-      const cx = Math.random() * width; const cy = Math.random() * height; const r = 2 + Math.random() * 5;
-      drawBlob(cx, cy, r * 2.4, "#8a1c00", 0.65); // Penumbra
-      drawBlob(cx, cy, r, "#1a0400", 0.95);    // Umbra profunda
+      const groupCx = Math.random() * width; const groupCy = Math.random() * height;
+      const groupSize = 1 + Math.floor(Math.random() * 3);
+      for (let j = 0; j < groupSize; j++) {
+        const cx = groupCx + (Math.random() - 0.5) * 24; const cy = groupCy + (Math.random() - 0.5) * 14;
+        const r = 2.5 + Math.random() * 6;
+        drawBlob(cx, cy, r * 2.6, "#8a1c00", 0.7); // Penumbra
+        drawBlob(cx, cy, r, "#170300", 0.95);    // Umbra profunda
+      }
     }
     // Granulação solar microscópica (células de convecção de alta frequência)
     for (let i = 0; i < granulation; i++) {
-      ctx.globalAlpha = Math.random() * 0.15;
-      ctx.fillStyle = "#ffffff";
+      ctx.globalAlpha = Math.random() * 0.16;
+      ctx.fillStyle = "#fff4d6";
       ctx.fillRect(Math.random() * width, Math.random() * height, 2, 2);
     }
   } else if (type === "earth") {
-    const continents = isSmall ? 6 : 14;
+    // Continentes desenhados como cadeias de elipses alongadas e rotacionadas (em vez de
+    // círculos concêntricos), para lembrar silhuetas reais de massas terrestres em vez de manchas.
+    const drawEllipse = (x: number, y: number, rx: number, ry: number, rot: number, color: string, alpha: number) => {
+      ctx.globalAlpha = alpha; ctx.fillStyle = color;
+      [x, x - width, x + width].forEach((wx) => {
+        ctx.beginPath();
+        ctx.ellipse(wx, y, rx, ry, rot, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    };
+
+    const continents = isSmall ? 7 : 11;
     const coastals = isSmall ? 8 : 16;
     const lights = isSmall ? 20 : 60;
 
-    // Oceanos azuis profundos formam a base. Agora criamos continentes orgânicos
     for (let i = 0; i < continents; i++) {
-      const cx = Math.random() * width; const cy = Math.random() * height;
-      const radius = isSmall ? 20 + Math.random() * 60 : 80 + Math.random() * 220;
-      
-      // Geração de continente multicamadas para praias de areia, vegetação exuberante e montanhas nevadas
-      drawBlob(cx, cy, radius, "#d9b382", 0.95); // Camada 1: Deserto e praias douradas
-      drawBlob(cx + (Math.random() - 0.5) * (isSmall ? 10 : 30), cy + (Math.random() - 0.5) * (isSmall ? 10 : 30), radius * 0.85, "#1e5225", 0.85); // Camada 2: Florestas verdes
-      drawBlob(cx + (Math.random() - 0.5) * (isSmall ? 12 : 40), cy + (Math.random() - 0.5) * (isSmall ? 12 : 40), radius * 0.4, "#404a3e", 0.7);  // Camada 3: Cordilheiras rochosas cinzas
-      drawBlob(cx + (Math.random() - 0.5) * (isSmall ? 15 : 45), cy + (Math.random() - 0.5) * (isSmall ? 15 : 45), radius * 0.15, "#ffffff", 0.9); // Camada 4: Neve e geleiras no cume
+      // Restringe o centro das massas terrestres a latitudes não-polares, como na Terra real
+      const cx = Math.random() * width;
+      const cy = height * 0.14 + Math.random() * height * 0.72;
+      const spine = isSmall ? 26 + Math.random() * 34 : 90 + Math.random() * 130;
+      const aspect = 0.4 + Math.random() * 0.35; // massas alongadas, não circulares
+      const rot = Math.random() * Math.PI;
+      const segments = 3 + Math.floor(Math.random() * 3);
+
+      // Espinha do continente: várias elipses encadeadas ao longo de um eixo para criar contorno irregular
+      const dx = Math.cos(rot); const dy = Math.sin(rot);
+      for (let s = 0; s < segments; s++) {
+        const t = (s / (segments - 1 || 1)) - 0.5;
+        const sx = cx + dx * spine * t * 1.3;
+        const sy = cy + dy * spine * t * 1.3 * 0.6;
+        const segR = spine * (0.55 + Math.random() * 0.35) * (1 - Math.abs(t) * 0.3);
+        drawEllipse(sx, sy, segR, segR * aspect, rot + (Math.random() - 0.5) * 0.6, "#d9b382", 0.92); // praias/desertos
+        drawEllipse(sx, sy, segR * 0.8, segR * aspect * 0.8, rot, "#1e5225", 0.85); // florestas
+        if (Math.random() > 0.35) {
+          drawEllipse(sx + (Math.random() - 0.5) * segR * 0.3, sy, segR * 0.35, segR * aspect * 0.35, rot, "#404a3e", 0.7); // cordilheiras
+        }
+        if (Math.random() > 0.6) {
+          drawEllipse(sx, sy, segR * 0.14, segR * aspect * 0.14, rot, "#ffffff", 0.9); // picos nevados
+        }
+      }
     }
     // Águas costeiras rasas (efeito de recifes e plataforma continental turquesa em transparência)
     ctx.globalCompositeOperation = "destination-over";
     for (let i = 0; i < coastals; i++) {
-      drawBlob(Math.random() * width, Math.random() * height, (isSmall ? 30 : 100) + Math.random() * (isSmall ? 50 : 160), "#0e7490", 0.35);
+      drawBlob(Math.random() * width, height * 0.1 + Math.random() * height * 0.8, (isSmall ? 30 : 100) + Math.random() * (isSmall ? 50 : 160), "#0e7490", 0.35);
     }
     ctx.globalCompositeOperation = "source-over";
     
     // Luzes das cidades (pontos de ouro e âmbar que acendem no lado escuro da Terra)
     for (let i = 0; i < lights; i++) {
-      const cx = Math.random() * width; const cy = Math.random() * height;
+      const cx = Math.random() * width; const cy = height * 0.15 + Math.random() * height * 0.7;
       drawBlob(cx, cy, 1 + Math.random() * 3, "#fef08a", 0.35);
+    }
+
+    // Calotas polares: gelo real cobrindo os polos (linhas superior e inferior da projeção equiretangular)
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = "#f4faff";
+    ctx.fillRect(0, 0, width, height * 0.06);
+    ctx.fillRect(0, height * 0.94, width, height * 0.06);
+    ctx.filter = "blur(4px)";
+    for (let i = 0; i < (isSmall ? 10 : 24); i++) {
+      drawBlob(Math.random() * width, height * 0.06 + Math.random() * height * 0.03, 6 + Math.random() * 14, "#f4faff", 0.5);
+      drawBlob(Math.random() * width, height * 0.94 - Math.random() * height * 0.03, 6 + Math.random() * 14, "#f4faff", 0.5);
     }
   } else if (type === "mars") {
     const plains = isSmall ? 4 : 8;
@@ -687,11 +740,11 @@ const EarthModel = memo(function EarthModel({ planet }: { planet: { id: string; 
   const cloudsRef = useRef<THREE.Mesh>(null);
 
   const planetTexture = useMemo(() => {
-    return generateNoiseTexture(512, 256, "earth", "#0a3b8c");
+    return generateNoiseTexture(1024, 512, "earth", "#0a3b8c");
   }, []);
 
   const cloudsTexture = useMemo(() => {
-    return generateCloudsTexture(512, 256);
+    return generateCloudsTexture(1024, 512);
   }, []);
 
   const earthGlowTexture = useMemo(() => {
@@ -914,8 +967,9 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
   });
 
   const texture = useMemo(() => {
-    const baseColors: Record<string, string> = { sun: "#ffdd00", earth: "#0a3b8c", jupiter: "#c88b67", saturn: "#ccbb99", mars: "#a13213" };
-    return generateNoiseTexture(512, 256, planet.id, baseColors[planet.id] || planet.color);
+    const baseColors: Record<string, string> = { sun: "#ff8a00", earth: "#0a3b8c", jupiter: "#c88b67", saturn: "#ccbb99", mars: "#a13213" };
+    const size = planet.id === "sun" ? { w: 1024, h: 512 } : { w: 512, h: 256 };
+    return generateNoiseTexture(size.w, size.h, planet.id, baseColors[planet.id] || planet.color);
   }, [planet.id, planet.color]);
 
   const sunGlowTexture = useMemo(() => {
@@ -944,9 +998,9 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
     switch (planet.id) {
       case "sun":
         return {
-          color: undefined,
-          emissive: new THREE.Color("#ffaa00"),
-          emissiveIntensity: 6.0,
+          color: new THREE.Color("#ffffff"),
+          emissive: new THREE.Color("#ff9d1f"),
+          emissiveIntensity: 2.2,
           roughness: 0.1,
           metalness: 0.0,
           toneMapped: false,
@@ -1005,6 +1059,7 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
         <sphereGeometry args={[planet.radius, 64, 64]} />
         <meshStandardMaterial 
           map={texture || undefined} 
+          emissiveMap={planet.id === "sun" ? (texture || undefined) : undefined}
           bumpMap={planet.id !== "sun" ? (texture || undefined) : undefined}
           bumpScale={
             planet.id === "sun" ? 0 :
@@ -2647,7 +2702,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
               aria-label={t.back}
               className="flex items-center justify-center w-10 h-10 bg-black/60 hover:bg-zinc-800/80 border border-white/10 rounded-lg transition-all cursor-pointer text-white/80 hover:text-white shadow-xl active:scale-95 group"
             >
-              <ArrowLeft className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
+              <ArrowLeft className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
             </button>
 
             {/* Botão Reiniciar */}
@@ -2699,7 +2754,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
             <div className="flex absolute bottom-6 right-6 z-10 pointer-events-none flex-col gap-1.5 bg-black/60 backdrop-blur-md p-3 rounded-lg border border-white/5 w-[210px] font-mono select-none shadow-2xl">
               <div className="flex items-center justify-between border-b border-white/10 pb-1 text-[8px] tracking-wider text-zinc-400">
                 <span className="font-bold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
+                  <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
                   {t.flightControls}
                 </span>
                 <span className="text-[7px] text-zinc-600">MANUAL</span>
@@ -2822,6 +2877,35 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-md p-6 overflow-hidden">
           {/* Fundo de Linhas Sci-Fi */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(16,185,129,0.04),rgba(0,255,0,0.01),rgba(16,185,129,0.04))] bg-[size:100%_4px,6px_100%] opacity-25 pointer-events-none" />
+
+          {/* Raios radiantes centrais - dão peso de "grande conquista" ao momento, distinguindo-o do game over */}
+          <motion.div
+            initial={{ opacity: 0, rotate: 0, scale: 0.8 }}
+            animate={{ opacity: 0.35, rotate: 360, scale: 1 }}
+            transition={{ opacity: { duration: 1 }, scale: { duration: 1 }, rotate: { duration: 40, repeat: Infinity, ease: "linear" } }}
+            className="absolute w-[140vmin] h-[140vmin] pointer-events-none"
+            style={{
+              background: "repeating-conic-gradient(from 0deg, rgba(16,185,129,0.14) 0deg 4deg, transparent 4deg 18deg)",
+              maskImage: "radial-gradient(circle, black 0%, transparent 65%)",
+              WebkitMaskImage: "radial-gradient(circle, black 0%, transparent 65%)"
+            }}
+          />
+
+          {/* Burst de partículas comemorativas */}
+          {Array.from({ length: 28 }).map((_, i) => {
+            const angle = (i / 28) * Math.PI * 2;
+            const dist = 180 + (i % 5) * 40;
+            const isAmber = i % 3 === 0;
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: 0, y: 0, scale: 0 }}
+                animate={{ opacity: [0, 1, 0], x: Math.cos(angle) * dist, y: Math.sin(angle) * dist, scale: [0, 1, 0.6] }}
+                transition={{ duration: 1.8 + (i % 4) * 0.3, delay: 0.1 + (i % 6) * 0.05, repeat: Infinity, repeatDelay: 2.2, ease: "easeOut" }}
+                className={`absolute w-1.5 h-1.5 rounded-full pointer-events-none ${isAmber ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]" : "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]"}`}
+              />
+            );
+          })}
 
           <motion.div 
             ref={victoryCardRef}
@@ -4121,7 +4205,7 @@ function TelemetryHUD({
           {/* Speed & Energy */}
           <div className="flex justify-between items-center text-[10px]">
             <span className="text-zinc-500 uppercase tracking-widest text-[8px]">{t.speedLabel}</span>
-            <span className="font-bold text-orange-400 flex items-center gap-0.5">
+            <span className="font-bold text-cyan-300 flex items-center gap-0.5">
               <span ref={velTextRef}>0</span> <span className="text-[7px] text-zinc-500">km/s</span>
             </span>
           </div>

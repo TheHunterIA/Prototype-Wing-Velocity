@@ -339,8 +339,8 @@ export default function SpaceScene() {
         <header className="z-10 px-12 py-6 flex justify-between items-start shrink-0 pointer-events-none">
           <div className="flex flex-col pointer-events-auto">
             {/* Active indicator */}
-            <span className="text-[10px] font-mono tracking-[0.3em] text-orange-500 uppercase font-semibold mb-1 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+            <span className="text-[10px] font-mono tracking-[0.3em] text-cyan-400 uppercase font-semibold mb-1 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
               {t.prototypeWing}
             </span>
             {/* Animating Name of the Ship */}
@@ -397,7 +397,7 @@ export default function SpaceScene() {
               className="p-2.5 bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/20 rounded-full text-white/70 hover:text-white transition-all cursor-pointer backdrop-blur-md active:scale-95 shadow-lg flex items-center justify-center group"
               title={t.settings}
             >
-              <Settings className="w-4 h-4 text-orange-400 group-hover:rotate-45 transition-transform duration-300" />
+              <Settings className="w-4 h-4 text-cyan-300 group-hover:rotate-45 transition-transform duration-300" />
             </button>
 
             <button
@@ -487,7 +487,7 @@ export default function SpaceScene() {
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-white/10 pb-1 text-[8px] tracking-widest text-zinc-400">
                   <span className="font-bold flex items-center gap-2 uppercase">
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                     {t.telemetry}
                   </span>
                 </div>
@@ -495,7 +495,7 @@ export default function SpaceScene() {
                 {/* Segmented Stats Rows */}
                 <div className="flex flex-col gap-1.5">
                   {[
-                    { id: 'vel', label: t.speed, score: stats.vel, color: "bg-orange-400", empty: "bg-orange-950/40" },
+                    { id: 'vel', label: t.speed, score: stats.vel, color: "bg-cyan-300", empty: "bg-cyan-950/40" },
                     { id: 'ace', label: t.acceleration, score: stats.ace, color: "bg-amber-400", empty: "bg-amber-950/40" },
                     { id: 'tur', label: t.turboPower, score: stats.tur, color: "bg-red-400", empty: "bg-red-950/40" },
                     { id: 'eng', label: t.energy, score: stats.eng, color: "bg-emerald-400", empty: "bg-emerald-950/40" },

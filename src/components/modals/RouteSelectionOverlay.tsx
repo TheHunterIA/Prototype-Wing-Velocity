@@ -158,9 +158,9 @@ function RouteCard3D({
         scale
       }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className={`absolute top-0 left-0 right-0 bottom-0 m-auto w-full max-w-[300px] h-[450px] rounded-2xl flex flex-col items-center justify-between border select-none overflow-visible shadow-2xl transition-all duration-300 ${
+      className={`absolute top-0 left-0 right-0 bottom-0 m-auto w-full max-w-[300px] h-[clamp(340px,56vh,450px)] rounded-2xl flex flex-col items-center justify-between border select-none overflow-visible shadow-2xl transition-all duration-300 ${
         isActive 
-          ? "border-orange-500/60 bg-black/40 backdrop-blur-xl z-30" 
+          ? "border-cyan-400/60 bg-black/40 backdrop-blur-xl z-30" 
           : "border-white/5 bg-black/40 backdrop-blur-md z-20 grayscale-[0.5] opacity-60 hover:opacity-80 hover:grayscale-0 hover:border-white/20"
       }`}
       style={{
@@ -168,8 +168,8 @@ function RouteCard3D({
         pointerEvents,
         boxShadow: isActive ? `
            ${-rotateY * 1.5}px ${rotateX * 1.5}px 40px rgba(0, 0, 0, 0.9),
-           0 0 50px rgba(249, 115, 22, ${0.15 + Math.abs(rotateX)/50}),
-           0 0 120px rgba(249, 115, 22, 0.08)
+           0 0 50px rgba(34, 211, 238, ${0.15 + Math.abs(rotateX)/50}),
+           0 0 120px rgba(34, 211, 238, 0.08)
         ` : '0 10px 40px rgba(0,0,0,0.6)'
       }}
     >
@@ -178,7 +178,7 @@ function RouteCard3D({
         <motion.div 
           animate={{ opacity: [0.1, 0.3, 0.1] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute inset-0 bg-orange-500/5 rounded-2xl pointer-events-none"
+          className="absolute inset-0 bg-cyan-400/5 rounded-2xl pointer-events-none"
         />
       )}
 
@@ -186,7 +186,7 @@ function RouteCard3D({
         <div 
           className="absolute inset-0 pointer-events-none mix-blend-screen transition-opacity duration-300 opacity-40 z-10"
           style={{
-            background: `radial-gradient(circle 250px at ${glowX}% ${glowY}%, rgba(249, 115, 22, 0.3), transparent 80%)`
+            background: `radial-gradient(circle 250px at ${glowX}% ${glowY}%, rgba(34, 211, 238, 0.3), transparent 80%)`
           }}
         />
       )}
@@ -194,22 +194,22 @@ function RouteCard3D({
       {/* Sci-fi corners with scanning animation */}
       {isActive && (
         <>
-          <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-orange-500/80 rounded-tl-2xl" />
-          <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-orange-500/80 rounded-tr-2xl" />
-          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-orange-500/80 rounded-bl-2xl" />
-          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-orange-500/80 rounded-br-2xl" />
+          <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-cyan-400/80 rounded-tl-2xl" />
+          <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-cyan-400/80 rounded-tr-2xl" />
+          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-cyan-400/80 rounded-bl-2xl" />
+          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-cyan-400/80 rounded-br-2xl" />
           
           {/* Animated Scanning Line */}
           <motion.div 
             animate={{ top: ["0%", "100%", "0%"] }}
             transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-            className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-orange-400/30 to-transparent z-20 pointer-events-none"
+            className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-300/30 to-transparent z-20 pointer-events-none"
           />
         </>
       )}
 
       <motion.div
-        className="w-full h-[240px] relative bg-zinc-950 rounded-t-2xl overflow-hidden border-b border-white/10 group/img"
+        className="w-full h-[clamp(140px,26vh,240px)] shrink-0 relative bg-zinc-950 rounded-t-2xl overflow-hidden border-b border-white/10 group/img"
         style={{ 
           transform: isActive ? "translateZ(40px)" : "none", 
           transformStyle: "preserve-3d" 
@@ -226,17 +226,17 @@ function RouteCard3D({
         />
         
         {/* Holographic Overlay Layer */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.5)_50%),linear-gradient(90deg,rgba(249,115,22,0.1),rgba(255,255,255,0.05),rgba(249,115,22,0.1))] bg-[size:100%_2px,12px_100%] opacity-30 z-10 pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.5)_50%),linear-gradient(90deg,rgba(34,211,238,0.1),rgba(255,255,255,0.05),rgba(34,211,238,0.1))] bg-[size:100%_2px,12px_100%] opacity-30 z-10 pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent z-10" />
         
         {isActive && (
-          <div className="absolute inset-0 bg-orange-500/10 z-10 mix-blend-overlay animate-pulse" />
+          <div className="absolute inset-0 bg-cyan-400/10 z-10 mix-blend-overlay animate-pulse" />
         )}
 
         {/* Floating ID Tag (Extreme Parallax) */}
         {isActive && (
           <div 
-            className="absolute top-4 left-4 z-30 bg-orange-500 text-black font-black font-mono text-[8px] px-2 py-0.5 rounded-sm shadow-[0_0_15px_rgba(249,115,22,0.5)]"
+            className="absolute top-4 left-4 z-30 bg-cyan-400 text-black font-black font-mono text-[8px] px-2 py-0.5 rounded-sm shadow-[0_0_15px_rgba(34,211,238,0.5)]"
             style={{ transform: "translateZ(60px)" }}
           >
             HD-DATA
@@ -245,16 +245,16 @@ function RouteCard3D({
       </motion.div>
 
       <div 
-        className="flex flex-col gap-4 p-6 w-full flex-1 justify-between bg-gradient-to-b from-black/40 to-black/95 rounded-b-2xl relative z-20"
+        className="flex flex-col gap-2 md:gap-4 p-3 md:p-6 w-full flex-1 min-h-0 justify-between bg-gradient-to-b from-black/40 to-black/95 rounded-b-2xl relative z-20"
         style={{ transform: isActive ? "translateZ(80px)" : "none", transformStyle: "preserve-3d" }}
       >
         <div className="flex flex-col gap-2 items-center" style={{ transform: "translateZ(20px)" }}>
           <div className="flex items-center gap-2">
-            <div className="h-[1px] w-6 bg-orange-500/30" />
-            <span className="text-orange-500 font-mono text-[9px] font-black tracking-[0.4em] uppercase">
+            <div className="h-[1px] w-6 bg-cyan-400/30" />
+            <span className="text-cyan-400 font-mono text-[9px] font-black tracking-[0.4em] uppercase">
               {t.system} {index + 1}
             </span>
-            <div className="h-[1px] w-6 bg-orange-500/30" />
+            <div className="h-[1px] w-6 bg-cyan-400/30" />
           </div>
           <h3 className="text-white font-display text-2xl font-black tracking-widest uppercase text-center drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">
             {routeName}
@@ -269,7 +269,7 @@ function RouteCard3D({
               <div className="flex items-center gap-2">
                 <div className="flex gap-0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className={`w-1 h-3 skew-x-[-20deg] ${i < (route.numRings / 5) ? 'bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.5)]' : 'bg-zinc-800'}`} />
+                    <div key={i} className={`w-1 h-3 skew-x-[-20deg] ${i < (route.numRings / 5) ? 'bg-cyan-400 shadow-[0_0_5px_rgba(34,211,238,0.5)]' : 'bg-zinc-800'}`} />
                   ))}
                 </div>
                 <span className="text-white font-black">{route.numRings}</span>
@@ -299,12 +299,12 @@ function RouteCard3D({
           <button className={`w-full py-4 text-white font-black font-mono text-[11px] tracking-[0.2em] uppercase rounded-xl transition-all shadow-xl relative overflow-hidden group flex items-center justify-center gap-2 ${
             isActive 
               ? isRouteUnlocked
-                ? "bg-gradient-to-br from-orange-600 via-orange-500 to-amber-600 cursor-pointer" 
+                ? "bg-gradient-to-br from-cyan-600 via-cyan-400 to-teal-500 cursor-pointer" 
                 : "bg-zinc-900/90 text-zinc-400 border border-zinc-700/80 cursor-not-allowed"
               : "bg-zinc-900/50 text-zinc-600 border border-white/5 cursor-default"
           }`}>
             <span className="relative z-10 flex items-center gap-1.5">
-              {!isRouteUnlocked && <Lock className="w-3.5 h-3.5 text-orange-500 inline" />}
+              {!isRouteUnlocked && <Lock className="w-3.5 h-3.5 text-cyan-400 inline" />}
               {isActive
                 ? isRouteUnlocked
                   ? t.chooseRoute
@@ -338,7 +338,7 @@ function RouteCard3D({
             transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(30px)`,
             transformStyle: "preserve-3d",
           }}
-          className="absolute top-4 right-4 z-50 p-2.5 rounded-lg bg-black/85 hover:bg-orange-500/20 border border-white/15 hover:border-orange-500/40 text-zinc-400 hover:text-orange-400 transition-all cursor-pointer flex items-center justify-center shadow-lg group/leaderboard active:scale-95"
+          className="absolute top-4 right-4 z-50 p-2.5 rounded-lg bg-black/85 hover:bg-cyan-400/20 border border-white/15 hover:border-cyan-400/40 text-zinc-400 hover:text-cyan-300 transition-all cursor-pointer flex items-center justify-center shadow-lg group/leaderboard active:scale-95"
           title="Ver Classificação"
         >
           <Trophy className="w-5 h-5 group-hover/leaderboard:animate-pulse text-amber-400" />
@@ -434,7 +434,7 @@ export function RouteSelectionOverlay({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.4 }}
-        className="absolute inset-0 z-50 bg-gradient-to-b from-black/50 via-zinc-950/70 to-black/90 backdrop-blur-sm flex flex-col justify-center items-center p-6 md:p-12 overflow-hidden"
+        className="absolute inset-0 z-50 bg-gradient-to-b from-black/50 via-zinc-950/70 to-black/90 backdrop-blur-sm flex flex-col justify-center items-center p-4 md:p-12 overflow-y-auto"
       >
         <button
           onClick={() => {
@@ -443,28 +443,28 @@ export function RouteSelectionOverlay({
           }}
           className="absolute top-6 left-6 md:top-12 md:left-12 z-50 px-5 py-2.5 bg-black/60 hover:bg-zinc-800/80 border border-white/10 rounded-lg text-zinc-400 hover:text-white font-mono text-[11px] font-bold tracking-widest uppercase transition-all cursor-pointer shadow-xl flex items-center gap-1.5 hover:scale-105 active:scale-95"
         >
-          <ChevronLeft className="w-4 h-4 text-orange-500" />
+          <ChevronLeft className="w-4 h-4 text-cyan-400" />
           {t.backToHangar}
         </button>
         
-        <div className="flex flex-col items-center mb-12 text-center max-w-2xl relative">
+        <div className="flex flex-col items-center mb-4 md:mb-12 text-center max-w-2xl relative shrink-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="absolute -top-12 inset-x-0 flex justify-center pointer-events-none"
           >
-            <div className="w-64 h-32 bg-orange-500/5 blur-3xl rounded-full" />
+            <div className="w-64 h-32 bg-cyan-400/5 blur-3xl rounded-full" />
           </motion.div>
 
-          <span className="text-[11px] font-mono tracking-[0.4em] text-orange-500 uppercase font-black mb-3 flex items-center gap-3 justify-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
+          <span className="text-[11px] font-mono tracking-[0.4em] text-cyan-400 uppercase font-black mb-3 flex items-center gap-3 justify-center">
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
             {t.navSystem}
-            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
           </span>
-          <h2 className="text-white font-display text-5xl font-black tracking-tighter uppercase drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+          <h2 className="text-white font-display text-3xl md:text-5xl font-black tracking-tighter uppercase drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
             {t.selectRoute}
           </h2>
-          <div className="h-[2px] w-32 bg-gradient-to-r from-transparent via-orange-500 to-transparent mt-4 relative overflow-hidden">
+          <div className="h-[2px] w-32 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mt-2 md:mt-4 relative overflow-hidden">
             <motion.div 
               animate={{ left: ["-100%", "100%"] }}
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -473,16 +473,16 @@ export function RouteSelectionOverlay({
           </div>
         </div>
         
-        <div className="relative w-full max-w-[1400px] flex items-center gap-8 group/carousel">
+        <div className="relative w-full max-w-[1400px] flex items-center gap-3 md:gap-8 group/carousel shrink-0">
           <button
             onClick={prevRoute}
-            className="z-50 w-16 h-16 rounded-2xl bg-black/40 hover:bg-orange-500/20 border border-white/5 hover:border-orange-500/50 text-white/40 hover:text-orange-400 transition-all flex items-center justify-center cursor-pointer backdrop-blur-xl active:scale-95 shadow-2xl shrink-0 group"
+            className="z-50 w-11 h-11 md:w-16 md:h-16 rounded-2xl bg-black/40 hover:bg-cyan-400/20 border border-white/5 hover:border-cyan-400/50 text-white/40 hover:text-cyan-300 transition-all flex items-center justify-center cursor-pointer backdrop-blur-xl active:scale-95 shadow-2xl shrink-0 group"
           >
-            <ChevronLeft className="w-10 h-10 group-hover:-translate-x-1 transition-transform" />
+            <ChevronLeft className="w-6 h-6 md:w-10 md:h-10 group-hover:-translate-x-1 transition-transform" />
           </button>
           
           <div 
-            className="flex-1 relative h-[520px] flex items-center justify-center overflow-visible py-12" 
+            className="flex-1 relative h-[clamp(380px,64vh,520px)] flex items-center justify-center overflow-visible py-4 md:py-12" 
             style={{ perspective: "2000px", transformStyle: "preserve-3d" }}
           >
             {ROUTES_DATA.map((route, i) => (
@@ -505,9 +505,9 @@ export function RouteSelectionOverlay({
           </div>
           <button
             onClick={nextRoute}
-            className="z-50 w-16 h-16 rounded-2xl bg-black/40 hover:bg-orange-500/20 border border-white/5 hover:border-orange-500/50 text-white/40 hover:text-orange-400 transition-all flex items-center justify-center cursor-pointer backdrop-blur-xl active:scale-95 shadow-2xl shrink-0 group"
+            className="z-50 w-11 h-11 md:w-16 md:h-16 rounded-2xl bg-black/40 hover:bg-cyan-400/20 border border-white/5 hover:border-cyan-400/50 text-white/40 hover:text-cyan-300 transition-all flex items-center justify-center cursor-pointer backdrop-blur-xl active:scale-95 shadow-2xl shrink-0 group"
           >
-            <ChevronRight className="w-10 h-10 group-hover:translate-x-1 transition-transform" />
+            <ChevronRight className="w-6 h-6 md:w-10 md:h-10 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
       </motion.div>

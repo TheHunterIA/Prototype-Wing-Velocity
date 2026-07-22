@@ -45,7 +45,7 @@ export function ColorSelector({
           >
             {/* Active/Hovered sci-fi color name indicator */}
             <div className="flex flex-col items-end gap-2">
-              <span className="text-[9px] font-mono tracking-widest text-orange-400 uppercase bg-black/80 px-2.5 py-1 rounded-md border border-white/10 shadow-lg select-none backdrop-blur-md">
+              <span className="text-[9px] font-mono tracking-widest text-cyan-300 uppercase bg-black/80 px-2.5 py-1 rounded-md border border-white/10 shadow-lg select-none backdrop-blur-md">
                 {hoveredColorName || getSkinName(selectedColor.id)}
               </span>
             </div>
@@ -89,12 +89,12 @@ export function ColorSelector({
         }}
         className={`
           w-14 h-14 rounded-full bg-black/50 hover:bg-black/75 border transition-all duration-500 flex items-center justify-center cursor-pointer pointer-events-auto backdrop-blur-md active:scale-95 shadow-2xl relative group shrink-0
-          ${isColorPanelOpen ? 'border-orange-500/80 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'border-white/10 hover:border-orange-500/50'}
+          ${isColorPanelOpen ? 'border-cyan-400/80 shadow-[0_0_15px_rgba(34,211,238,0.3)]' : 'border-white/10 hover:border-cyan-400/50'}
         `}
         title={isColorPanelOpen ? t.closeSelection : t.openSelection}
       >
         <div className="relative">
-          <Paintbrush className={`w-5 h-5 transition-transform duration-500 ${isColorPanelOpen ? 'text-orange-500 rotate-12 scale-110' : 'text-white/80 group-hover:text-orange-400 group-hover:-rotate-12'}`} />
+          <Paintbrush className={`w-5 h-5 transition-transform duration-500 ${isColorPanelOpen ? 'text-cyan-400 rotate-12 scale-110' : 'text-white/80 group-hover:text-cyan-300 group-hover:-rotate-12'}`} />
           <span 
             className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border border-black/80 shadow-md transition-colors duration-500" 
             style={{ backgroundColor: selectedColor.colorHex }}
