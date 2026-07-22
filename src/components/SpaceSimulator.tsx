@@ -1222,8 +1222,9 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
       {planet.id === "saturn" && <SaturnRingsInstanced radius={planet.radius} />}
       {planet.id === "sun" && (
         <>
-          {/* Luz solar intensa de longo alcance (ajustada para evitar ofuscamento excessivo) */}
-          <pointLight distance={150000} decay={1.0} intensity={8.0} color={planet.color} castShadow />
+          {/* Luz solar intensa de longo alcance (sem sombra própria: uma point light com castShadow força 6 render
+              passes de cubemap por frame, e a directional light da cena já cobre o papel de projetar sombras) */}
+          <pointLight distance={150000} decay={1.0} intensity={8.0} color={planet.color} />
           {/* Luz de preenchimento ambiente mais suave ao redor do sol */}
           <pointLight distance={30000} decay={1.5} intensity={5.0} color="#ffaa00" />
         </>
@@ -2647,8 +2648,9 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
       <div className="absolute inset-0 z-0">
         <Canvas 
           camera={{ position: [0, 6, 26], fov: 45, far: 200000 }} 
-          shadows={graphicsQuality === "high" ? "soft" : false}
-          gl={{ logarithmicDepthBuffer: true, antialias: graphicsQuality === "high" }}
+          shadows={graphicsQuality === "high" ? "soft" : "basic"}
+          dpr={[1, 1.5]}
+          gl={{ logarithmicDepthBuffer: true, antialias: true }}
         >
           <PerformanceController graphicsQuality={graphicsQuality} setGraphicsQuality={setGraphicsQuality} />
           <DynamicFOV velocityRef={velocityRef} />
@@ -2664,8 +2666,8 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
             <directionalLight 
               position={[10, 25, 15]} 
               intensity={3.5} 
-              castShadow={graphicsQuality === "high"}
-              shadow-mapSize={[2048, 2048]}
+              castShadow 
+              shadow-mapSize={graphicsQuality === "high" ? [2048, 2048] : [1024, 1024]}
               shadow-camera-near={1}
               shadow-camera-far={200}
               shadow-camera-left={-60}
