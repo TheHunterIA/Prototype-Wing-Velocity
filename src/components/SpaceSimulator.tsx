@@ -2675,8 +2675,10 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
             <directionalLight position={[0, -20, 0]} intensity={0.8} color="#0d1127" />
             {/* Ambient Environment (Always visible for seamless transition) */}
             <RenderMilkyWay />
+            <RenderDeepSpaceGalaxies />
             <RenderNebulas nebulas={nebulas} />
             <RenderBackgroundStars />
+            <RenderSpaceDust shipRef={shipRef} />
             
               <GameEngine 
                 shipRef={shipRef} 
@@ -3141,125 +3143,215 @@ function DynamicFOV({ velocityRef }: { velocityRef: React.MutableRefObject<numbe
   return null;
 }
 
-// Textura da camada externa: nuvem ampla e esfumaçada com variação (não é um único
-// degradê perfeito) — várias manchas radiais sobrepostas simulando turbulência de gás.
-function generateNebulaWispTexture() {
-  const cacheKey = "nebula_wisp_v2";
-  if (textureCache.has(cacheKey)) return textureCache.get(cacheKey)!;
-  const size = 256;
-  const c = document.createElement("canvas"); c.width = size; c.height = size;
-  const ctx = c.getContext("2d")!;
-  ctx.filter = "blur(6px)";
-  for (let i = 0; i < 9; i++) {
-    const cx = size / 2 + (Math.random() - 0.5) * size * 0.35;
-    const cy = size / 2 + (Math.random() - 0.5) * size * 0.35;
-    const r = size * (0.28 + Math.random() * 0.24);
-    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    g.addColorStop(0, "rgba(255,255,255,0.32)");
-    g.addColorStop(0.55, "rgba(255,255,255,0.09)");
-    g.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-  }
-  const texture = new THREE.CanvasTexture(c);
-  textureCache.set(cacheKey, texture);
-  return texture;
-}
+// ============================================================================
+// SISTEMA DE RENDERIZAÇÃO ESPACIAL PROCEDURAL AAA (3D VOLUMÉTRICO)
+// ============================================================================
 
-// Textura do núcleo: densidade mais concentrada, pra dar sensação de camadas (core + halo)
-function generateNebulaCoreTexture() {
-  const cacheKey = "nebula_core_v2";
-  if (textureCache.has(cacheKey)) return textureCache.get(cacheKey)!;
-  const size = 256;
-  const c = document.createElement("canvas"); c.width = size; c.height = size;
-  const ctx = c.getContext("2d")!;
-  ctx.filter = "blur(3px)";
-  for (let i = 0; i < 5; i++) {
-    const cx = size / 2 + (Math.random() - 0.5) * size * 0.18;
-    const cy = size / 2 + (Math.random() - 0.5) * size * 0.18;
-    const r = size * (0.16 + Math.random() * 0.14);
-    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    g.addColorStop(0, "rgba(255,255,255,0.55)");
-    g.addColorStop(0.6, "rgba(255,255,255,0.15)");
-    g.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+// GLSL 3D Simplex Noise + FBM + Domain Warping para Nebulosas Procedurais de Nível AAA
+const NEBULA_VERTEX_SHADER = `
+  varying vec2 vUv;
+  varying vec3 vWorldPosition;
+  void main() {
+    vUv = uv;
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vWorldPosition = worldPos.xyz;
+    gl_Position = projectionMatrix * viewMatrix * worldPos;
   }
-  const texture = new THREE.CanvasTexture(c);
-  textureCache.set(cacheKey, texture);
-  return texture;
-}
+`;
+
+const NEBULA_FRAGMENT_SHADER = `
+  uniform vec3 uColorCore;
+  uniform vec3 uColorEdge;
+  uniform vec3 uColorDust;
+  uniform float uTime;
+  uniform float uOpacity;
+
+  varying vec2 vUv;
+  varying vec3 vWorldPosition;
+
+  // Mod289 e Permutações GLSL para Simplex 3D
+  vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+  vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+  vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+  float snoise(vec3 v) {
+    const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+    vec3 i  = floor(v + dot(v, C.yyy));
+    vec3 x0 = v - i + dot(i, C.xxx);
+    vec3 g = step(x0.yzx, x0.xyz);
+    vec3 l = 1.0 - g;
+    vec3 i1 = min(g.xyz, l.zxy);
+    vec3 i2 = max(g.xyz, l.zxy);
+    vec3 x1 = x0 - i1 + C.xxx;
+    vec3 x2 = x0 - i2 + C.yyy;
+    vec3 x3 = x0 - D.yyy;
+    i = mod289(i);
+    vec4 p = permute(permute(permute(
+               i.z + vec4(0.0, i1.z, i2.z, 1.0))
+             + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+             + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+    float n_ = 0.142857142857;
+    vec3 ns = n_ * D.wyz - D.xzx;
+    vec4 j = p - 49.0 * floor(p * ns.z);
+    vec4 x_ = floor(j * ns.z);
+    vec4 y_ = floor(j * ns.x);
+    vec4 x = x_ * ns.x + ns.yyyy;
+    vec4 y = y_ * ns.x + ns.yyyy;
+    vec4 h = 1.0 - abs(x) - abs(y);
+    vec4 b0 = vec4(x.xy, y.xy);
+    vec4 b1 = vec4(x.zw, y.zw);
+    vec4 s0 = floor(b0)*2.0 + 1.0;
+    vec4 s1 = floor(b1)*2.0 + 1.0;
+    vec4 sh = -step(h, vec4(0.0));
+    vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+    vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+    vec3 p0 = vec3(a0.xy, h.x);
+    vec3 p1 = vec3(a0.zw, h.y);
+    vec3 p2 = vec3(a1.xy, h.z);
+    vec3 p3 = vec3(a1.zw, h.w);
+    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+    p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+    vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+    m = m * m;
+    return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+  }
+
+  // Fractional Brownian Motion (4 octaves)
+  float fbm(vec3 p) {
+    float val = 0.0;
+    float amp = 0.5;
+    for (int i = 0; i < 4; i++) {
+      val += amp * snoise(p);
+      p *= 2.04;
+      amp *= 0.5;
+    }
+    return val;
+  }
+
+  // Domain Warping para filamentos orgânicos de plasma e turbulência de poeira cósmica
+  float domainWarp(vec3 p, out vec3 q, out vec3 r, float time) {
+    q.x = fbm(p + vec3(0.0, 0.0, time * 0.02));
+    q.y = fbm(p + vec3(5.2, 1.3, time * 0.015));
+    q.z = fbm(p + vec3(1.7, 9.2, time * 0.018));
+
+    r.x = fbm(p + 3.2 * q + vec3(1.7, 9.2, time * 0.01));
+    r.y = fbm(p + 3.2 * q + vec3(8.3, 2.8, time * 0.012));
+    r.z = fbm(p + 3.2 * q + vec3(2.4, 5.1, time * 0.011));
+
+    return fbm(p + 3.2 * r);
+  }
+
+  void main() {
+    vec2 st = vUv * 2.0 - 1.0;
+    float dist = length(st);
+    if (dist > 1.0) discard;
+    float radialMask = smoothstep(1.0, 0.0, dist);
+
+    vec3 p = vec3(st * 2.2, vWorldPosition.z * 0.00003) + vec3(uTime * 0.008);
+    vec3 q, r;
+    float density = domainWarp(p, q, r, uTime);
+    density = clamp(density * 0.5 + 0.5, 0.0, 1.0);
+
+    // Mapeamento multi-espectral de cores (Gás Ionizado + Núcleo Energético)
+    vec3 color = mix(uColorEdge, uColorCore, pow(density, 1.6));
+    
+    // Nuvens escuras de absorção de poeira estelar
+    float dustLanes = smoothstep(0.2, 0.8, length(q));
+    color = mix(color, uColorDust, dustLanes * 0.45);
+
+    // Destaques brilhantes de choque de energia no centro
+    float energyHotspots = pow(density, 3.2);
+    color += vec3(1.4) * energyHotspots;
+
+    float alpha = pow(density, 1.3) * radialMask * uOpacity;
+    gl_FragColor = vec4(color, alpha);
+  }
+`;
 
 const RenderNebulas = memo(function RenderNebulas({ nebulas }: { nebulas: any[] }) {
-  const wispTexture = useMemo(() => generateNebulaWispTexture(), []);
-  const coreTexture = useMemo(() => generateNebulaCoreTexture(), []);
-  const outerRefs = useRef<(THREE.Sprite | null)[]>([]);
-  const innerRefs = useRef<(THREE.Sprite | null)[]>([]);
+  const materialsRef = useRef<THREE.ShaderMaterial[]>([]);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    for (let i = 0; i < nebulas.length; i++) {
-      // Leve rotação de parallax — cada camada gira numa velocidade levemente diferente,
-      // o que já dá sensação de profundidade e movimento sem custo de CPU/GPU real
-      // (apenas a propriedade `.rotation` do material, nenhum buffer é tocado).
-      const outerMat = outerRefs.current[i]?.material as THREE.SpriteMaterial | undefined;
-      if (outerMat) outerMat.rotation = t * 0.015 + i;
-      const innerMat = innerRefs.current[i]?.material as THREE.SpriteMaterial | undefined;
-      if (innerMat) innerMat.rotation = -t * 0.025 + i;
+    for (let i = 0; i < materialsRef.current.length; i++) {
+      if (materialsRef.current[i]) {
+        materialsRef.current[i].uniforms.uTime.value = t;
+      }
     }
   });
 
   return (
     <group>
-      {nebulas.map((neb, i) => (
-        <group key={i}>
-          <sprite ref={(el) => { outerRefs.current[i] = el; }} position={neb.pos} scale={[neb.scale * 1.4, neb.scale * 1.4, 1]}>
-            <spriteMaterial map={wispTexture} color={neb.color} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.05} />
-          </sprite>
-          <sprite ref={(el) => { innerRefs.current[i] = el; }} position={neb.pos} scale={[neb.scale * 0.7, neb.scale * 0.7, 1]}>
-            <spriteMaterial map={coreTexture} color={neb.color} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.1} />
-          </sprite>
-        </group>
-      ))}
+      {nebulas.map((neb, i) => {
+        const coreColor = neb.color;
+        const edgeColor = new THREE.Color(neb.color).multiplyScalar(0.4).add(new THREE.Color("#10052a"));
+        const dustColor = new THREE.Color("#020108");
+
+        return (
+          <group key={i} position={neb.pos}>
+            <Billboard follow lockX={false} lockY={false} lockZ={false}>
+              <mesh scale={[neb.scale * 1.8, neb.scale * 1.8, 1]}>
+                <planeGeometry args={[1, 1, 16, 16]} />
+                <shaderMaterial
+                  ref={(el) => { if (el) materialsRef.current[i] = el; }}
+                  vertexShader={NEBULA_VERTEX_SHADER}
+                  fragmentShader={NEBULA_FRAGMENT_SHADER}
+                  uniforms={{
+                    uTime: { value: 0 },
+                    uColorCore: { value: coreColor },
+                    uColorEdge: { value: edgeColor },
+                    uColorDust: { value: dustColor },
+                    uOpacity: { value: 0.22 }
+                  }}
+                  transparent
+                  depthWrite={false}
+                  blending={THREE.AdditiveBlending}
+                />
+              </mesh>
+            </Billboard>
+          </group>
+        );
+      })}
     </group>
   );
 });
 
-// Faixa de "Via Láctea" de fundo: um único plano bem distante e sutil, mesmo esquema
-// econômico das nebulosas (1 draw call a mais, textura gerada e cacheada uma única vez).
+// Faixa de "Via Láctea" de fundo e poeira estelar galáctica
 function generateMilkyWayTexture() {
-  const cacheKey = "milkyway_band_v1";
+  const cacheKey = "milkyway_band_v2";
   if (textureCache.has(cacheKey)) return textureCache.get(cacheKey)!;
   const w = 1024, h = 512;
   const c = document.createElement("canvas"); c.width = w; c.height = h;
   const ctx = c.getContext("2d")!;
   const grad = ctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0.0, "rgba(150,165,255,0)");
-  grad.addColorStop(0.32, "rgba(175,180,255,0.05)");
-  grad.addColorStop(0.48, "rgba(215,205,255,0.16)");
-  grad.addColorStop(0.5, "rgba(230,220,255,0.2)");
-  grad.addColorStop(0.52, "rgba(215,205,255,0.16)");
-  grad.addColorStop(0.68, "rgba(175,180,255,0.05)");
-  grad.addColorStop(1.0, "rgba(150,165,255,0)");
+  grad.addColorStop(0.0, "rgba(120,140,255,0)");
+  grad.addColorStop(0.32, "rgba(160,170,255,0.08)");
+  grad.addColorStop(0.48, "rgba(220,200,255,0.22)");
+  grad.addColorStop(0.5, "rgba(240,230,255,0.28)");
+  grad.addColorStop(0.52, "rgba(220,200,255,0.22)");
+  grad.addColorStop(0.68, "rgba(160,170,255,0.08)");
+  grad.addColorStop(1.0, "rgba(120,140,255,0)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
-  // Poeira estelar/nuvens escuras sutis quebrando a uniformidade da faixa
+  
   ctx.filter = "blur(2px)";
-  for (let i = 0; i < 260; i++) {
+  for (let i = 0; i < 320; i++) {
     const x = Math.random() * w;
-    const y = h * 0.5 + (Math.random() - 0.5) * h * 0.34;
-    const r = 4 + Math.random() * 14;
-    ctx.globalAlpha = 0.05 + Math.random() * 0.05;
-    ctx.fillStyle = "#050308";
+    const y = h * 0.5 + (Math.random() - 0.5) * h * 0.36;
+    const r = 4 + Math.random() * 16;
+    ctx.globalAlpha = 0.06 + Math.random() * 0.08;
+    ctx.fillStyle = "#03020a";
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
   }
   ctx.filter = "none";
   ctx.globalAlpha = 1;
-  // Pontinhos brilhantes espalhados pela faixa, simulando aglomerados estelares densos
-  for (let i = 0; i < 220; i++) {
+
+  for (let i = 0; i < 300; i++) {
     const x = Math.random() * w;
-    const y = h * 0.5 + (Math.random() - 0.5) * h * 0.3;
-    ctx.globalAlpha = 0.15 + Math.random() * 0.25;
+    const y = h * 0.5 + (Math.random() - 0.5) * h * 0.32;
+    ctx.globalAlpha = 0.2 + Math.random() * 0.4;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(x, y, 1, 1);
   }
@@ -3267,8 +3359,8 @@ function generateMilkyWayTexture() {
   ctx.globalCompositeOperation = "destination-in";
   const edgeMask = ctx.createLinearGradient(0, 0, w, 0);
   edgeMask.addColorStop(0.0, "rgba(0,0,0,0)");
-  edgeMask.addColorStop(0.18, "rgba(0,0,0,1)");
-  edgeMask.addColorStop(0.82, "rgba(0,0,0,1)");
+  edgeMask.addColorStop(0.15, "rgba(0,0,0,1)");
+  edgeMask.addColorStop(0.85, "rgba(0,0,0,1)");
   edgeMask.addColorStop(1.0, "rgba(0,0,0,0)");
   ctx.fillStyle = edgeMask;
   ctx.fillRect(0, 0, w, h);
@@ -3284,7 +3376,6 @@ const RenderMilkyWay = memo(function RenderMilkyWay() {
 
   useFrame((state) => {
     if (meshRef.current) {
-      // Rotação extremamente lenta, quase imperceptível — só pra dar uma sensação viva de fundo
       meshRef.current.rotation.z = state.clock.elapsedTime * 0.00012;
     }
   });
@@ -3295,7 +3386,7 @@ const RenderMilkyWay = memo(function RenderMilkyWay() {
       <meshBasicMaterial
         map={texture}
         transparent
-        opacity={0.45}
+        opacity={0.5}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
         side={THREE.DoubleSide}
@@ -3305,28 +3396,126 @@ const RenderMilkyWay = memo(function RenderMilkyWay() {
   );
 });
 
+// Componente para Galáxias Espirais de Fundo Distante
+const RenderDeepSpaceGalaxies = memo(function RenderDeepSpaceGalaxies() {
+  const texture = useMemo(() => {
+    const cacheKey = "spiral_galaxy_v1";
+    if (textureCache.has(cacheKey)) return textureCache.get(cacheKey)!;
+    const size = 256;
+    const c = document.createElement("canvas"); c.width = size; c.height = size;
+    const ctx = c.getContext("2d")!;
+    const cx = size / 2, cy = size / 2;
+    
+    // Core glow
+    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.45);
+    coreGrad.addColorStop(0, "rgba(255, 245, 220, 0.9)");
+    coreGrad.addColorStop(0.2, "rgba(180, 200, 255, 0.5)");
+    coreGrad.addColorStop(0.5, "rgba(100, 120, 255, 0.15)");
+    coreGrad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = coreGrad;
+    ctx.fillRect(0, 0, size, size);
+
+    // Spiral arms
+    for (let arm = 0; arm < 2; arm++) {
+      const armOffset = arm * Math.PI;
+      for (let i = 0; i < 400; i++) {
+        const dist = (i / 400) * (size * 0.42);
+        const angle = armOffset + dist * 0.08;
+        const x = cx + Math.cos(angle) * dist + (Math.random() - 0.5) * 12;
+        const y = cy + Math.sin(angle) * dist + (Math.random() - 0.5) * 12;
+        const alpha = (1 - dist / (size * 0.42)) * 0.4 * Math.random();
+        ctx.fillStyle = `rgba(210, 225, 255, ${alpha})`;
+        ctx.fillRect(x, y, 1.5, 1.5);
+      }
+    }
+    const tex = new THREE.CanvasTexture(c);
+    textureCache.set(cacheKey, tex);
+    return tex;
+  }, []);
+
+  const groupRef = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.z = state.clock.elapsedTime * 0.0003;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      <mesh position={[-18000, 8000, -32000]} rotation={[0.8, -0.5, 0.4]}>
+        <planeGeometry args={[14000, 14000]} />
+        <meshBasicMaterial map={texture} transparent opacity={0.65} blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      <mesh position={[22000, -10000, -36000]} rotation={[-0.6, 0.7, -0.3]}>
+        <planeGeometry args={[18000, 18000]} />
+        <meshBasicMaterial map={texture} transparent opacity={0.5} blending={THREE.AdditiveBlending} depthWrite={false} color="#ffb0d0" />
+      </mesh>
+    </group>
+  );
+});
+
+// Poeira Cósmica Interativa (Partículas de Velocidade Mota Espacial)
+const RenderSpaceDust = memo(function RenderSpaceDust({ shipRef }: { shipRef: React.RefObject<THREE.Group> }) {
+  const count = 1000;
+  const pointsRef = useRef<THREE.Points>(null);
+
+  const [positions] = useMemo(() => {
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 1200;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 1200;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 1200;
+    }
+    return [pos];
+  }, []);
+
+  useFrame(() => {
+    if (pointsRef.current && shipRef.current) {
+      pointsRef.current.position.copy(shipRef.current.position);
+    }
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+      </bufferGeometry>
+      <pointsMaterial
+        size={2.2}
+        color="#88c0ff"
+        transparent
+        opacity={0.38}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        sizeAttenuation
+      />
+    </points>
+  );
+});
+
 function PerformanceController({ graphicsQuality, setGraphicsQuality }: { graphicsQuality: "high" | "low", setGraphicsQuality: (q: "high" | "low") => void }) {
   usePerformanceMonitor({ graphicsQuality, setGraphicsQuality });
   return null;
 }
 
-// Shader super leve: o "twinkle" e o sprite circular suave são resolvidos inteiramente
-// na GPU (matemática por vértice/fragmento). A cada frame só atualizamos um único
-// uniform (uTime) — nenhum buffer de posição/tamanho é reenviado pra GPU.
+// Shader Estelar AAA: Suporta Flare Anamórfico (Cross Spikes 4 Pontas) para Supergigantes
 const STAR_VERTEX_SHADER = `
   attribute vec3 aColor;
   attribute float aSize;
   attribute float aPhase;
   attribute float aBrightness;
+  attribute float aIsBright;
   uniform float uTime;
   varying vec3 vColor;
   varying float vTwinkle;
+  varying float vIsBright;
+
   void main() {
     vColor = aColor;
-    // Cintilação sutil: cada estrela tem uma fase própria pra não piscarem em sincronia
-    vTwinkle = aBrightness * (0.78 + 0.22 * sin(uTime * (0.6 + aPhase * 0.9) + aPhase * 6.2831));
+    vIsBright = aIsBright;
+    vTwinkle = aBrightness * (0.8 + 0.2 * sin(uTime * (0.8 + aPhase * 0.9) + aPhase * 6.2831));
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = aSize * (420.0 / -mvPosition.z);
+    gl_PointSize = aSize * (460.0 / -mvPosition.z);
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -3334,12 +3523,27 @@ const STAR_VERTEX_SHADER = `
 const STAR_FRAGMENT_SHADER = `
   varying vec3 vColor;
   varying float vTwinkle;
+  varying float vIsBright;
+
   void main() {
-    // Sprite circular suave (em vez do ponto quadrado padrão do PointsMaterial)
     vec2 uv = gl_PointCoord - vec2(0.5);
     float dist = length(uv) * 2.0;
-    float alpha = smoothstep(1.0, 0.0, dist);
-    gl_FragColor = vec4(vColor * vTwinkle, alpha * vTwinkle);
+    
+    // Ponto estelar central
+    float core = smoothstep(1.0, 0.0, dist);
+
+    // Diffraction Spikes de Lente Anamórfica (4 pontas para estrelas de grande magnitude)
+    float spikeH = exp(-abs(uv.y) * 32.0) * smoothstep(0.5, 0.0, abs(uv.x));
+    float spikeV = exp(-abs(uv.x) * 32.0) * smoothstep(0.5, 0.0, abs(uv.y));
+    float flares = (spikeH + spikeV) * vIsBright * 1.6;
+
+    // Flare horizontal anamórfico estilo cinema sci-fi
+    float anamorphicStreak = exp(-abs(uv.y) * 75.0) * smoothstep(0.5, 0.0, abs(uv.x)) * vIsBright * 2.4;
+
+    vec3 finalColor = vColor * (core + flares + anamorphicStreak) * vTwinkle;
+    float finalAlpha = clamp(core + flares * 0.8 + anamorphicStreak * 0.9, 0.0, 1.0) * vTwinkle;
+
+    gl_FragColor = vec4(finalColor, finalAlpha);
   }
 `;
 
@@ -3347,32 +3551,31 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
   const pointsRef = useRef<THREE.Points>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
 
-  const count = 2600;
+  const count = 3200;
 
-  const { positions, colors, sizes, phases, brightnesses } = useMemo(() => {
+  const { positions, colors, sizes, phases, brightnesses, isBright } = useMemo(() => {
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
     const size = new Float32Array(count);
     const phase = new Float32Array(count);
     const brightness = new Float32Array(count);
+    const brightFlags = new Float32Array(count);
 
-    // Cores de estrelas astronômicas realistas baseadas em tipos espectrais (O, B, A, F, G, K, M)
     const starColors = [
-      new THREE.Color("#9bb0ff"), // Azul (Supergigante quente)
-      new THREE.Color("#aabfff"), // Azul-Branco
+      new THREE.Color("#88aaff"), // Supergigante Azul
+      new THREE.Color("#bbccff"), // Azul-Branco
       new THREE.Color("#ffffff"), // Branco Puro
-      new THREE.Color("#fbf8ff"), // Amarelo-Branco (Semelhante ao Sol)
-      new THREE.Color("#ffddb4"), // Laranja (Gigante vermelha)
-      new THREE.Color("#ffb4b4"), // Vermelho (Anã vermelha)
+      new THREE.Color("#fff5ea"), // Sol Amarelo-Branco
+      new THREE.Color("#ffcca0"), // Gigante Laranja
+      new THREE.Color("#ffa0a0"), // Anã Vermelha
     ];
 
     for (let i = 0; i < count; i++) {
-      // Posicionar estrelas em uma esfera celeste maciça muito distante para dar senso de escala infinita
       const u = Math.random();
       const v = Math.random();
       const theta = u * 2.0 * Math.PI;
       const phi = Math.acos(2.0 * v - 1.0);
-      const r = 38000 + Math.random() * 12000; // Esfera distante
+      const r = 38000 + Math.random() * 12000;
 
       pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
@@ -3383,23 +3586,23 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
       col[i * 3 + 1] = color.g;
       col[i * 3 + 2] = color.b;
 
-      // Distribuição tipo "magnitude estelar": a maioria pequena e fraca,
-      // poucas grandes e brilhantes (rand^5 concentra a massa perto de 0)
-      const magnitude = Math.pow(Math.random(), 5);
-      size[i] = 1.1 + magnitude * 7.5;
-      brightness[i] = 0.45 + magnitude * 0.85;
+      const magnitude = Math.pow(Math.random(), 4.5);
+      const isHyperStar = magnitude > 0.82 ? 1.0 : 0.0;
+      brightFlags[i] = isHyperStar;
+
+      size[i] = 1.2 + magnitude * 11.0;
+      brightness[i] = 0.5 + magnitude * 0.9;
       phase[i] = Math.random() * 10.0;
     }
-    return { positions: pos, colors: col, sizes: size, phases: phase, brightnesses: brightness };
+    return { positions: pos, colors: col, sizes: size, phases: phase, brightnesses: brightness, isBright: brightFlags };
   }, []);
 
   const uniforms = useMemo(() => ({ uTime: { value: 0 } }), []);
 
   useFrame((state) => {
     if (pointsRef.current) {
-      // Rotação celeste ultra-suave para dar vida e dinamismo de rotação galáctica de fundo
-      pointsRef.current.rotation.y = state.clock.elapsedTime * 0.0006;
-      pointsRef.current.rotation.x = state.clock.elapsedTime * 0.0002;
+      pointsRef.current.rotation.y = state.clock.elapsedTime * 0.0005;
+      pointsRef.current.rotation.x = state.clock.elapsedTime * 0.00018;
     }
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
@@ -3414,6 +3617,7 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
         <bufferAttribute attach="attributes-aSize" count={count} array={sizes} itemSize={1} />
         <bufferAttribute attach="attributes-aPhase" count={count} array={phases} itemSize={1} />
         <bufferAttribute attach="attributes-aBrightness" count={count} array={brightnesses} itemSize={1} />
+        <bufferAttribute attach="attributes-aIsBright" count={count} array={isBright} itemSize={1} />
       </bufferGeometry>
       <shaderMaterial
         ref={materialRef}
