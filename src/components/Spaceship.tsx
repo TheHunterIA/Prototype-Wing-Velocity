@@ -1,9 +1,21 @@
-import { useRef, useMemo, useEffect } from "react";
+import { useRef, useMemo, useEffect, memo } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import * as THREE from "three";
+
+// Mapas PBR compartilhados por todos os modelos StarSparrow. Definido como
+// constante do módulo (fora do componente) para que o mesmo objeto de
+// referência seja passado ao useTexture em toda renderização, evitando que
+// o hook (e o useMemo que depende dele) seja invalidado a cada re-render —
+// causa do soluço perceptível na rotação da nave no hangar.
+const PBR_MAP_PATHS = {
+  normalMap: "/StarSparrow_Normal.webp",
+  roughnessMap: "/StarSparrow_Roughness.webp",
+  metalnessMap: "/StarSparrow_Metallic.webp",
+  emissiveMap: "/StarSparrow_Emission.webp",
+} as const;
 
 interface SpaceshipProps {
   modelFile: string;
@@ -20,7 +32,7 @@ interface SpaceshipViewProps {
   isLocked?: boolean;
 }
 
-function SpaceshipView({
+const SpaceshipView = memo(function SpaceshipView({
   scene,
   textureFile,
   position = [0, 0, 0],
@@ -31,12 +43,7 @@ function SpaceshipView({
   const texture = useTexture(textureFile);
   
   // PBR Maps (Common for all StarSparrow models)
-  const pbrMaps = useTexture({
-    normalMap: "/StarSparrow_Normal.webp",
-    roughnessMap: "/StarSparrow_Roughness.webp",
-    metalnessMap: "/StarSparrow_Metallic.webp",
-    emissiveMap: "/StarSparrow_Emission.webp",
-  });
+  const pbrMaps = useTexture(PBR_MAP_PATHS);
 
   const groupRef = useRef<THREE.Group>(null);
   const internalRef = useRef<THREE.Group>(null);
@@ -180,7 +187,7 @@ function SpaceshipView({
       )}
     </group>
   );
-}
+});
 
 function GLTFSpaceship({ modelFile, textureFile, position, isLocked }: SpaceshipProps) {
   const gltf = useLoader(GLTFLoader, modelFile);
@@ -192,7 +199,7 @@ function OBJSpaceship({ modelFile, textureFile, position, isLocked }: SpaceshipP
   return <SpaceshipView scene={obj} textureFile={textureFile} position={position} isGlb={false} isLocked={isLocked} />;
 }
 
-export default function Spaceship({ 
+const Spaceship = memo(function Spaceship({
   modelFile, 
   textureFile, 
   position = [0, 0, 0],
@@ -204,4 +211,6 @@ export default function Spaceship({
   } else {
     return <OBJSpaceship modelFile={modelFile} textureFile={textureFile} position={position} isLocked={isLocked} />;
   }
-}
+});
+
+export default Spaceship;

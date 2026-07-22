@@ -687,11 +687,11 @@ const EarthModel = memo(function EarthModel({ planet }: { planet: { id: string; 
   const cloudsRef = useRef<THREE.Mesh>(null);
 
   const planetTexture = useMemo(() => {
-    return generateNoiseTexture(256, 128, "earth", "#0a3b8c");
+    return generateNoiseTexture(512, 256, "earth", "#0a3b8c");
   }, []);
 
   const cloudsTexture = useMemo(() => {
-    return generateCloudsTexture(256, 128);
+    return generateCloudsTexture(512, 256);
   }, []);
 
   const earthGlowTexture = useMemo(() => {
@@ -915,7 +915,7 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
 
   const texture = useMemo(() => {
     const baseColors: Record<string, string> = { sun: "#ffdd00", earth: "#0a3b8c", jupiter: "#c88b67", saturn: "#ccbb99", mars: "#a13213" };
-    return generateNoiseTexture(256, 128, planet.id, baseColors[planet.id] || planet.color);
+    return generateNoiseTexture(512, 256, planet.id, baseColors[planet.id] || planet.color);
   }, [planet.id, planet.color]);
 
   const sunGlowTexture = useMemo(() => {
@@ -2242,13 +2242,9 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
         // Limitar o "joystick virtual" para evitar giros infinitos sem fim
         pointerRef.current.x = Math.max(-1.5, Math.min(1.5, pointerRef.current.x));
         pointerRef.current.y = Math.max(-1.5, Math.min(1.5, pointerRef.current.y));
-      } else if (!isHangarActive && !isGameOver && !isVictory) {
-        // Quando o mouse ainda não está travado em pointer lock, permite controlar a nave movendo o cursor pela tela
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
-        pointerRef.current.x = Math.max(-1.5, Math.min(1.5, ((e.clientX - centerX) / centerX) * 1.5));
-        pointerRef.current.y = Math.max(-1.5, Math.min(1.5, -((e.clientY - centerY) / centerY) * 1.5));
       } else {
+        // Fora do Pointer Lock, a nave não deve seguir a posição bruta do cursor —
+        // ela só responde ao mouse quando o Pointer Lock está ativo (ramo acima).
         pointerRef.current.x = 0;
         pointerRef.current.y = 0;
       }
@@ -2498,6 +2494,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
             <directionalLight position={[-15, 8, -15]} intensity={2.5} color={selectedColor.colorHex} />
             <directionalLight position={[0, -20, 0]} intensity={0.8} color="#0d1127" />
             {/* Ambient Environment (Always visible for seamless transition) */}
+            <RenderMilkyWay />
             <RenderNebulas nebulas={nebulas} />
             <RenderBackgroundStars />
             
@@ -2962,12 +2959,18 @@ function SpeedParticles({ velocityRef, shipRef }: { velocityRef: React.MutableRe
   }, []);
   useFrame((state, dt) => {
     if (!pointsRef.current) return;
-    const attr = pointsRef.current.geometry.attributes.position as THREE.BufferAttribute;
-    const array = attr.array as Float32Array;
     const absVelocity = Math.abs(velocityRef.current);
     if (matRef.current) {
       matRef.current.opacity = Math.min(1, absVelocity / 500);
     }
+    if (shipRef.current) { pointsRef.current.position.copy(shipRef.current.position); pointsRef.current.quaternion.copy(shipRef.current.quaternion); }
+
+    // Nave parada (velocidade ≈ 0): nenhuma partícula se move, então pulamos o
+    // loop de CPU e o upload do buffer de posições pra GPU nesse frame.
+    if (absVelocity < 0.01) return;
+
+    const attr = pointsRef.current.geometry.attributes.position as THREE.BufferAttribute;
+    const array = attr.array as Float32Array;
     const speedMultiplier = (absVelocity * 0.15 + 100) * dt;
     for (let i = 0; i < count; i++) {
       const idx = i * 3;
@@ -2979,7 +2982,6 @@ function SpeedParticles({ velocityRef, shipRef }: { velocityRef: React.MutableRe
       }
     }
     attr.needsUpdate = true;
-    if (shipRef.current) { pointsRef.current.position.copy(shipRef.current.position); pointsRef.current.quaternion.copy(shipRef.current.quaternion); }
   });
   return (
     <points ref={pointsRef}>
@@ -3006,20 +3008,158 @@ function DynamicFOV({ velocityRef }: { velocityRef: React.MutableRefObject<numbe
   return null;
 }
 
+// Textura da camada externa: nuvem ampla e esfumaçada com variação (não é um único
+// degradê perfeito) — várias manchas radiais sobrepostas simulando turbulência de gás.
+function generateNebulaWispTexture() {
+  const cacheKey = "nebula_wisp_v2";
+  if (textureCache.has(cacheKey)) return textureCache.get(cacheKey)!;
+  const size = 256;
+  const c = document.createElement("canvas"); c.width = size; c.height = size;
+  const ctx = c.getContext("2d")!;
+  ctx.filter = "blur(6px)";
+  for (let i = 0; i < 9; i++) {
+    const cx = size / 2 + (Math.random() - 0.5) * size * 0.35;
+    const cy = size / 2 + (Math.random() - 0.5) * size * 0.35;
+    const r = size * (0.28 + Math.random() * 0.24);
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, "rgba(255,255,255,0.32)");
+    g.addColorStop(0.55, "rgba(255,255,255,0.09)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  }
+  const texture = new THREE.CanvasTexture(c);
+  textureCache.set(cacheKey, texture);
+  return texture;
+}
+
+// Textura do núcleo: densidade mais concentrada, pra dar sensação de camadas (core + halo)
+function generateNebulaCoreTexture() {
+  const cacheKey = "nebula_core_v2";
+  if (textureCache.has(cacheKey)) return textureCache.get(cacheKey)!;
+  const size = 256;
+  const c = document.createElement("canvas"); c.width = size; c.height = size;
+  const ctx = c.getContext("2d")!;
+  ctx.filter = "blur(3px)";
+  for (let i = 0; i < 5; i++) {
+    const cx = size / 2 + (Math.random() - 0.5) * size * 0.18;
+    const cy = size / 2 + (Math.random() - 0.5) * size * 0.18;
+    const r = size * (0.16 + Math.random() * 0.14);
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, "rgba(255,255,255,0.55)");
+    g.addColorStop(0.6, "rgba(255,255,255,0.15)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  }
+  const texture = new THREE.CanvasTexture(c);
+  textureCache.set(cacheKey, texture);
+  return texture;
+}
+
 const RenderNebulas = memo(function RenderNebulas({ nebulas }: { nebulas: any[] }) {
-  const texture = useMemo(() => {
-    const c = document.createElement("canvas"); c.width = 256; c.height = 256; const ctx = c.getContext("2d")!;
-    const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128); g.addColorStop(0, "rgba(255, 255, 255, 0.4)"); g.addColorStop(0.5, "rgba(255, 255, 255, 0.1)"); g.addColorStop(1, "rgba(0, 0, 0, 0)");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 256); return new THREE.CanvasTexture(c);
-  }, []);
+  const wispTexture = useMemo(() => generateNebulaWispTexture(), []);
+  const coreTexture = useMemo(() => generateNebulaCoreTexture(), []);
+  const outerRefs = useRef<(THREE.Sprite | null)[]>([]);
+  const innerRefs = useRef<(THREE.Sprite | null)[]>([]);
 
-  useEffect(() => {
-    return () => {
-      if (texture) texture.dispose();
-    };
-  }, [texture]);
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    for (let i = 0; i < nebulas.length; i++) {
+      // Leve rotação de parallax — cada camada gira numa velocidade levemente diferente,
+      // o que já dá sensação de profundidade e movimento sem custo de CPU/GPU real
+      // (apenas a propriedade `.rotation` do material, nenhum buffer é tocado).
+      const outerMat = outerRefs.current[i]?.material as THREE.SpriteMaterial | undefined;
+      if (outerMat) outerMat.rotation = t * 0.015 + i;
+      const innerMat = innerRefs.current[i]?.material as THREE.SpriteMaterial | undefined;
+      if (innerMat) innerMat.rotation = -t * 0.025 + i;
+    }
+  });
 
-  return <group>{nebulas.map((neb, i) => <sprite key={i} position={neb.pos} scale={[neb.scale, neb.scale, 1]}><spriteMaterial map={texture} color={neb.color} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.06} /></sprite>)}</group>;
+  return (
+    <group>
+      {nebulas.map((neb, i) => (
+        <group key={i}>
+          <sprite ref={(el) => { outerRefs.current[i] = el; }} position={neb.pos} scale={[neb.scale * 1.4, neb.scale * 1.4, 1]}>
+            <spriteMaterial map={wispTexture} color={neb.color} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.05} />
+          </sprite>
+          <sprite ref={(el) => { innerRefs.current[i] = el; }} position={neb.pos} scale={[neb.scale * 0.7, neb.scale * 0.7, 1]}>
+            <spriteMaterial map={coreTexture} color={neb.color} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.1} />
+          </sprite>
+        </group>
+      ))}
+    </group>
+  );
+});
+
+// Faixa de "Via Láctea" de fundo: um único plano bem distante e sutil, mesmo esquema
+// econômico das nebulosas (1 draw call a mais, textura gerada e cacheada uma única vez).
+function generateMilkyWayTexture() {
+  const cacheKey = "milkyway_band_v1";
+  if (textureCache.has(cacheKey)) return textureCache.get(cacheKey)!;
+  const w = 1024, h = 512;
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const ctx = c.getContext("2d")!;
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0.0, "rgba(150,165,255,0)");
+  grad.addColorStop(0.32, "rgba(175,180,255,0.05)");
+  grad.addColorStop(0.48, "rgba(215,205,255,0.16)");
+  grad.addColorStop(0.5, "rgba(230,220,255,0.2)");
+  grad.addColorStop(0.52, "rgba(215,205,255,0.16)");
+  grad.addColorStop(0.68, "rgba(175,180,255,0.05)");
+  grad.addColorStop(1.0, "rgba(150,165,255,0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+  // Poeira estelar/nuvens escuras sutis quebrando a uniformidade da faixa
+  ctx.filter = "blur(2px)";
+  for (let i = 0; i < 260; i++) {
+    const x = Math.random() * w;
+    const y = h * 0.5 + (Math.random() - 0.5) * h * 0.34;
+    const r = 4 + Math.random() * 14;
+    ctx.globalAlpha = 0.05 + Math.random() * 0.05;
+    ctx.fillStyle = "#050308";
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.filter = "none";
+  ctx.globalAlpha = 1;
+  // Pontinhos brilhantes espalhados pela faixa, simulando aglomerados estelares densos
+  for (let i = 0; i < 220; i++) {
+    const x = Math.random() * w;
+    const y = h * 0.5 + (Math.random() - 0.5) * h * 0.3;
+    ctx.globalAlpha = 0.15 + Math.random() * 0.25;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(x, y, 1, 1);
+  }
+  const texture = new THREE.CanvasTexture(c);
+  textureCache.set(cacheKey, texture);
+  return texture;
+}
+
+const RenderMilkyWay = memo(function RenderMilkyWay() {
+  const texture = useMemo(() => generateMilkyWayTexture(), []);
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      // Rotação extremamente lenta, quase imperceptível — só pra dar uma sensação viva de fundo
+      meshRef.current.rotation.z = state.clock.elapsedTime * 0.00012;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} position={[0, 2000, -34000]} rotation={[0.25, 0.4, 0.85]} renderOrder={-1}>
+      <planeGeometry args={[95000, 42000]} />
+      <meshBasicMaterial
+        map={texture}
+        transparent
+        opacity={0.45}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        side={THREE.DoubleSide}
+        fog={false}
+      />
+    </mesh>
+  );
 });
 
 function PerformanceController({ graphicsQuality, setGraphicsQuality }: { graphicsQuality: "high" | "low", setGraphicsQuality: (q: "high" | "low") => void }) {
@@ -3027,15 +3167,51 @@ function PerformanceController({ graphicsQuality, setGraphicsQuality }: { graphi
   return null;
 }
 
+// Shader super leve: o "twinkle" e o sprite circular suave são resolvidos inteiramente
+// na GPU (matemática por vértice/fragmento). A cada frame só atualizamos um único
+// uniform (uTime) — nenhum buffer de posição/tamanho é reenviado pra GPU.
+const STAR_VERTEX_SHADER = `
+  attribute float aSize;
+  attribute float aPhase;
+  attribute float aBrightness;
+  uniform float uTime;
+  varying vec3 vColor;
+  varying float vTwinkle;
+  void main() {
+    vColor = color;
+    // Cintilação sutil: cada estrela tem uma fase própria pra não piscarem em sincronia
+    vTwinkle = aBrightness * (0.78 + 0.22 * sin(uTime * (0.6 + aPhase * 0.9) + aPhase * 6.2831));
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = aSize * (420.0 / -mvPosition.z);
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+
+const STAR_FRAGMENT_SHADER = `
+  varying vec3 vColor;
+  varying float vTwinkle;
+  void main() {
+    // Sprite circular suave (em vez do ponto quadrado padrão do PointsMaterial)
+    vec2 uv = gl_PointCoord - vec2(0.5);
+    float dist = length(uv) * 2.0;
+    float alpha = smoothstep(1.0, 0.0, dist);
+    gl_FragColor = vec4(vColor * vTwinkle, alpha * vTwinkle);
+  }
+`;
+
 const RenderBackgroundStars = memo(function RenderBackgroundStars() {
   const pointsRef = useRef<THREE.Points>(null);
-  
-  const count = 2000;
-  
-  const [positions, colors] = useMemo(() => {
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
+
+  const count = 2600;
+
+  const { positions, colors, sizes, phases, brightnesses } = useMemo(() => {
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
-    
+    const size = new Float32Array(count);
+    const phase = new Float32Array(count);
+    const brightness = new Float32Array(count);
+
     // Cores de estrelas astronômicas realistas baseadas em tipos espectrais (O, B, A, F, G, K, M)
     const starColors = [
       new THREE.Color("#9bb0ff"), // Azul (Supergigante quente)
@@ -3045,7 +3221,7 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
       new THREE.Color("#ffddb4"), // Laranja (Gigante vermelha)
       new THREE.Color("#ffb4b4"), // Vermelho (Anã vermelha)
     ];
-    
+
     for (let i = 0; i < count; i++) {
       // Posicionar estrelas em uma esfera celeste maciça muito distante para dar senso de escala infinita
       const u = Math.random();
@@ -3053,42 +3229,56 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
       const theta = u * 2.0 * Math.PI;
       const phi = Math.acos(2.0 * v - 1.0);
       const r = 38000 + Math.random() * 12000; // Esfera distante
-      
+
       pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       pos[i * 3 + 2] = r * Math.cos(phi);
-      
+
       const color = starColors[Math.floor(Math.random() * starColors.length)];
       col[i * 3] = color.r;
       col[i * 3 + 1] = color.g;
       col[i * 3 + 2] = color.b;
+
+      // Distribuição tipo "magnitude estelar": a maioria pequena e fraca,
+      // poucas grandes e brilhantes (rand^5 concentra a massa perto de 0)
+      const magnitude = Math.pow(Math.random(), 5);
+      size[i] = 1.1 + magnitude * 7.5;
+      brightness[i] = 0.45 + magnitude * 0.85;
+      phase[i] = Math.random() * 10.0;
     }
-    return [pos, col];
+    return { positions: pos, colors: col, sizes: size, phases: phase, brightnesses: brightness };
   }, []);
-  
+
+  const uniforms = useMemo(() => ({ uTime: { value: 0 } }), []);
+
   useFrame((state) => {
-    
     if (pointsRef.current) {
       // Rotação celeste ultra-suave para dar vida e dinamismo de rotação galáctica de fundo
       pointsRef.current.rotation.y = state.clock.elapsedTime * 0.0006;
       pointsRef.current.rotation.x = state.clock.elapsedTime * 0.0002;
     }
+    if (materialRef.current) {
+      materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+    }
   });
-  
+
   return (
     <points ref={pointsRef}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
         <bufferAttribute attach="attributes-color" count={count} array={colors} itemSize={3} />
+        <bufferAttribute attach="attributes-aSize" count={count} array={sizes} itemSize={1} />
+        <bufferAttribute attach="attributes-aPhase" count={count} array={phases} itemSize={1} />
+        <bufferAttribute attach="attributes-aBrightness" count={count} array={brightnesses} itemSize={1} />
       </bufferGeometry>
-      <pointsMaterial 
-        size={2.5} 
-        vertexColors 
-        transparent 
-        opacity={0.85} 
-        sizeAttenuation={true} 
-        blending={THREE.AdditiveBlending} 
+      <shaderMaterial
+        ref={materialRef}
+        uniforms={uniforms}
+        vertexShader={STAR_VERTEX_SHADER}
+        fragmentShader={STAR_FRAGMENT_SHADER}
+        transparent
         depthWrite={false}
+        blending={THREE.AdditiveBlending}
       />
     </points>
   );
@@ -3097,9 +3287,6 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
 const RenderExplosions = memo(function RenderExplosions({ explosionsRef }: { explosionsRef: React.RefObject<ExplosionState[]> }) {
   const meshRef = useRef<THREE.Points>(null);
   const maxParticles = 3000;
-  // Rastreia se havia partículas ativas no frame anterior, para saber se ainda
-  // precisamos de um último upload que "limpe" o draw range (ex: última explosão acabou).
-  const hadParticlesLastFrame = useRef(false);
 
   // Pré-alocar arrays na CPU para reusar e evitar Garbage Collection
   const [positions, colors, sizes] = useMemo(() => {
@@ -3110,11 +3297,23 @@ const RenderExplosions = memo(function RenderExplosions({ explosionsRef }: { exp
     ];
   }, []);
 
+  // Guarda quantas partículas foram desenhadas no frame anterior, pra sabermos
+  // se o buffer já está zerado e podemos pular o upload pra GPU por completo.
+  const lastParticleCountRef = useRef(0);
+
   useFrame(() => {
     if (meshRef.current && explosionsRef.current) {
+      const explosions = explosionsRef.current;
+
+      // Nenhuma explosão ativa e o buffer já foi zerado antes: não há nada
+      // novo pra subir pra GPU, então pulamos o frame inteiro.
+      if (explosions.length === 0 && lastParticleCountRef.current === 0) {
+        return;
+      }
+
       let particleIdx = 0;
 
-      explosionsRef.current.forEach(exp => {
+      explosions.forEach(exp => {
         exp.particles.forEach(part => {
           if (particleIdx < maxParticles) {
             const pIdx3 = particleIdx * 3;
@@ -3138,25 +3337,19 @@ const RenderExplosions = memo(function RenderExplosions({ explosionsRef }: { exp
 
       const geom = meshRef.current.geometry;
       if (geom) {
-        // Sem isso, o Three.js reenviaria ~96KB de buffers pra GPU TODO frame,
-        // para sempre (inclusive no hangar e telas de fim de jogo), mesmo sem
-        // nenhuma explosão ativa. Só fazemos o upload quando há partículas agora
-        // ou havia no frame anterior (para "limpar" o último frame com dados).
-        const hasParticlesNow = particleIdx > 0;
-        if (hasParticlesNow || hadParticlesLastFrame.current) {
-          const posAttr = geom.attributes.position as THREE.BufferAttribute;
-          const colAttr = geom.attributes.color as THREE.BufferAttribute;
-          const sizAttr = geom.attributes.size as THREE.BufferAttribute;
+        const posAttr = geom.attributes.position as THREE.BufferAttribute;
+        const colAttr = geom.attributes.color as THREE.BufferAttribute;
+        const sizAttr = geom.attributes.size as THREE.BufferAttribute;
 
-          if (posAttr && colAttr && sizAttr) {
-            posAttr.needsUpdate = true;
-            colAttr.needsUpdate = true;
-            sizAttr.needsUpdate = true;
-          }
-          geom.setDrawRange(0, particleIdx);
+        if (posAttr && colAttr && sizAttr) {
+          posAttr.needsUpdate = true;
+          colAttr.needsUpdate = true;
+          sizAttr.needsUpdate = true;
         }
-        hadParticlesLastFrame.current = hasParticlesNow;
+        geom.setDrawRange(0, particleIdx);
       }
+
+      lastParticleCountRef.current = particleIdx;
     }
   });
 
