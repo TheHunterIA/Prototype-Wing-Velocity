@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { User, Trophy, BarChart3, Shield, X, Award, CheckCircle2 } from "lucide-react";
 import { ModalCard } from "../ui/ModalCard";
 import { SciFiButton } from "../ui/SciFiButton";
@@ -91,8 +91,6 @@ const localTranslations: Record<Language, Record<string, string>> = {
 };
 
 export function PilotProfileModal({ t, language, isProfileOpen, onClose, playSound, isMuted }: PilotProfileModalProps) {
-  if (!isProfileOpen) return null;
-
   const level = playerService.data.level;
   const lt = localTranslations[language] || localTranslations.pt;
 
@@ -105,13 +103,15 @@ export function PilotProfileModal({ t, language, isProfileOpen, onClose, playSou
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
-      className="absolute inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
-    >
+    <AnimatePresence>
+      {isProfileOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="absolute inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
+        >
       <ModalCard
         initial={{ scale: 0.95, opacity: 0, y: 10 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -261,6 +261,8 @@ export function PilotProfileModal({ t, language, isProfileOpen, onClose, playSou
         </div>
       </ModalCard>
     </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

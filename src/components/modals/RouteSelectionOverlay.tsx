@@ -19,6 +19,7 @@ interface RouteCard3DProps {
   setIsSimulatorActive: (active: boolean) => void;
   onOpenLeaderboard: (routeId: string) => void;
   playSound: (type: string, isMuted: boolean) => void;
+  wasDraggedRef: React.RefObject<boolean>;
 }
 
 function RouteCard3D({
@@ -33,7 +34,8 @@ function RouteCard3D({
   setSelectedRoute,
   setIsSimulatorActive,
   onOpenLeaderboard,
-  playSound
+  playSound,
+  wasDraggedRef
 }: RouteCard3DProps) {
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
@@ -118,6 +120,7 @@ function RouteCard3D({
   const routeName = routeTrans ? routeTrans.name : route.name;
 
   const handleClick = () => {
+    if (wasDraggedRef.current) return;
     if (isActive) {
       if (!isRouteUnlocked) {
         playSound("click", isMuted);
@@ -125,17 +128,15 @@ function RouteCard3D({
       }
       playSound("click", isMuted);
 
-      // Solicita o Pointer Lock AQUI, de forma síncrona, dentro do clique real do usuário.
-      // É o único momento em que o navegador aceita a chamada sem exigir um novo gesto:
-      // se pedirmos depois (ex: num setTimeout após a animação de decolagem, como era feito
-      // antes em SpaceSimulator.tsx), a "user activation" do clique já expirou e o navegador
-      // rejeita silenciosamente. Travamos em document.body porque o container do simulador
-      // ainda nem existe no DOM neste instante (o SpaceSimulator só monta a seguir).
       if (document.body.requestPointerLock) {
-        document.body.requestPointerLock().catch(() => {
-          // Alguns navegadores exigem que o documento já esteja em foco/visível; se falhar
-          // aqui, o próprio SpaceSimulator ainda tenta de novo no primeiro clique dentro do jogo.
-        });
+        try {
+          const res = (document.body as any).requestPointerLock();
+          if (res && typeof res.catch === 'function') {
+            res.catch(() => {});
+          }
+        } catch (err) {
+          console.warn("requestPointerLock error:", err);
+        }
       }
 
       setSelectedRoute(route);
@@ -157,8 +158,8 @@ function RouteCard3D({
         opacity,
         scale
       }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className={`absolute top-0 left-0 right-0 bottom-0 m-auto w-full max-w-[240px] md:max-w-[260px] h-[clamp(290px,42vh,380px)] rounded-2xl flex flex-col items-center justify-between border select-none overflow-visible shadow-2xl transition-all duration-300 ${
+      transition={{ type: "spring", stiffness: 280, damping: 28, mass: 0.8 }}
+      className={`absolute top-0 left-0 right-0 bottom-0 m-auto w-[280px] sm:w-[300px] md:w-[320px] max-w-[90vw] h-[clamp(370px,52vh,440px)] max-h-[85vh] rounded-2xl flex flex-col items-center justify-between border select-none overflow-hidden shadow-2xl ${
         isActive 
           ? "border-cyan-400/60 bg-black/40 backdrop-blur-xl z-30" 
           : "border-white/5 bg-black/40 backdrop-blur-md z-20 grayscale-[0.5] opacity-60 hover:opacity-80 hover:grayscale-0 hover:border-white/20"
@@ -209,7 +210,7 @@ function RouteCard3D({
       )}
 
       <motion.div
-        className="w-full h-[clamp(100px,18vh,160px)] shrink-0 relative bg-zinc-950 rounded-t-2xl overflow-hidden border-b border-white/10 group/img"
+        className="w-full h-[110px] sm:h-[125px] shrink-0 relative bg-zinc-950 rounded-t-2xl overflow-hidden border-b border-white/10 group/img"
         style={{ 
           transform: isActive ? "translateZ(40px)" : "none", 
           transformStyle: "preserve-3d" 
@@ -233,58 +234,75 @@ function RouteCard3D({
           <div className="absolute inset-0 bg-cyan-400/10 z-10 mix-blend-overlay animate-pulse" />
         )}
 
-        {/* Floating ID Tag (Extreme Parallax) */}
-        {isActive && (
-          <div 
-            className="absolute top-4 left-4 z-30 bg-cyan-400 text-black font-black font-mono text-[8px] px-2 py-0.5 rounded-sm shadow-[0_0_15px_rgba(34,211,238,0.5)]"
-            style={{ transform: "translateZ(60px)" }}
-          >
-            HD-DATA
-          </div>
-        )}
+      {/* Lock Icon in Top-Left Corner when Locked */}
+      {!isRouteUnlocked && (
+        <div 
+          style={{
+            transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(30px)`,
+            transformStyle: "preserve-3d",
+          }}
+          className="absolute top-3 left-3 z-50 p-2 rounded-lg bg-black/85 border border-red-500/40 text-red-400 flex items-center justify-center shadow-lg"
+          title={`${t.requiredLevel} ${route.requiredLevel}`}
+        >
+          <Lock className="w-4 h-4 text-red-400 animate-pulse" />
+        </div>
+      )}
+
+      {/* HD-DATA Badge when active & unlocked */}
+      {isActive && isRouteUnlocked && (
+        <div 
+          style={{
+            transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(30px)`,
+            transformStyle: "preserve-3d",
+          }}
+          className="absolute top-3 left-3 z-50 bg-cyan-400 text-black font-black font-mono text-[8px] px-2 py-0.5 rounded-md shadow-[0_0_15px_rgba(34,211,238,0.5)]"
+        >
+          HD-DATA
+        </div>
+      )}
       </motion.div>
 
       <div 
-        className="flex flex-col gap-1.5 md:gap-3 p-2.5 md:p-4 w-full flex-1 min-h-0 justify-between bg-gradient-to-b from-black/40 to-black/95 rounded-b-2xl relative z-20 overflow-hidden"
+        className="flex flex-col p-3 sm:p-3.5 w-full flex-1 min-h-0 justify-between bg-gradient-to-b from-black/40 to-black/95 rounded-b-2xl relative z-20 overflow-hidden gap-2"
         style={{ transform: isActive ? "translateZ(80px)" : "none", transformStyle: "preserve-3d" }}
       >
-        <div className="flex flex-col gap-2 items-center" style={{ transform: "translateZ(20px)" }}>
-          <div className="flex items-center gap-2">
-            <div className="h-[1px] w-6 bg-cyan-400/30" />
-            <span className="text-cyan-400 font-mono text-[9px] font-black tracking-[0.4em] uppercase">
+        <div className="flex flex-col gap-1 items-center" style={{ transform: "translateZ(20px)" }}>
+          <div className="flex items-center gap-1.5">
+            <div className="h-[1px] w-5 bg-cyan-400/30" />
+            <span className="text-cyan-400 font-mono text-[9px] font-black tracking-[0.3em] uppercase">
               {t.system} {index + 1}
             </span>
-            <div className="h-[1px] w-6 bg-cyan-400/30" />
+            <div className="h-[1px] w-5 bg-cyan-400/30" />
           </div>
-          <h3 className="text-white font-display text-lg md:text-xl font-black tracking-widest uppercase text-center drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] line-clamp-2" title={routeName}>
+          <h3 className="text-white font-display text-base sm:text-lg font-black tracking-wider uppercase text-center drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] line-clamp-2 leading-tight" title={routeName}>
             {routeName}
           </h3>
         </div>
         
-        <div className="flex flex-col gap-2.5 w-full" style={{ transform: "translateZ(40px)" }}>
-          <div className="flex flex-col gap-2 bg-white/5 p-2.5 md:p-3 rounded-xl border border-white/10 backdrop-blur-2xl relative overflow-hidden shadow-inner">
+        <div className="flex flex-col gap-2 w-full" style={{ transform: "translateZ(40px)" }}>
+          <div className="flex flex-col gap-1.5 bg-white/5 p-2.5 sm:p-3 rounded-xl border border-white/10 backdrop-blur-2xl relative overflow-hidden shadow-inner">
             {/* Display Stats like a Cockpit */}
-            <div className="flex justify-between items-center gap-2 text-[10px] font-mono">
-              <span className="text-zinc-400 uppercase tracking-tighter opacity-70 truncate min-w-0">{t.testRings}</span>
-              <div className="flex items-center gap-2 shrink-0">
+            <div className="flex justify-between items-center gap-2 text-[10px] sm:text-[11px] font-mono">
+              <span className="text-zinc-400 uppercase tracking-tight opacity-70 truncate min-w-0">{t.testRings}</span>
+              <div className="flex items-center gap-1.5 shrink-0">
                 <div className="flex gap-0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className={`w-1 h-3 skew-x-[-20deg] ${i < (route.numRings / 5) ? 'bg-cyan-400 shadow-[0_0_5px_rgba(34,211,238,0.5)]' : 'bg-zinc-800'}`} />
+                    <div key={i} className={`w-1 h-2.5 skew-x-[-20deg] ${i < (route.numRings / 5) ? 'bg-cyan-400 shadow-[0_0_5px_rgba(34,211,238,0.5)]' : 'bg-zinc-800'}`} />
                   ))}
                 </div>
                 <span className="text-white font-black">{route.numRings}</span>
               </div>
             </div>
 
-            <div className="flex justify-between items-center gap-2 text-[10px] font-mono">
-              <span className="text-zinc-400 uppercase tracking-tighter opacity-70 truncate min-w-0">{t.totalDistance}</span>
+            <div className="flex justify-between items-center gap-2 text-[10px] sm:text-[11px] font-mono">
+              <span className="text-zinc-400 uppercase tracking-tight opacity-70 truncate min-w-0">{t.totalDistance}</span>
               <span className="text-white font-black shrink-0">{route.totalDistance.toLocaleString()} M</span>
             </div>
 
-            <div className="pt-2 border-t border-white/10 flex justify-between items-center gap-2 text-[10px] font-mono">
-              <span className="text-zinc-400 uppercase tracking-tighter opacity-70 truncate min-w-0">{t.difficulty}</span>
-              <div className="flex items-center gap-2 shrink-0 max-w-[55%]">
-                <span className={`font-black uppercase tracking-[0.1em] px-2 py-0.5 rounded-sm text-[9px] truncate ${
+            <div className="pt-1.5 border-t border-white/10 flex justify-between items-center gap-2 text-[10px] sm:text-[11px] font-mono">
+              <span className="text-zinc-400 uppercase tracking-tight opacity-70 truncate min-w-0">{t.difficulty}</span>
+              <div className="flex items-center gap-2 shrink-0 max-w-[60%]">
+                <span className={`font-black uppercase tracking-[0.05em] px-2 py-0.5 rounded-sm text-[9px] sm:text-[10px] truncate ${
                   route.difficulty === "Elite" || route.difficulty === "Sobrevivência" ? "text-red-500 bg-red-500/20 border border-red-500/30" :
                   route.difficulty === "Difícil" ? "text-orange-500 bg-orange-500/20 border border-orange-500/30" :
                   route.difficulty === "Médio" ? "text-amber-400 bg-amber-400/20 border border-amber-400/30" :
@@ -296,7 +314,7 @@ function RouteCard3D({
             </div>
           </div>
           
-          <button className={`w-full py-2.5 md:py-3 text-white font-black font-mono text-[10px] tracking-[0.2em] uppercase rounded-xl transition-all shadow-xl relative overflow-hidden group flex items-center justify-center gap-2 ${
+          <button className={`w-full py-2.5 text-white font-black font-mono text-[10px] sm:text-[11px] tracking-[0.15em] uppercase rounded-xl transition-all shadow-xl relative overflow-hidden group flex items-center justify-center gap-2 ${
             isActive 
               ? isRouteUnlocked
                 ? "bg-gradient-to-br from-cyan-600 via-cyan-400 to-teal-500 cursor-pointer" 
@@ -377,9 +395,11 @@ export function RouteSelectionOverlay({
   onOpenLeaderboard,
   playSound
 }: RouteSelectionOverlayProps) {
-  if (!isRouteSelectionOpen) return null;
-
   const lastScrollTime = useRef(0);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const dragDistanceRef = useRef(0);
+  const wasDraggedRef = useRef(false);
 
   const nextRoute = () => {
     playSound("click", isMuted);
@@ -390,7 +410,53 @@ export function RouteSelectionOverlay({
     setRouteIndex((routeIndex - 1 + ROUTES_DATA.length) % ROUTES_DATA.length);
   };
 
+  const handlePointerDown = (e: React.PointerEvent) => {
+    isDraggingRef.current = true;
+    startXRef.current = e.clientX;
+    dragDistanceRef.current = 0;
+    wasDraggedRef.current = false;
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingRef.current) return;
+    const deltaX = e.clientX - startXRef.current;
+    dragDistanceRef.current = Math.abs(deltaX);
+
+    if (dragDistanceRef.current > 8) {
+      wasDraggedRef.current = true;
+    }
+
+    if (Math.abs(deltaX) > 60) {
+      if (deltaX < 0) {
+        nextRoute();
+      } else {
+        prevRoute();
+      }
+      startXRef.current = e.clientX;
+      dragDistanceRef.current = 0;
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (isDraggingRef.current) {
+      const deltaX = e.clientX - startXRef.current;
+      if (Math.abs(deltaX) > 30) {
+        wasDraggedRef.current = true;
+        if (deltaX < 0) {
+          nextRoute();
+        } else {
+          prevRoute();
+        }
+      }
+    }
+    isDraggingRef.current = false;
+    setTimeout(() => {
+      wasDraggedRef.current = false;
+    }, 100);
+  };
+
   React.useEffect(() => {
+    if (!isRouteSelectionOpen) return;
     const handleWindowWheel = (e: WheelEvent) => {
       const now = Date.now();
       if (now - lastScrollTime.current < 220) return;
@@ -429,11 +495,12 @@ export function RouteSelectionOverlay({
 
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.4 }}
+      {isRouteSelectionOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.4 }}
         className="absolute inset-0 z-50 bg-gradient-to-b from-black/50 via-zinc-950/70 to-black/90 backdrop-blur-sm flex flex-col justify-center items-center p-4 md:p-8 overflow-y-auto"
       >
         <button
@@ -482,7 +549,11 @@ export function RouteSelectionOverlay({
           </button>
           
           <div 
-            className="flex-1 relative h-[clamp(320px,48vh,420px)] flex items-center justify-center overflow-visible py-2 md:py-6" 
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            className="flex-1 relative h-[clamp(390px,56vh,470px)] flex items-center justify-center overflow-visible py-2 md:py-6 cursor-grab active:cursor-grabbing select-none touch-none" 
             style={{ perspective: "2000px", transformStyle: "preserve-3d" }}
           >
             {ROUTES_DATA.map((route, i) => (
@@ -500,6 +571,7 @@ export function RouteSelectionOverlay({
                 setIsSimulatorActive={setIsSimulatorActive}
                 onOpenLeaderboard={onOpenLeaderboard}
                 playSound={playSound}
+                wasDraggedRef={wasDraggedRef}
               />
             ))}
           </div>
@@ -511,6 +583,7 @@ export function RouteSelectionOverlay({
           </button>
         </div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 }

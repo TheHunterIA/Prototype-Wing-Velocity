@@ -29,15 +29,15 @@ export function SimulatedAdOverlay({ isAdShowing, language }: SimulatedAdOverlay
     }
   }, [isAdShowing]);
 
-  if (!isAdShowing) return null;
-
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-8 text-left font-mono"
-    >
+    <AnimatePresence>
+      {isAdShowing && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-8 text-left font-mono"
+        >
       <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="h-full w-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-900 via-black to-black" />
         <div className="h-full w-full absolute top-0 left-0 animate-scanline bg-gradient-to-b from-transparent via-emerald-500/10 to-transparent" />
@@ -95,5 +95,7 @@ export function SimulatedAdOverlay({ isAdShowing, language }: SimulatedAdOverlay
         </div>
       </div>
     </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

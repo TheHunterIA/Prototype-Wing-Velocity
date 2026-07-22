@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { X, Trophy } from "lucide-react";
 import { ModalCard } from "../ui/ModalCard";
 import { LeaderboardEntry } from "../../lib/leaderboardService";
@@ -67,20 +67,20 @@ export function LeaderboardModal({
   isMuted,
   language
 }: LeaderboardModalProps) {
-  if (!isLeaderboardOpen) return null;
-
   const lt = localTranslations[language] || localTranslations.pt;
   const routeTrans = leaderboardRouteId ? routeTranslations[language]?.[leaderboardRouteId] : null;
   const routeName = routeTrans ? routeTrans.name : (ROUTES_DATA.find(r => r.id === leaderboardRouteId)?.name || "");
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
-      className="absolute inset-0 z-[110] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
-    >
+    <AnimatePresence>
+      {isLeaderboardOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="absolute inset-0 z-[110] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+        >
       <ModalCard
         initial={{ scale: 0.95, opacity: 0, y: 15 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -190,5 +190,7 @@ export function LeaderboardModal({
         </div>
       </ModalCard>
     </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

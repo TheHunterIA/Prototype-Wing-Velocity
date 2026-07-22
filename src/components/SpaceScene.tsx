@@ -1,6 +1,7 @@
 import { Suspense, useState, useEffect, useMemo, useRef, useCallback, memo } from "react";
 import { Canvas, useLoader } from "@react-three/fiber";
 import { Environment, OrbitControls, useProgress, Html, useTexture } from "@react-three/drei";
+import { EffectComposer, Bloom, Vignette, ToneMapping, ChromaticAberration } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { motion, AnimatePresence } from "motion/react";
@@ -26,7 +27,6 @@ import { RouteSelectionOverlay } from "./modals/RouteSelectionOverlay";
 import { PilotProfileModal } from "./modals/PilotProfileModal";
 import { LeaderboardModal } from "./modals/LeaderboardModal";
 import { ShipUpgradeModal } from "./modals/ShipUpgradeModal";
-
 
 // Immersive sci-fi sound effects using audioService
 const playSound = (type: "click" | "transition" | "paint", isMuted: boolean) => {
@@ -188,11 +188,13 @@ export default function SpaceScene() {
   useEffect(() => {
     audioService.init();
     if (isSimulatorActive) return;
+    const boostLeft = SHIPS_DATA[currentIndex] ? playerService.getShipBoostTimeLeft(SHIPS_DATA[currentIndex].id) : 0;
+    const intervalTime = boostLeft > 0 ? 1000 : 3000;
     const interval = setInterval(() => {
       setTick(prev => prev + 1);
-    }, 3000);
+    }, intervalTime);
     return () => clearInterval(interval);
-  }, [isSimulatorActive]);
+  }, [isSimulatorActive, currentIndex]);
 
   useEffect(() => {
     audioService.setMute(isMuted);
@@ -332,7 +334,28 @@ export default function SpaceScene() {
         {/* Dark vignette overlay to make the ship and text highly legible */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-slate-950/60" />
         <div className="absolute inset-0 bg-black/30" />
+        <div className="absolute inset-0 hud-vignette" />
+        <div className="absolute inset-0 hud-grid-overlay opacity-30" />
       </div>
+
+      {/* Sci-Fi Center Target Reticle framing the 3D Ship */}
+      {!isRouteSelectionOpen && (
+        <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+          <div className="w-[320px] h-[320px] sm:w-[480px] sm:h-[480px] border border-cyan-500/10 rounded-full relative animate-pulse-slow">
+            {/* Crosshair marks */}
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0.5 h-3 bg-cyan-400/40" />
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0.5 h-3 bg-cyan-400/40" />
+            <div className="absolute top-1/2 -left-3 -translate-y-1/2 w-3 h-0.5 bg-cyan-400/40" />
+            <div className="absolute top-1/2 -right-3 -translate-y-1/2 w-3 h-0.5 bg-cyan-400/40" />
+            
+            {/* Corner Bracket Reticles */}
+            <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-cyan-400/50" />
+            <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-cyan-400/50" />
+            <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-400/50" />
+            <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-400/50" />
+          </div>
+        </div>
+      )}
 
       {/* Top minimal header with ship title and active index */}
       {!isRouteSelectionOpen && (
@@ -343,35 +366,27 @@ export default function SpaceScene() {
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
               {t.prototypeWing}
             </span>
-            {/* Animating Name of the Ship */}
-            <AnimatePresence mode="wait">
-              <motion.h1
-                key={currentShip.id}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.3 }}
-                className="text-white font-display text-4xl font-extrabold tracking-[0.15em] uppercase drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
-              >
-                {currentShip.name}
-              </motion.h1>
-            </AnimatePresence>
-            {/* Subtitle / Category & Description */}
+            {/* Animating Name and Description of the Ship in single AnimatePresence */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentShip.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="flex flex-col gap-1 mt-1"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.25 }}
+                className="flex flex-col"
               >
-                <span className="text-zinc-400 font-mono text-[10px] tracking-[0.2em] uppercase">
-                  {t.classLabel}: {translateClass(currentShip.class, language)}
-                </span>
-                <p className="text-zinc-300 font-serif text-sm max-w-md leading-relaxed mt-1 italic">
-                  {shipDescriptions[language][currentShip.id] || currentShip.description}
-                </p>
+                <h1 className="text-white font-display text-4xl font-extrabold tracking-[0.15em] uppercase drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+                  {currentShip.name}
+                </h1>
+                <div className="flex flex-col gap-1 mt-1">
+                  <span className="text-zinc-400 font-mono text-[10px] tracking-[0.2em] uppercase">
+                    {t.classLabel}: {translateClass(currentShip.class, language)}
+                  </span>
+                  <p className="text-zinc-300 font-serif text-sm max-w-md leading-relaxed mt-1 italic">
+                    {shipDescriptions[language][currentShip.id] || currentShip.description}
+                  </p>
+                </div>
               </motion.div>
             </AnimatePresence>
           </div>
@@ -462,6 +477,7 @@ export default function SpaceScene() {
 
             {/* Localized Suspense boundary to prevent unmounting lights and controls during load */}
             <Suspense fallback={null}>
+              <Environment preset="night" environmentIntensity={isCurrentShipLocked ? 0.2 : 0.8} />
               <Spaceship 
                 modelFile={currentShip.modelFile} 
                 textureFile={selectedColor.textureFile}
@@ -469,13 +485,21 @@ export default function SpaceScene() {
                 isLocked={isCurrentShipLocked}
               />
             </Suspense>
+
+            {graphicsQuality === "high" && (
+              <EffectComposer key="scene-effect-composer">
+                <Bloom luminanceThreshold={0.5} mipmapBlur intensity={0.6} />
+                <Vignette eskil={false} offset={0.15} darkness={0.7} />
+                <ChromaticAberration offset={[0.0008, 0.0008]} />
+              </EffectComposer>
+            )}
           </Canvas>
         </div>
 
         {/* Telemetry Dashboard (Left Side) - Super Compact & Low-Profile */}
         {!isRouteSelectionOpen && (
           <div className="absolute left-6 bottom-4 z-20 w-48">
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
               <motion.div 
                 key={currentShip.id}
                 initial={{ opacity: 0, x: -20 }}
@@ -495,11 +519,11 @@ export default function SpaceScene() {
                 {/* Segmented Stats Rows */}
                 <div className="flex flex-col gap-1.5">
                   {[
-                    { id: 'vel', label: t.speed, score: stats.vel, color: "bg-cyan-300", empty: "bg-cyan-950/40" },
+                    { id: 'vel', label: t.speed, score: stats.vel, color: "bg-cyan-400", empty: "bg-cyan-950/40" },
                     { id: 'ace', label: t.acceleration, score: stats.ace, color: "bg-amber-400", empty: "bg-amber-950/40" },
                     { id: 'tur', label: t.turboPower, score: stats.tur, color: "bg-red-400", empty: "bg-red-950/40" },
                     { id: 'eng', label: t.energy, score: stats.eng, color: "bg-emerald-400", empty: "bg-emerald-950/40" },
-                    { id: 'mas', label: t.mass, score: stats.mas, color: "bg-cyan-400", empty: "bg-cyan-950/40" }
+                    { id: 'mas', label: t.mass, score: stats.mas, color: "bg-purple-400", empty: "bg-purple-950/40" }
                   ].map(stat => (
                     <div key={stat.id} className="flex flex-col gap-0.5">
                       <div className="flex justify-between items-center text-[9px] font-mono">
@@ -570,36 +594,43 @@ export default function SpaceScene() {
             <div className="absolute right-8 bottom-6 z-20 flex flex-col items-end gap-3 pointer-events-auto">
               {/* Upgrade Button above Color Selector */}
               <div className="relative flex items-center gap-2">
-                {playerService.getShipBoostTimeLeft(currentShip.id) > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="bg-black/80 backdrop-blur-md border border-amber-500/50 px-2.5 py-1 rounded-full text-[9px] font-mono font-bold text-amber-400 shadow-lg flex items-center gap-1.5 select-none"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-                    <span>BOOST {Math.ceil(playerService.getShipBoostTimeLeft(currentShip.id) / 60000)}m</span>
-                  </motion.div>
-                )}
+                {(() => {
+                  const boostTimeLeft = playerService.getShipBoostTimeLeft(currentShip.id);
+                  const isBoostActive = boostTimeLeft > 0;
+                  const totalSec = Math.floor(boostTimeLeft / 1000);
+                  const m = Math.floor(totalSec / 60);
+                  const s = totalSec % 60;
+                  const formattedTime = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 
-                <button
-                  onClick={() => {
-                    playSound('click', isMuted);
-                    setShowUpgradeModal(true);
-                  }}
-                  className={`
-                    w-14 h-14 rounded-full bg-black/50 hover:bg-black/80 border transition-all duration-500 flex items-center justify-center cursor-pointer pointer-events-auto backdrop-blur-md active:scale-95 shadow-2xl relative group shrink-0
-                    ${playerService.getShipBoostTimeLeft(currentShip.id) > 0 
-                      ? 'border-amber-500/80 shadow-[0_0_20px_rgba(245,158,11,0.4)] bg-amber-500/10' 
-                      : 'border-white/10 hover:border-amber-500/50'}
-                  `}
-                  title={t.upgradeTitle || "Upgrade Tático / Atributos (+5 Pts)"}
-                >
-                  <Wrench className={`w-6 h-6 transition-transform duration-500 ${
-                    playerService.getShipBoostTimeLeft(currentShip.id) > 0
-                      ? 'text-amber-400 animate-pulse scale-110'
-                      : 'text-amber-400/90 group-hover:scale-115 group-hover:rotate-12'
-                  }`} />
-                </button>
+                  return (
+                    <button
+                      onClick={() => {
+                        if (isBoostActive) return;
+                        playSound('click', isMuted);
+                        setShowUpgradeModal(true);
+                      }}
+                      disabled={isBoostActive}
+                      className={`
+                        w-14 h-14 rounded-full border transition-all duration-300 flex flex-col items-center justify-center pointer-events-auto backdrop-blur-md shadow-2xl relative group shrink-0 select-none
+                        ${isBoostActive 
+                          ? 'border-red-500/80 bg-black/85 shadow-[0_0_20px_rgba(239,68,68,0.5)] cursor-not-allowed' 
+                          : 'border-white/10 hover:border-amber-500/50 cursor-pointer active:scale-95 bg-black/50 hover:bg-black/80'}
+                      `}
+                      title={isBoostActive ? `Boost Ativo (${formattedTime})` : (t.upgradeTitle || "Upgrade Tático / Atributos (+5 Pts)")}
+                    >
+                      {isBoostActive ? (
+                        <div className="flex flex-col items-center justify-center pointer-events-none">
+                          <Wrench className="w-3.5 h-3.5 text-red-400 opacity-80 mb-0.5" />
+                          <span className="font-mono text-[10px] font-black tracking-tighter text-red-500 animate-pulse drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]">
+                            {formattedTime}
+                          </span>
+                        </div>
+                      ) : (
+                        <Wrench className="w-6 h-6 text-amber-400/90 group-hover:scale-115 group-hover:rotate-12 transition-transform duration-500" />
+                      )}
+                    </button>
+                  );
+                })()}
               </div>
 
               <ColorSelector 

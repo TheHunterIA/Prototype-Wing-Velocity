@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Play, X, Plus, Minus, RotateCcw, Clock, ShieldAlert, Sparkles, Gauge, Flame, Battery, Scale, Rocket, Check, Wrench } from "lucide-react";
+import { Play, X, Plus, Minus, RotateCcw, Clock, Sparkles, Gauge, Flame, Battery, Scale, Check, Wrench, Lock } from "lucide-react";
 import { ModalCard } from "../ui/ModalCard";
 import { SciFiButton } from "../ui/SciFiButton";
 import { ShipData } from "../../types";
@@ -34,14 +34,15 @@ const localTranslations: Record<Language, Record<string, string>> = {
     remainingPoints: "Pontos Restantes:",
     resetTitle: "Resetar atribuições",
     baseLabel: "Base:",
-    newVideoBtn: "Novo Vídeo",
-    newVideoTitle: "Assistir outro vídeo reward para resetar ou renovar",
     confirmBtn: "Confirmar Boost (15 Min)",
     velocidade: "Velocidade",
     aceleracao: "Aceleração",
     turbo: "Turbo / Boost",
     energia: "Energia / Escudos",
-    massa: "Massa / Inércia"
+    massa: "Massa / Inércia",
+    boostLockedMsg: "Os pontos deste upgrade foram confirmados e estão ativos. Um novo upgrade estará disponível apenas quando o tempo expirar.",
+    confirmedStatus: "CONFIRMADO & ATIVO",
+    closeBtn: "Fechar"
   },
   en: {
     upgradeTitle: "Tactical Ship Upgrade",
@@ -57,14 +58,15 @@ const localTranslations: Record<Language, Record<string, string>> = {
     remainingPoints: "Remaining Points:",
     resetTitle: "Reset allocations",
     baseLabel: "Base:",
-    newVideoBtn: "New Video",
-    newVideoTitle: "Watch another reward video to reset or renew",
     confirmBtn: "Confirm Boost (15 Min)",
     velocidade: "Speed",
     aceleracao: "Acceleration",
     turbo: "Turbo / Boost",
     energia: "Energy / Shields",
-    massa: "Mass / Inertia"
+    massa: "Mass / Inertia",
+    boostLockedMsg: "This upgrade's points are locked and active. A new upgrade will be available when the time expires.",
+    confirmedStatus: "CONFIRMED & ACTIVE",
+    closeBtn: "Close"
   },
   es: {
     upgradeTitle: "Mejora Táctica de Nave",
@@ -80,14 +82,15 @@ const localTranslations: Record<Language, Record<string, string>> = {
     remainingPoints: "Puntos Restantes:",
     resetTitle: "Restablecer asignaciones",
     baseLabel: "Base:",
-    newVideoBtn: "Nuevo Video",
-    newVideoTitle: "Ver otro video de recompensa para restablecer o renovar",
     confirmBtn: "Confirmar Impulso (15 Min)",
     velocidade: "Velocidad",
     aceleracao: "Aceleración",
     turbo: "Turbo / Impulso",
     energia: "Energía / Escudos",
-    massa: "Masa / Inercia"
+    massa: "Masa / Inercia",
+    boostLockedMsg: "Los puntos de esta mejora están confirmados y activos. Una nueva mejora estará disponible cuando expire el tiempo.",
+    confirmedStatus: "CONFIRMED & ACTIF",
+    closeBtn: "Cerrar"
   },
   fr: {
     upgradeTitle: "Amélioration Tactique de Vaisseau",
@@ -103,14 +106,15 @@ const localTranslations: Record<Language, Record<string, string>> = {
     remainingPoints: "Points Restants :",
     resetTitle: "Réinitialiser les attributions",
     baseLabel: "Base :",
-    newVideoBtn: "Nouvelle Vidéo",
-    newVideoTitle: "Regarder une autre vidéo de récompense pour réinitialiser ou renouveler",
     confirmBtn: "Confirmer le Boost (15 Min)",
     velocidade: "Vitesse",
     aceleracao: "Accélération",
     turbo: "Turbo / Boost",
     energia: "Énergie / Boucliers",
-    massa: "Masse / Inertie"
+    massa: "Masse / Inertie",
+    boostLockedMsg: "Les points de cette amélioration sont confirmés et actifs. Une nouvelle amélioration sera disponible à l'expiration du temps.",
+    confirmedStatus: "CONFIRMÉ & ACTIF",
+    closeBtn: "Fermer"
   }
 };
 
@@ -136,6 +140,7 @@ export function ShipUpgradeModal({
   const [timeLeftMs, setTimeLeftMs] = useState(0);
 
   const lt = localTranslations[language] || localTranslations.pt;
+  const isBoostActive = timeLeftMs > 0;
 
   // Sync active boost state on mount/ship change
   useEffect(() => {
@@ -145,7 +150,7 @@ export function ShipUpgradeModal({
     const left = playerService.getShipBoostTimeLeft(ship.id);
     setTimeLeftMs(left);
 
-    if (existingBoost) {
+    if (existingBoost && left > 0) {
       setAllocatedPoints({ ...existingBoost });
       setHasWatchedVideo(true);
     } else {
@@ -164,8 +169,6 @@ export function ShipUpgradeModal({
     return () => clearInterval(interval);
   }, [showUpgradeModal, ship.id]);
 
-  if (!showUpgradeModal) return null;
-
   const totalAllocated = 
     allocatedPoints.velocidade + 
     allocatedPoints.aceleracao + 
@@ -176,6 +179,7 @@ export function ShipUpgradeModal({
   const pointsAvailable = 5 - totalAllocated;
 
   const handleWatchAd = async () => {
+    if (isBoostActive) return; // Disallow watching ad while boost is active
     playSound("click", isMuted);
     setIsAdShowing(true);
 
@@ -188,6 +192,7 @@ export function ShipUpgradeModal({
   };
 
   const handlePointChange = (attr: keyof ShipBoostPoints, delta: number) => {
+    if (isBoostActive) return; // Points are locked when boost is active
     if (delta > 0 && pointsAvailable <= 0) return;
     if (delta < 0 && allocatedPoints[attr] <= 0) return;
 
@@ -199,6 +204,7 @@ export function ShipUpgradeModal({
   };
 
   const handleResetPoints = () => {
+    if (isBoostActive) return; // Points are locked when boost is active
     playSound("click", isMuted);
     setAllocatedPoints({
       velocidade: 0,
@@ -210,6 +216,7 @@ export function ShipUpgradeModal({
   };
 
   const handleConfirmBoost = () => {
+    if (isBoostActive) return;
     playSound("transition", isMuted);
     playerService.setShipBoost(ship.id, allocatedPoints, 15);
     onBoostApplied();
@@ -230,20 +237,22 @@ export function ShipUpgradeModal({
     base: number;
     color: string;
   }> = [
-    { key: "velocidade", label: lt.velocidade, icon: Gauge, base: ship.velocidade, color: "text-cyan-300" },
+    { key: "velocidade", label: lt.velocidade, icon: Gauge, base: ship.velocidade, color: "text-cyan-400" },
     { key: "aceleracao", label: lt.aceleracao, icon: Sparkles, base: ship.aceleracao, color: "text-amber-400" },
     { key: "turbo", label: lt.turbo, icon: Flame, base: ship.turbo, color: "text-red-400" },
     { key: "energia", label: lt.energia, icon: Battery, base: ship.energia, color: "text-emerald-400" },
-    { key: "massa", label: lt.massa, icon: Scale, base: ship.massa, color: "text-cyan-400" },
+    { key: "massa", label: lt.massa, icon: Scale, base: ship.massa, color: "text-purple-400" },
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 select-none"
-    >
+    <AnimatePresence>
+      {showUpgradeModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 select-none"
+        >
       <ModalCard
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -277,7 +286,7 @@ export function ShipUpgradeModal({
         </div>
 
         {/* Active Boost Banner if present */}
-        {timeLeftMs > 0 && (
+        {isBoostActive && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center justify-between font-mono text-xs">
             <div className="flex items-center gap-2 text-amber-400">
               <Clock className="w-4 h-4 animate-spin" />
@@ -323,7 +332,74 @@ export function ShipUpgradeModal({
         </AnimatePresence>
 
         {/* Modal Main Content */}
-        {!hasWatchedVideo ? (
+        {isBoostActive ? (
+          /* Locked Active Boost Mode */
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between bg-black/60 border border-amber-500/20 p-3 rounded-xl font-mono text-xs">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-400" />
+                <span className="text-amber-400 font-bold uppercase">{lt.confirmedStatus}</span>
+              </div>
+              <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-md">
+                +5 Pts
+              </span>
+            </div>
+
+            {/* Read-Only Attribute Rows */}
+            <div className="flex flex-col gap-2.5 max-h-64 overflow-y-auto pr-1">
+              {attributesList.map(attr => {
+                const IconComp = attr.icon;
+                const allocated = allocatedPoints[attr.key];
+                const boostedValue = attr.base + allocated;
+
+                return (
+                  <div 
+                    key={attr.key}
+                    className="flex items-center justify-between bg-black/40 border border-white/10 p-2.5 rounded-xl gap-2 font-mono"
+                  >
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      <div className={`p-1.5 rounded-lg bg-white/5 ${attr.color}`}>
+                        <IconComp className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[11px] font-bold text-zinc-200 truncate">{attr.label}</span>
+                        <div className="flex items-center gap-1.5 text-[9px] text-zinc-400">
+                          <span>{lt.baseLabel} {attr.base}</span>
+                          {allocated > 0 && (
+                            <span className="text-amber-400 font-bold">
+                              ➔ Boost: {boostedValue} (+{allocated})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center shrink-0">
+                      <span className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold border ${allocated > 0 ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' : 'bg-zinc-800/50 text-zinc-500 border-white/5'}`}>
+                        +{allocated}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Lock Notice */}
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-start gap-2.5 text-[11px] font-mono text-amber-300 leading-relaxed">
+              <Lock className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
+              <span>{lt.boostLockedMsg}</span>
+            </div>
+
+            {/* Close Action */}
+            <SciFiButton
+              variant="orange"
+              onClick={onClose}
+              className="w-full py-3.5 rounded-xl text-xs font-mono tracking-widest uppercase font-bold"
+            >
+              {lt.closeBtn}
+            </SciFiButton>
+          </div>
+        ) : !hasWatchedVideo ? (
           /* Step 1: Watch Video Reward */
           <div className="flex flex-col gap-4 text-center py-2">
             <p className="text-xs text-zinc-300 leading-relaxed font-sans">
@@ -435,18 +511,9 @@ export function ShipUpgradeModal({
             {/* Actions */}
             <div className="flex gap-2.5 pt-2">
               <SciFiButton
-                variant="ghost"
-                onClick={handleWatchAd}
-                className="py-3 px-3 rounded-xl text-[10px] font-mono tracking-wider shrink-0"
-                title={lt.newVideoTitle}
-              >
-                <Play className="w-3.5 h-3.5" /> {lt.newVideoBtn}
-              </SciFiButton>
-
-              <SciFiButton
                 variant="orange"
                 onClick={handleConfirmBoost}
-                className="flex-1 py-3.5 rounded-xl text-xs font-mono tracking-widest uppercase font-bold"
+                className="w-full py-3.5 rounded-xl text-xs font-mono tracking-widest uppercase font-bold"
               >
                 <Check className="w-4 h-4" />
                 {lt.confirmBtn}
@@ -456,5 +523,8 @@ export function ShipUpgradeModal({
         )}
       </ModalCard>
     </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
+

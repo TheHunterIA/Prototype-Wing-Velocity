@@ -30,16 +30,16 @@ export function SettingsModal({
   t,
   playSound
 }: SettingsModalProps) {
-  if (!isSettingsOpen) return null;
-
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
-      className="absolute inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
-    >
+    <AnimatePresence>
+      {isSettingsOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="absolute inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
+        >
       <ModalCard
         initial={{ scale: 0.95, opacity: 0, y: 10 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -195,5 +195,7 @@ export function SettingsModal({
         </div>
       </ModalCard>
     </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

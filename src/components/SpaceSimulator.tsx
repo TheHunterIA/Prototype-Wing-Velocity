@@ -1,8 +1,7 @@
 import { Suspense, useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Environment, Html, useGLTF, useTexture, useProgress, Billboard } from "@react-three/drei";
-import { EffectComposer, Bloom, Noise, Vignette, SSAO, DepthOfField, ChromaticAberration, BrightnessContrast, HueSaturation } from "@react-three/postprocessing";
-import { BlendFunction } from "postprocessing";
+import { EffectComposer, Bloom, Noise, Vignette, ChromaticAberration, BrightnessContrast, HueSaturation } from "@react-three/postprocessing";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as THREE from "three";
 import { motion, AnimatePresence } from "motion/react";
@@ -1381,31 +1380,10 @@ const RenderAsteroids = memo(function RenderAsteroids({ asteroids, texture, sele
     meshRef.current.instanceMatrix.needsUpdate = true;
   };
 
-  const dummyColor = useMemo(() => new THREE.Color(), []);
-  // Variação de tonalidade por instância (composição mineral "diferente" por asteroide) -
-  // usa o instanceColor nativo do InstancedMesh, que o Three.js já multiplica pelo
-  // material.color no shader padrão. Zero draw calls extras, zero shader customizado.
-  const updateAsteroidColors = () => {
-    if (!meshRef.current) return;
-    for (let i = 0; i < count; i++) {
-      const a = asteroids[i];
-      if (!a) continue;
-      // Seed determinística por asteroide (mesmo índice = mesma variação sempre, sem "piscar"
-      // ao recalcular). Varia só brilho/leve tonalidade - sutil o bastante pra não parecer bug.
-      const seed = Math.sin(i * 12.9898) * 43758.5453;
-      const variation = seed - Math.floor(seed); // 0..1 determinístico
-      const brightness = 0.82 + variation * 0.36; // ±18% em torno do brilho base
-      dummyColor.setRGB(brightness, brightness, brightness);
-      meshRef.current.setColorAt(i, dummyColor);
-    }
-    if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
-  };
-
   // Definir matrizes estáticas apenas quando asteroides ou geometria mudarem
   useEffect(() => {
     const t = setTimeout(() => {
       updateAsteroidMatrices();
-      updateAsteroidColors();
     }, 50);
     return () => clearTimeout(t);
   }, [asteroids, count, geometryToUse]);
@@ -2024,8 +2002,6 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
   const multiplierRef = useRef(1);
   const keysRef = useRef<KeysPressed>({ w: false, s: false, a: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, Shift: false, e: false, ' ': false });
   const pointerRef = useRef({ x: 0, y: 0 }); const shakeRef = useRef(0);
-  const chromaticFXRef = useRef<any>(null);
-  const dofFXRef = useRef<any>(null);
   const explosionsRef = useRef<ExplosionState[]>([]);
   const customRouteDataRef = useRef({
     heat: 0,
@@ -2551,7 +2527,10 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
         // Tentar travar o ponteiro do mouse automaticamente ao entrar em modo de voo
         setTimeout(() => {
           if (containerRef.current && !document.pointerLockElement) {
-            containerRef.current.requestPointerLock();
+            try {
+              const res = (containerRef.current as any).requestPointerLock();
+              if (res && typeof res.catch === 'function') res.catch(() => {});
+            } catch (e) {}
           }
         }, 150);
       }, 3200); // Perfeitamente sincronizado com o zoom da tela de decolagem
@@ -2596,7 +2575,10 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
         const target = e.target as HTMLElement;
         if (!target.closest('button') && !target.closest('.pointer-events-auto') && !isHangarActive && !isGameOver && !isVictory) {
           if (containerRef.current && !document.pointerLockElement) {
-            containerRef.current.requestPointerLock();
+            try {
+              const res = (containerRef.current as any).requestPointerLock();
+              if (res && typeof res.catch === 'function') res.catch(() => {});
+            } catch (e) {}
           }
         }
       }}
@@ -2764,40 +2746,24 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
               <pointLight position={[0, -8, -15]} intensity={25.0} distance={150} decay={1.0} color={selectedColor.colorHex} />
               <directionalLight position={[5, 15, 15]} intensity={6.0} />
             </group>
-            {graphicsQuality === "high" && (
-              <>
-                <SpeedPostFX velocityRef={velocityRef} chromaticRef={chromaticFXRef} dofRef={dofFXRef} />
-                <EffectComposer multisampling={4}>
-                  {/* Oclusão de ambiente: ancora visualmente nave/asteroides/planetas ao invés de "flutuarem" sem contato */}
-                  <SSAO
-                    blendFunction={BlendFunction.MULTIPLY}
-                    samples={16}
-                    radius={12}
-                    intensity={18}
-                    luminanceInfluence={0.4}
-                    distanceScaling
-                    bias={0.02}
-                  />
-                  {/* Desfoque de profundidade sutil - fundo levemente suavizado, nave sempre nítida em primeiro plano */}
-                  <DepthOfField ref={dofFXRef} focusDistance={0.012} focalLength={0.02} bokehScale={2.5} />
-                  <Bloom luminanceThreshold={0.9} mipmapBlur intensity={0.3} />
-                  {/* Aberração cromática ligada à velocidade - offset atualizado dinamicamente por SpeedPostFX */}
-                  <ChromaticAberration ref={chromaticFXRef} offset={[0, 0]} radialModulation modulationOffset={0.3} />
-                  {/* Color grading sutil: leve contraste em S e dessaturação de sombras para acabamento de trailer */}
-                  <BrightnessContrast brightness={0} contrast={0.08} />
-                  <HueSaturation hue={0} saturation={-0.06} />
-                  <Noise opacity={0.02} />
-                  <Vignette eskil={false} offset={0.1} darkness={0.9} />
-                </EffectComposer>
-              </>
-            )}
-            {graphicsQuality === "low" && (
-              <EffectComposer multisampling={4}>
-                <Bloom luminanceThreshold={0.9} intensity={0.25} />
-                <Vignette eskil={false} offset={0.1} darkness={0.85} />
-              </EffectComposer>
-            )}
           </Suspense>
+
+          {graphicsQuality === "high" && (
+            <EffectComposer key="sim-composer-high">
+              <Bloom luminanceThreshold={0.8} mipmapBlur intensity={0.35} />
+              <ChromaticAberration offset={[0.001, 0.001]} radialModulation modulationOffset={0.3} />
+              <BrightnessContrast brightness={0} contrast={0.08} />
+              <HueSaturation hue={0} saturation={-0.05} />
+              <Noise opacity={0.02} />
+              <Vignette eskil={false} offset={0.1} darkness={0.9} />
+            </EffectComposer>
+          )}
+          {graphicsQuality === "low" && (
+            <EffectComposer key="sim-composer-low">
+              <Bloom luminanceThreshold={0.9} intensity={0.25} />
+              <Vignette eskil={false} offset={0.1} darkness={0.85} />
+            </EffectComposer>
+          )}
         </Canvas>
       </div>
 
@@ -2953,93 +2919,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
         )}
       </AnimatePresence>
 
-      {/* GAME OVER MODAL OVERLAY */}
-      {isGameOver && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md p-6 overflow-hidden">
-          {/* Fundo de Linhas Sci-Fi */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(239,68,68,0.06),rgba(0,255,0,0.02),rgba(239,68,68,0.06))] bg-[size:100%_4px,6px_100%] opacity-20 pointer-events-none" />
 
-          <motion.div 
-            ref={gameOverCardRef}
-            onMouseMove={handleGameOverMouseMove}
-            onMouseLeave={handleGameOverMouseLeave}
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="w-full max-w-sm bg-zinc-950/90 border border-red-500/40 rounded-2xl p-8 flex flex-col items-center gap-6 text-center relative overflow-hidden backdrop-blur-xl"
-            style={{
-              transform: `perspective(1000px) rotateX(${gameOverRotateX}deg) rotateY(${gameOverRotateY}deg) scale(1.02)`,
-              transformStyle: "preserve-3d",
-              transition: "transform 0.1s ease-out, box-shadow 0.1s ease-out",
-              boxShadow: `
-                ${-gameOverRotateY * 1.5}px ${gameOverRotateX * 1.5}px 30px rgba(0, 0, 0, 0.8), 
-                0 0 40px rgba(239, 68, 68, ${0.12 + Math.abs(gameOverRotateX)/40}), 
-                0 0 100px rgba(239, 68, 68, 0.05)
-              `
-            }}
-          >
-            {/* Ambient Glare Effect */}
-            <div 
-              className="absolute inset-0 pointer-events-none mix-blend-color-dodge transition-opacity duration-300 opacity-75 z-10"
-              style={{
-                background: `radial-gradient(circle 200px at ${gameOverGlowX}% ${gameOverGlowY}%, rgba(239, 68, 68, 0.18), transparent 70%)`
-              }}
-            />
-
-            {/* Sci-fi decorative borders */}
-            <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-red-500/60" />
-            <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-red-500/60" />
-            <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-red-500/60" />
-            <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-red-500/60" />
-
-            {/* Decorative Corner Dots */}
-            <div className="absolute top-1.5 left-1.5 w-1 h-1 rounded-full bg-red-500/40" />
-            <div className="absolute top-1.5 right-1.5 w-1 h-1 rounded-full bg-red-500/40" />
-            <div className="absolute bottom-1.5 left-1.5 w-1 h-1 rounded-full bg-red-500/40" />
-            <div className="absolute bottom-1.5 right-1.5 w-1 h-1 rounded-full bg-red-500/40" />
-            
-            <div className="relative" style={{ transform: "translateZ(45px)", transformStyle: "preserve-3d" }}>
-              <div className="absolute inset-0 rounded-full bg-red-500/20 blur-2xl animate-pulse" />
-              <ShieldAlert className="w-16 h-16 text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-bounce relative z-10" />
-            </div>
-            
-            <div className="flex flex-col gap-1.5" style={{ transform: "translateZ(35px)" }}>
-              <h2 className="text-2xl font-mono font-black tracking-widest text-red-500 uppercase">
-                {t.connectionLost}
-              </h2>
-              <p className="text-[10px] font-mono text-zinc-500 tracking-wide uppercase">
-                {t.criticalDamage}
-              </p>
-            </div>
-            
-            <div className="w-full bg-black/60 border border-white/5 rounded-xl p-5 flex flex-col gap-3.5 font-mono text-xs text-left" style={{ transform: "translateZ(25px)" }}>
-              <div className="flex justify-between items-center py-0.5">
-                <span className="text-zinc-500 uppercase text-[10px] tracking-wider">{t.shipUsed}:</span>
-                <span className="text-white font-bold">{currentShip.name}</span>
-              </div>
-              <div className="flex justify-between items-center py-0.5 border-t border-white/5 pt-3">
-                <span className="text-zinc-500 uppercase text-[10px] tracking-wider">{t.xpCollected}:</span>
-                <span className="text-amber-400 font-bold">+{xpGained} XP</span>
-              </div>
-            </div>
-            
-            <div className="flex flex-col gap-2.5 w-full mt-2" style={{ transform: "translateZ(40px)" }}>
-              <button 
-                onClick={resetGame}
-                className="w-full py-3.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold font-mono text-xs tracking-widest uppercase rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.35)] transition-all active:scale-[0.98] cursor-pointer"
-              >
-                {t.tryAgain}
-              </button>
-              <button 
-                onClick={() => { playSimSound("click", localMuted); onExit(); }}
-                className="w-full py-3.5 bg-zinc-900/80 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white font-bold font-mono text-xs tracking-widest uppercase rounded-xl transition-all active:scale-[0.98] cursor-pointer"
-              >
-                {t.backToHangar}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
 
       {/* VICTORY MODAL OVERLAY */}
       {isVictory && (
@@ -3261,49 +3141,6 @@ function DynamicFOV({ velocityRef }: { velocityRef: React.MutableRefObject<numbe
   return null;
 }
 
-// Controla os efeitos de pós-processamento ligados à velocidade: aberração cromática
-// sutil e desfoque de profundidade se intensificam com a velocidade da nave, reforçando
-// a sensação de aceleração sem depender de partículas extras. Fica FORA do <EffectComposer>
-// (como irmão, não filho) só para poder guardar refs diretas nos efeitos via prop `ref` —
-// a atualização em si acontece aqui, não dentro da árvore de composição.
-function SpeedPostFX({ velocityRef, chromaticRef, dofRef }: {
-  velocityRef: React.MutableRefObject<number>;
-  chromaticRef: React.RefObject<any>;
-  dofRef: React.RefObject<any>;
-}) {
-  useFrame((state, dt) => {
-    const speed = Math.abs(velocityRef.current);
-    // Normaliza a velocidade num intervalo 0..1 (velocidade de cruzeiro ~450, turbo ~1125)
-    const speedFactor = THREE.MathUtils.clamp(speed / 900, 0, 1);
-
-    // Todo acesso abaixo mexe em propriedades internas da lib @react-three/postprocessing que
-    // não pude confirmar rodando o projeto de verdade (sem rede/node_modules neste ambiente).
-    // Cada bloco é blindado individualmente para nunca travar o loop de render caso algum nome
-    // de propriedade esteja diferente do esperado - na pior das hipóteses, o efeito
-    // correspondente simplesmente não anima, mas o jogo continua funcionando normalmente.
-    try {
-      if (chromaticRef.current && chromaticRef.current.offset) {
-        // Deslocamento bem sutil - isso é sobre reforçar velocidade, não simular danos na lente
-        const targetOffset = speedFactor * 0.0022;
-        const off = chromaticRef.current.offset as THREE.Vector2;
-        off.x = THREE.MathUtils.lerp(off.x, targetOffset, dt * 4);
-        off.y = THREE.MathUtils.lerp(off.y, targetOffset, dt * 4);
-      }
-    } catch { /* efeito de aberração cromática não suporta esse acesso - ignora e segue */ }
-
-    try {
-      const cocMaterial = dofRef.current?.circleOfConfusionMaterial;
-      const focusUniform = cocMaterial?.uniforms?.focusDistance;
-      if (focusUniform) {
-        // Em alta velocidade o foco "aperta" mais perto da nave, borrando levemente o fundo distante
-        const targetFocusDistance = THREE.MathUtils.lerp(0.02, 0.008, speedFactor);
-        focusUniform.value = THREE.MathUtils.lerp(focusUniform.value, targetFocusDistance, dt * 3);
-      }
-    } catch { /* efeito de depth of field não suporta esse acesso - ignora e segue */ }
-  });
-  return null;
-}
-
 // Textura da camada externa: nuvem ampla e esfumaçada com variação (não é um único
 // degradê perfeito) — várias manchas radiais sobrepostas simulando turbulência de gás.
 function generateNebulaWispTexture() {
@@ -3358,12 +3195,10 @@ const RenderNebulas = memo(function RenderNebulas({ nebulas }: { nebulas: any[] 
   const coreTexture = useMemo(() => generateNebulaCoreTexture(), []);
   const outerRefs = useRef<(THREE.Sprite | null)[]>([]);
   const innerRefs = useRef<(THREE.Sprite | null)[]>([]);
-  const farRefs = useRef<(THREE.Sprite | null)[]>([]);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     for (let i = 0; i < nebulas.length; i++) {
-      const neb = nebulas[i];
       // Leve rotação de parallax — cada camada gira numa velocidade levemente diferente,
       // o que já dá sensação de profundidade e movimento sem custo de CPU/GPU real
       // (apenas a propriedade `.rotation` do material, nenhum buffer é tocado).
@@ -3371,15 +3206,6 @@ const RenderNebulas = memo(function RenderNebulas({ nebulas }: { nebulas: any[] 
       if (outerMat) outerMat.rotation = t * 0.015 + i;
       const innerMat = innerRefs.current[i]?.material as THREE.SpriteMaterial | undefined;
       if (innerMat) innerMat.rotation = -t * 0.025 + i;
-      const farSprite = farRefs.current[i];
-      if (farSprite) {
-        (farSprite.material as THREE.SpriteMaterial).rotation = t * 0.008 + i * 1.7;
-        // "Respiração" bem sutil de escala - dá sensação de gás vivo em vez de sprite estático,
-        // sem precisar de shader/volume real. Amplitude pequena o bastante pra não parecer "pulsando".
-        const breathe = 1.0 + Math.sin(t * 0.12 + i * 2.1) * 0.035;
-        const baseScale = neb.scale * 2.1;
-        farSprite.scale.set(baseScale * breathe, baseScale * breathe, 1);
-      }
     }
   });
 
@@ -3387,9 +3213,6 @@ const RenderNebulas = memo(function RenderNebulas({ nebulas }: { nebulas: any[] 
     <group>
       {nebulas.map((neb, i) => (
         <group key={i}>
-          <sprite ref={(el) => { farRefs.current[i] = el; }} position={neb.pos} scale={[neb.scale * 2.1, neb.scale * 2.1, 1]}>
-            <spriteMaterial map={wispTexture} color={neb.color} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.025} />
-          </sprite>
           <sprite ref={(el) => { outerRefs.current[i] = el; }} position={neb.pos} scale={[neb.scale * 1.4, neb.scale * 1.4, 1]}>
             <spriteMaterial map={wispTexture} color={neb.color} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.05} />
           </sprite>
@@ -3491,6 +3314,7 @@ function PerformanceController({ graphicsQuality, setGraphicsQuality }: { graphi
 // na GPU (matemática por vértice/fragmento). A cada frame só atualizamos um único
 // uniform (uTime) — nenhum buffer de posição/tamanho é reenviado pra GPU.
 const STAR_VERTEX_SHADER = `
+  attribute vec3 aColor;
   attribute float aSize;
   attribute float aPhase;
   attribute float aBrightness;
@@ -3498,7 +3322,7 @@ const STAR_VERTEX_SHADER = `
   varying vec3 vColor;
   varying float vTwinkle;
   void main() {
-    vColor = color;
+    vColor = aColor;
     // Cintilação sutil: cada estrela tem uma fase própria pra não piscarem em sincronia
     vTwinkle = aBrightness * (0.78 + 0.22 * sin(uTime * (0.6 + aPhase * 0.9) + aPhase * 6.2831));
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
@@ -3586,7 +3410,7 @@ const RenderBackgroundStars = memo(function RenderBackgroundStars() {
     <points ref={pointsRef}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
-        <bufferAttribute attach="attributes-color" count={count} array={colors} itemSize={3} />
+        <bufferAttribute attach="attributes-aColor" count={count} array={colors} itemSize={3} />
         <bufferAttribute attach="attributes-aSize" count={count} array={sizes} itemSize={1} />
         <bufferAttribute attach="attributes-aPhase" count={count} array={phases} itemSize={1} />
         <bufferAttribute attach="attributes-aBrightness" count={count} array={brightnesses} itemSize={1} />
@@ -4283,20 +4107,7 @@ function TelemetryHUD({
         }
       }
 
-      // Update Multiplier HUD
-      if (multiplierTextRef.current) {
-        multiplierTextRef.current.innerText = `x${multiplierRef.current}`;
-        if (multiplierRef.current > 1) {
-          multiplierTextRef.current.classList.add('text-cyan-400');
-          multiplierTextRef.current.classList.remove('text-zinc-500');
-        } else {
-          multiplierTextRef.current.classList.remove('text-cyan-400');
-          multiplierTextRef.current.classList.add('text-zinc-500');
-        }
-      }
-      if (multiplierBarRef.current) {
-        multiplierBarRef.current.style.width = `${Math.min(100, (multiplierRef.current / 10) * 100)}%`;
-      }
+
 
       // Atualização do módulo de telemetria ambiental em tempo real
       const envLabel = document.getElementById("env-label");
@@ -4492,20 +4303,7 @@ function TelemetryHUD({
             </div>
           </div>
 
-          {/* Active Ring Info Panel */}
-          <div className="flex flex-col gap-1 mt-1 pt-1.5 border-t border-white/5 text-[10px]">
-            <div className="flex justify-between items-center">
-              <span className="text-zinc-500 uppercase tracking-widest text-[8px]">{currEnv.skillMultiplier}</span>
-              <span ref={multiplierTextRef} className="font-bold font-mono tracking-wider text-zinc-500">x1</span>
-            </div>
-            <div className="h-1 w-full bg-zinc-800/50 rounded-full overflow-hidden mt-0.5">
-              <div 
-                ref={multiplierBarRef}
-                className="h-full bg-cyan-500 transition-all duration-300" 
-                style={{ width: `10%` }} 
-              />
-            </div>
-          </div>
+
 
           <div className="flex flex-col gap-1 mt-1 pt-1.5 border-t border-white/5 text-[10px]">
             <div className="flex justify-between items-center">
@@ -4791,9 +4589,7 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
       }
     }
     velocityRef.current = tv;
-    if (scoreRef && !isHangarActive) { 
-      scoreRef.current += Math.round(dt * (Math.max(0, tv) / 100) * (multiplierRef ? multiplierRef.current : 1)); 
-    }
+    // Time trial mode: duration/time is tracked instead of points score
     
     // Update moving asteroids
     if (selectedRoute.hasMovingAsteroids) {
@@ -4976,9 +4772,8 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
             if (distSq < ring.radius * ring.radius) {
               ring.passed = true;
               playSimSound("ability", localMuted);
-              multiplierRef.current = Math.min(10, (multiplierRef.current || 1) + 1);
-              scoreRef.current += 5000 * multiplierRef.current;
-              energyRef.current = Math.min(100, energyRef.current + 20); // Bonus energy!
+              energyRef.current = Math.min(100, energyRef.current + 35); // Reabastece Turbo!
+              velocityRef.current = Math.min(currentMaxSpeed * 1.25, velocityRef.current + 150); // Impulso de velocidade
               
               // Replenish void route O2 Fuel
               if (selectedRoute.id === "route-void" && customRouteDataRef && customRouteDataRef.current) {

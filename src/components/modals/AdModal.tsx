@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { Lock, Play } from "lucide-react";
 import { ModalCard } from "../ui/ModalCard";
 import { SciFiButton } from "../ui/SciFiButton";
@@ -21,15 +21,15 @@ export function AdModal({
   onClose,
   onRequestLicense
 }: AdModalProps) {
-  if (!showAdModal) return null;
-
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
-    >
+    <AnimatePresence>
+      {showAdModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+        >
       <ModalCard
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -90,5 +90,7 @@ export function AdModal({
         </div>
       </ModalCard>
     </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -10,20 +10,19 @@ crazyGamesService.init().catch(err => console.error("Falha ao inicializar SDK Cr
 // Safe global monkeypatch for requestPointerLock to handle security/DOM restrictions gracefully
 if (typeof Element !== 'undefined' && Element.prototype.requestPointerLock) {
   const originalRequestPointerLock = Element.prototype.requestPointerLock;
-  Element.prototype.requestPointerLock = function (options?: any) {
+  Element.prototype.requestPointerLock = function (options?: any): Promise<void> {
     if (!this.isConnected) {
       console.warn("requestPointerLock: Element is not connected to DOM. Bypassing.");
       return Promise.resolve();
     }
     try {
       const result = originalRequestPointerLock.call(this, options);
-      if (result instanceof Promise) {
-        return result.catch((err: any) => {
+      if (result && typeof (result as any).catch === 'function') {
+        return (result as any).catch((err: any) => {
           console.warn("Caught pointer lock promise rejection:", err);
-          return;
         });
       }
-      return result;
+      return Promise.resolve();
     } catch (err: any) {
       console.warn("Caught synchronous requestPointerLock error:", err);
       return Promise.resolve();
