@@ -230,7 +230,7 @@ export function ShipUpgradeModal({
     base: number;
     color: string;
   }> = [
-    { key: "velocidade", label: lt.velocidade, icon: Gauge, base: ship.velocidade, color: "text-orange-400" },
+    { key: "velocidade", label: lt.velocidade, icon: Gauge, base: ship.velocidade, color: "text-cyan-300" },
     { key: "aceleracao", label: lt.aceleracao, icon: Sparkles, base: ship.aceleracao, color: "text-amber-400" },
     { key: "turbo", label: lt.turbo, icon: Flame, base: ship.turbo, color: "text-red-400" },
     { key: "energia", label: lt.energia, icon: Battery, base: ship.energia, color: "text-emerald-400" },
@@ -248,10 +248,10 @@ export function ShipUpgradeModal({
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="p-6 max-w-lg w-full relative overflow-hidden flex flex-col gap-5 border-orange-500/30"
+        className="p-6 max-w-lg w-full relative overflow-hidden flex flex-col gap-5 border-amber-500/30"
       >
         {/* Top Sci-Fi Header line */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 via-amber-400 to-amber-600 animate-pulse" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 animate-pulse" />
 
         {/* Close Button */}
         <button
@@ -263,14 +263,14 @@ export function ShipUpgradeModal({
 
         {/* Modal Header */}
         <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-          <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center shrink-0">
-            <Wrench className="w-6 h-6 text-orange-400 animate-pulse" />
+          <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
+            <Wrench className="w-6 h-6 text-amber-400 animate-pulse" />
           </div>
           <div className="flex flex-col">
             <h2 className="text-lg font-display font-black text-white uppercase tracking-wider flex items-center gap-2">
               {lt.upgradeTitle}
             </h2>
-            <p className="text-[11px] font-mono text-orange-400 uppercase tracking-widest">
+            <p className="text-[11px] font-mono text-amber-400 uppercase tracking-widest">
               {ship.name} ({ship.class})
             </p>
           </div>
@@ -299,9 +299,9 @@ export function ShipUpgradeModal({
               className="absolute inset-0 z-30 bg-black/95 flex flex-col items-center justify-center p-6 text-center"
             >
               <div className="relative mb-6">
-                <div className="w-20 h-20 rounded-full border-4 border-zinc-800 border-t-orange-500 animate-spin" />
+                <div className="w-20 h-20 rounded-full border-4 border-zinc-800 border-t-amber-500 animate-spin" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Play className="w-8 h-8 text-orange-500 fill-orange-500 animate-pulse" />
+                  <Play className="w-8 h-8 text-amber-500 fill-amber-500 animate-pulse" />
                 </div>
               </div>
               <h3 className="text-base font-mono font-bold text-white uppercase tracking-widest mb-2">
@@ -315,7 +315,7 @@ export function ShipUpgradeModal({
                   initial={{ width: 0 }}
                   animate={{ width: "100%" }}
                   transition={{ duration: 4, ease: "linear" }}
-                  className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full"
+                  className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full"
                 />
               </div>
             </motion.div>
@@ -327,7 +327,7 @@ export function ShipUpgradeModal({
           /* Step 1: Watch Video Reward */
           <div className="flex flex-col gap-4 text-center py-2">
             <p className="text-xs text-zinc-300 leading-relaxed font-sans">
-              {lt.rewardDesc} <strong className="text-orange-400 font-mono">{lt.fivePointsValue}</strong> <span className="text-white font-bold">{ship.name}</span>.
+              {lt.rewardDesc} <strong className="text-amber-400 font-mono">{lt.fivePointsValue}</strong> <span className="text-white font-bold">{ship.name}</span>.
             </p>
             <div className="bg-black/50 border border-white/10 rounded-xl p-3 flex flex-col gap-1 text-[10px] font-mono text-zinc-400 text-left">
               <div className="flex justify-between">

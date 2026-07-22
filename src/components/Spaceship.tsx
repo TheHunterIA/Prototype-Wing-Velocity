@@ -99,6 +99,8 @@ const SpaceshipView = memo(function SpaceshipView({
         }
 
         mesh.material = material;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
       }
     });
 

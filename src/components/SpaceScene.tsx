@@ -424,7 +424,7 @@ export default function SpaceScene() {
       {/* Main interactive viewport */}
       <main className="flex-1 relative min-h-0 z-0">
         <div className="absolute inset-0">
-          <Canvas camera={{ position: [0, 1.5, 16], fov: 40 }} dpr={[1, 2]}>
+          <Canvas camera={{ position: [0, 1.5, 16], fov: 40 }} dpr={[1, 2]} shadows="soft">
             <OrbitControls 
               enablePan={false} 
               enableZoom={!isRouteSelectionOpen} 

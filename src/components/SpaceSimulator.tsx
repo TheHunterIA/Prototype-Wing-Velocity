@@ -774,7 +774,7 @@ const EarthModel = memo(function EarthModel({ planet }: { planet: { id: string; 
   return (
     <group position={[planet.pos.x, planet.pos.y, planet.pos.z]}>
       {/* Corpo principal da Terra */}
-      <mesh ref={planetRef}>
+      <mesh ref={planetRef} castShadow receiveShadow>
         <sphereGeometry args={[planet.radius, 64, 64]} />
         <meshStandardMaterial
           map={planetTexture || undefined}
@@ -785,7 +785,7 @@ const EarthModel = memo(function EarthModel({ planet }: { planet: { id: string; 
 
       {/* Camada Dinâmica de Nuvens em Paralaxe */}
       <mesh ref={cloudsRef}>
-        <sphereGeometry args={[planet.radius * 1.015, 64, 64]} />
+        <sphereGeometry args={[planet.radius * 1.035, 64, 64]} />
         <meshStandardMaterial
           map={cloudsTexture || undefined}
           transparent
@@ -813,11 +813,11 @@ const EarthModel = memo(function EarthModel({ planet }: { planet: { id: string; 
       {earthGlowTexture && (
         <Billboard>
           <mesh>
-            <planeGeometry args={[planet.radius * 2.8, planet.radius * 2.8]} />
+            <planeGeometry args={[planet.radius * 2.1, planet.radius * 2.1]} />
             <meshBasicMaterial
               map={earthGlowTexture}
               transparent
-              opacity={0.65}
+              opacity={0.32}
               blending={THREE.AdditiveBlending}
               depthWrite={false}
             />
@@ -1058,7 +1058,7 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
 
   return (
     <group position={[planet.pos.x, planet.pos.y, planet.pos.z]}>
-      <mesh ref={meshRef}>
+      <mesh ref={meshRef} castShadow receiveShadow>
         <sphereGeometry args={[planet.radius, 64, 64]} />
         <meshStandardMaterial 
           map={texture || undefined} 
@@ -1137,11 +1137,11 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
       {planetGlowTexture && (
         <Billboard>
           <mesh>
-            <planeGeometry args={[planet.radius * 2.8, planet.radius * 2.8]} />
+            <planeGeometry args={[planet.radius * 2.1, planet.radius * 2.1]} />
             <meshBasicMaterial 
               map={planetGlowTexture} 
               transparent 
-              opacity={0.65} 
+              opacity={0.32} 
               blending={THREE.AdditiveBlending} 
               depthWrite={false}
             />
@@ -1384,6 +1384,8 @@ function PilotShipView({
         if (mesh.geometry) {
           mesh.geometry.computeVertexNormals();
         }
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
         mesh.material = new THREE.MeshStandardMaterial({
           map: texture, 
           normalMap: pbrMaps.normalMap,
@@ -1459,6 +1461,7 @@ function BossShipModel({ position, rotation, scale }: { position: THREE.Vector3,
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
+        mesh.castShadow = true;
         mesh.material = new THREE.MeshStandardMaterial({ color: new THREE.Color("#ff3300"), metalness: 0.9, roughness: 0.1, emissive: new THREE.Color("#660000"), emissiveIntensity: 0.5 });
       }
     });
@@ -2539,16 +2542,32 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
       
 
       <div className="absolute inset-0 z-0">
-        <Canvas camera={{ position: [0, 6, 26], fov: 45, far: 200000 }}>
+        <Canvas 
+          camera={{ position: [0, 6, 26], fov: 45, far: 200000 }} 
+          shadows="soft"
+          gl={{ logarithmicDepthBuffer: true, antialias: true }}
+        >
           <PerformanceController graphicsQuality={graphicsQuality} setGraphicsQuality={setGraphicsQuality} />
           <DynamicFOV velocityRef={velocityRef} />
           <SpeedParticles velocityRef={velocityRef} shipRef={shipRef} />
           <color attach="background" args={[selectedRoute.ambientColor === "#09090b" ? "#000000" : "#020205"]} />
           <fog attach="fog" args={[selectedRoute.ambientColor, 1000, 100000]} />
           <Suspense fallback={null}>
-            <ambientLight intensity={1.2} />
-            <hemisphereLight color={selectedRoute.ambientColor} groundColor="#111111" intensity={1.5} />
-            <directionalLight position={[10, 25, 15]} intensity={3.5} castShadow />
+            <ambientLight intensity={0.5} />
+            <hemisphereLight color={selectedRoute.ambientColor} groundColor="#111111" intensity={0.7} />
+            <directionalLight 
+              position={[10, 25, 15]} 
+              intensity={3.5} 
+              castShadow 
+              shadow-mapSize={[2048, 2048]}
+              shadow-camera-near={1}
+              shadow-camera-far={200}
+              shadow-camera-left={-60}
+              shadow-camera-right={60}
+              shadow-camera-top={60}
+              shadow-camera-bottom={-60}
+              shadow-bias={-0.0005}
+            />
             <directionalLight position={[-15, 8, -15]} intensity={2.5} color={selectedColor.colorHex} />
             <directionalLight position={[0, -20, 0]} intensity={0.8} color="#0d1127" />
             {/* Ambient Environment (Always visible for seamless transition) */}
@@ -2672,15 +2691,15 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
               <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 w-80 bg-black/75 border border-white/10 backdrop-blur-md px-6 py-4 rounded-xl flex flex-col items-center justify-center gap-2 shadow-2xl pointer-events-auto">
                 <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden border border-white/10">
                   <div 
-                    className="h-full bg-gradient-to-r from-orange-600 via-amber-500 to-orange-400 transition-all duration-75 shadow-[0_0_15px_rgba(251,146,60,0.5)]" 
+                    className="h-full bg-gradient-to-r from-cyan-600 via-teal-400 to-cyan-300 transition-all duration-75 shadow-[0_0_15px_rgba(34,211,238,0.5)]" 
                     style={{ width: `${takeoffPercent}%` }} 
                   />
                 </div>
                 <div className="flex justify-between w-full text-[10px] font-mono font-bold tracking-wider uppercase">
-                  <span className={`${takeoffPercent >= 80 ? 'text-orange-500 animate-pulse' : 'text-zinc-400'}`}>
+                  <span className={`${takeoffPercent >= 80 ? 'text-cyan-400 animate-pulse' : 'text-zinc-400'}`}>
                     {takeoffPercent >= 80 ? t.startingEngines : t.preparingThrusters}
                   </span>
-                  <span className="text-orange-400">{Math.round(takeoffPercent)}%</span>
+                  <span className="text-cyan-300">{Math.round(takeoffPercent)}%</span>
                 </div>
               </div>
             )}
@@ -2853,14 +2872,14 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
               </div>
               <div className="flex justify-between items-center py-0.5 border-t border-white/5 pt-3">
                 <span className="text-zinc-500 uppercase text-[10px] tracking-wider">{t.xpCollected}:</span>
-                <span className="text-orange-400 font-bold">+{xpGained} XP</span>
+                <span className="text-amber-400 font-bold">+{xpGained} XP</span>
               </div>
             </div>
             
             <div className="flex flex-col gap-2.5 w-full mt-2" style={{ transform: "translateZ(40px)" }}>
               <button 
                 onClick={resetGame}
-                className="w-full py-3.5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold font-mono text-xs tracking-widest uppercase rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.35)] transition-all active:scale-[0.98] cursor-pointer"
+                className="w-full py-3.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold font-mono text-xs tracking-widest uppercase rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.35)] transition-all active:scale-[0.98] cursor-pointer"
               >
                 {t.tryAgain}
               </button>
@@ -2995,7 +3014,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
               <div className="flex justify-between items-center text-[10px] font-mono uppercase tracking-widest">
                 <span className="text-zinc-400">{t.pilotLevel} {playerService.data.level}</span>
                 {levelUpInfo?.levelUp && (
-                  <span className="text-orange-400 font-bold animate-bounce">{t.levelUp}</span>
+                  <span className="text-amber-400 font-bold animate-bounce">{t.levelUp}</span>
                 )}
                 <span className="text-zinc-500">{Math.round(playerService.getLevelProgress())}%</span>
               </div>
@@ -3004,7 +3023,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
                   initial={{ width: 0 }}
                   animate={{ width: `${playerService.getLevelProgress()}%` }}
                   transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
-                  className="h-full bg-gradient-to-r from-orange-500 to-amber-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]"
+                  className="h-full bg-gradient-to-r from-amber-500 to-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
                 />
               </div>
               {playerService.data.level < 10 && (
@@ -3218,6 +3237,16 @@ function generateMilkyWayTexture() {
     ctx.fillRect(x, y, 1, 1);
   }
   const texture = new THREE.CanvasTexture(c);
+  ctx.globalCompositeOperation = "destination-in";
+  const edgeMask = ctx.createLinearGradient(0, 0, w, 0);
+  edgeMask.addColorStop(0.0, "rgba(0,0,0,0)");
+  edgeMask.addColorStop(0.18, "rgba(0,0,0,1)");
+  edgeMask.addColorStop(0.82, "rgba(0,0,0,1)");
+  edgeMask.addColorStop(1.0, "rgba(0,0,0,0)");
+  ctx.fillStyle = edgeMask;
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = "source-over";
+  texture.needsUpdate = true;
   textureCache.set(cacheKey, texture);
   return texture;
 }

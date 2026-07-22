@@ -62,21 +62,21 @@ function RouteCard3D({
     scale = 1.05;
     pointerEvents = "auto";
   } else if (isLeft) {
-    xPos = isMobile ? -60 : -250;
+    xPos = isMobile ? -50 : -200;
     zPos = 0;
     rotateYPos = 45;
     opacity = 0.4;
-    scale = 0.85;
+    scale = 0.82;
     pointerEvents = "auto";
   } else if (isRight) {
-    xPos = isMobile ? 60 : 250;
+    xPos = isMobile ? 50 : 200;
     zPos = 0;
     rotateYPos = -45;
     opacity = 0.4;
-    scale = 0.85;
+    scale = 0.82;
     pointerEvents = "auto";
   } else {
-    xPos = diff > 1 && diff < ROUTES_DATA.length / 2 ? 400 : -400;
+    xPos = diff > 1 && diff < ROUTES_DATA.length / 2 ? 340 : -340;
     zPos = -300;
     rotateYPos = 0;
     opacity = 0;
@@ -158,7 +158,7 @@ function RouteCard3D({
         scale
       }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className={`absolute top-0 left-0 right-0 bottom-0 m-auto w-full max-w-[300px] h-[clamp(340px,56vh,450px)] rounded-2xl flex flex-col items-center justify-between border select-none overflow-visible shadow-2xl transition-all duration-300 ${
+      className={`absolute top-0 left-0 right-0 bottom-0 m-auto w-full max-w-[240px] md:max-w-[260px] h-[clamp(290px,42vh,380px)] rounded-2xl flex flex-col items-center justify-between border select-none overflow-visible shadow-2xl transition-all duration-300 ${
         isActive 
           ? "border-cyan-400/60 bg-black/40 backdrop-blur-xl z-30" 
           : "border-white/5 bg-black/40 backdrop-blur-md z-20 grayscale-[0.5] opacity-60 hover:opacity-80 hover:grayscale-0 hover:border-white/20"
@@ -209,7 +209,7 @@ function RouteCard3D({
       )}
 
       <motion.div
-        className="w-full h-[clamp(140px,26vh,240px)] shrink-0 relative bg-zinc-950 rounded-t-2xl overflow-hidden border-b border-white/10 group/img"
+        className="w-full h-[clamp(100px,18vh,160px)] shrink-0 relative bg-zinc-950 rounded-t-2xl overflow-hidden border-b border-white/10 group/img"
         style={{ 
           transform: isActive ? "translateZ(40px)" : "none", 
           transformStyle: "preserve-3d" 
@@ -245,7 +245,7 @@ function RouteCard3D({
       </motion.div>
 
       <div 
-        className="flex flex-col gap-2 md:gap-4 p-3 md:p-6 w-full flex-1 min-h-0 justify-between bg-gradient-to-b from-black/40 to-black/95 rounded-b-2xl relative z-20"
+        className="flex flex-col gap-1.5 md:gap-3 p-2.5 md:p-4 w-full flex-1 min-h-0 justify-between bg-gradient-to-b from-black/40 to-black/95 rounded-b-2xl relative z-20"
         style={{ transform: isActive ? "translateZ(80px)" : "none", transformStyle: "preserve-3d" }}
       >
         <div className="flex flex-col gap-2 items-center" style={{ transform: "translateZ(20px)" }}>
@@ -256,13 +256,13 @@ function RouteCard3D({
             </span>
             <div className="h-[1px] w-6 bg-cyan-400/30" />
           </div>
-          <h3 className="text-white font-display text-2xl font-black tracking-widest uppercase text-center drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">
+          <h3 className="text-white font-display text-lg md:text-xl font-black tracking-widest uppercase text-center drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">
             {routeName}
           </h3>
         </div>
         
-        <div className="flex flex-col gap-4 w-full" style={{ transform: "translateZ(40px)" }}>
-          <div className="flex flex-col gap-2.5 bg-white/5 p-4 rounded-xl border border-white/10 backdrop-blur-2xl relative overflow-hidden shadow-inner">
+        <div className="flex flex-col gap-2.5 w-full" style={{ transform: "translateZ(40px)" }}>
+          <div className="flex flex-col gap-2 bg-white/5 p-2.5 md:p-3 rounded-xl border border-white/10 backdrop-blur-2xl relative overflow-hidden shadow-inner">
             {/* Display Stats like a Cockpit */}
             <div className="flex justify-between items-center text-[10px] font-mono">
               <span className="text-zinc-400 uppercase tracking-tighter opacity-70">{t.testRings}</span>
@@ -296,7 +296,7 @@ function RouteCard3D({
             </div>
           </div>
           
-          <button className={`w-full py-4 text-white font-black font-mono text-[11px] tracking-[0.2em] uppercase rounded-xl transition-all shadow-xl relative overflow-hidden group flex items-center justify-center gap-2 ${
+          <button className={`w-full py-2.5 md:py-3 text-white font-black font-mono text-[10px] tracking-[0.2em] uppercase rounded-xl transition-all shadow-xl relative overflow-hidden group flex items-center justify-center gap-2 ${
             isActive 
               ? isRouteUnlocked
                 ? "bg-gradient-to-br from-cyan-600 via-cyan-400 to-teal-500 cursor-pointer" 
@@ -434,37 +434,37 @@ export function RouteSelectionOverlay({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.4 }}
-        className="absolute inset-0 z-50 bg-gradient-to-b from-black/50 via-zinc-950/70 to-black/90 backdrop-blur-sm flex flex-col justify-center items-center p-4 md:p-12 overflow-y-auto"
+        className="absolute inset-0 z-50 bg-gradient-to-b from-black/50 via-zinc-950/70 to-black/90 backdrop-blur-sm flex flex-col justify-center items-center p-4 md:p-8 overflow-y-auto"
       >
         <button
           onClick={() => {
             playSound("click", isMuted);
             setIsRouteSelectionOpen(false);
           }}
-          className="absolute top-6 left-6 md:top-12 md:left-12 z-50 px-5 py-2.5 bg-black/60 hover:bg-zinc-800/80 border border-white/10 rounded-lg text-zinc-400 hover:text-white font-mono text-[11px] font-bold tracking-widest uppercase transition-all cursor-pointer shadow-xl flex items-center gap-1.5 hover:scale-105 active:scale-95"
+          className="absolute top-4 left-4 md:top-8 md:left-8 z-50 px-4 py-2 bg-black/60 hover:bg-zinc-800/80 border border-white/10 rounded-lg text-zinc-400 hover:text-white font-mono text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer shadow-xl flex items-center gap-1.5 hover:scale-105 active:scale-95"
         >
           <ChevronLeft className="w-4 h-4 text-cyan-400" />
           {t.backToHangar}
         </button>
         
-        <div className="flex flex-col items-center mb-4 md:mb-12 text-center max-w-2xl relative shrink-0">
+        <div className="flex flex-col items-center mb-2 md:mb-5 text-center max-w-2xl relative shrink-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="absolute -top-12 inset-x-0 flex justify-center pointer-events-none"
+            className="absolute -top-10 inset-x-0 flex justify-center pointer-events-none"
           >
-            <div className="w-64 h-32 bg-cyan-400/5 blur-3xl rounded-full" />
+            <div className="w-64 h-24 bg-cyan-400/5 blur-3xl rounded-full" />
           </motion.div>
 
-          <span className="text-[11px] font-mono tracking-[0.4em] text-cyan-400 uppercase font-black mb-3 flex items-center gap-3 justify-center">
+          <span className="text-[10px] font-mono tracking-[0.4em] text-cyan-400 uppercase font-black mb-2 flex items-center gap-3 justify-center">
             <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
             {t.navSystem}
             <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
           </span>
-          <h2 className="text-white font-display text-3xl md:text-5xl font-black tracking-tighter uppercase drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+          <h2 className="text-white font-display text-2xl md:text-4xl font-black tracking-tighter uppercase drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
             {t.selectRoute}
           </h2>
-          <div className="h-[2px] w-32 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mt-2 md:mt-4 relative overflow-hidden">
+          <div className="h-[2px] w-28 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mt-2 md:mt-3 relative overflow-hidden">
             <motion.div 
               animate={{ left: ["-100%", "100%"] }}
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -473,16 +473,16 @@ export function RouteSelectionOverlay({
           </div>
         </div>
         
-        <div className="relative w-full max-w-[1400px] flex items-center gap-3 md:gap-8 group/carousel shrink-0">
+        <div className="relative w-full max-w-[1100px] flex items-center gap-2 md:gap-6 group/carousel shrink-0">
           <button
             onClick={prevRoute}
-            className="z-50 w-11 h-11 md:w-16 md:h-16 rounded-2xl bg-black/40 hover:bg-cyan-400/20 border border-white/5 hover:border-cyan-400/50 text-white/40 hover:text-cyan-300 transition-all flex items-center justify-center cursor-pointer backdrop-blur-xl active:scale-95 shadow-2xl shrink-0 group"
+            className="z-50 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-black/40 hover:bg-cyan-400/20 border border-white/5 hover:border-cyan-400/50 text-white/40 hover:text-cyan-300 transition-all flex items-center justify-center cursor-pointer backdrop-blur-xl active:scale-95 shadow-2xl shrink-0 group"
           >
-            <ChevronLeft className="w-6 h-6 md:w-10 md:h-10 group-hover:-translate-x-1 transition-transform" />
+            <ChevronLeft className="w-5 h-5 md:w-7 md:h-7 group-hover:-translate-x-1 transition-transform" />
           </button>
           
           <div 
-            className="flex-1 relative h-[clamp(380px,64vh,520px)] flex items-center justify-center overflow-visible py-4 md:py-12" 
+            className="flex-1 relative h-[clamp(320px,48vh,420px)] flex items-center justify-center overflow-visible py-2 md:py-6" 
             style={{ perspective: "2000px", transformStyle: "preserve-3d" }}
           >
             {ROUTES_DATA.map((route, i) => (
@@ -505,9 +505,9 @@ export function RouteSelectionOverlay({
           </div>
           <button
             onClick={nextRoute}
-            className="z-50 w-11 h-11 md:w-16 md:h-16 rounded-2xl bg-black/40 hover:bg-cyan-400/20 border border-white/5 hover:border-cyan-400/50 text-white/40 hover:text-cyan-300 transition-all flex items-center justify-center cursor-pointer backdrop-blur-xl active:scale-95 shadow-2xl shrink-0 group"
+            className="z-50 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-black/40 hover:bg-cyan-400/20 border border-white/5 hover:border-cyan-400/50 text-white/40 hover:text-cyan-300 transition-all flex items-center justify-center cursor-pointer backdrop-blur-xl active:scale-95 shadow-2xl shrink-0 group"
           >
-            <ChevronRight className="w-6 h-6 md:w-10 md:h-10 group-hover:translate-x-1 transition-transform" />
+            <ChevronRight className="w-5 h-5 md:w-7 md:h-7 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
       </motion.div>

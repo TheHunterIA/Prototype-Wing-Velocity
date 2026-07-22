@@ -125,31 +125,31 @@ export function PilotProfileModal({ t, language, isProfileOpen, onClose, playSou
             playSound("click", isMuted);
             onClose();
           }}
-          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-lg bg-zinc-900 border border-white/5 hover:border-orange-500/40 text-zinc-400 hover:text-white flex items-center justify-center transition-all duration-500 cursor-pointer active:scale-90"
+          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-lg bg-zinc-900 border border-white/5 hover:border-amber-500/40 text-zinc-400 hover:text-white flex items-center justify-center transition-all duration-500 cursor-pointer active:scale-90"
         >
           <X className="w-4 h-4" />
         </button>
 
         {/* Cabeçalho do Modal */}
         <div className="flex flex-col gap-1 relative z-10">
-          <div className="flex items-center gap-2 text-orange-500 mb-0.5">
+          <div className="flex items-center gap-2 text-amber-500 mb-0.5">
             <Award className="w-3.5 h-3.5" />
             <span className="text-[9px] font-mono tracking-[0.3em] font-bold uppercase">Pilot_Credential</span>
           </div>
           <h2 className="text-white font-sans text-2xl font-light tracking-tight">
             {lt.pilotLicense}
           </h2>
-          <div className="h-px w-8 bg-orange-500 mt-2" />
+          <div className="h-px w-8 bg-amber-500 mt-2" />
         </div>
 
         <div className="flex flex-col gap-4 relative z-10">
           {/* CARTÃO DE LICENÇA DE PILOTAGEM */}
-          <div className="relative p-4 rounded-xl border border-orange-500/30 bg-gradient-to-b from-orange-500/10 via-white/[0.02] to-transparent flex flex-col gap-4 overflow-hidden shadow-lg">
+          <div className="relative p-4 rounded-xl border border-amber-500/30 bg-gradient-to-b from-amber-500/10 via-white/[0.02] to-transparent flex flex-col gap-4 overflow-hidden shadow-lg">
             {/* Tarja superior da Licença */}
-            <div className="flex items-center justify-between border-b border-orange-500/20 pb-2">
+            <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
-                <span className="text-[9px] font-mono font-bold tracking-widest text-orange-400 uppercase">
+                <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+                <span className="text-[9px] font-mono font-bold tracking-widest text-amber-400 uppercase">
                   {lt.officialFlightLicense}
                 </span>
               </div>
@@ -161,10 +161,10 @@ export function PilotProfileModal({ t, language, isProfileOpen, onClose, playSou
             {/* Identificação do Piloto */}
             <div className="flex items-center gap-3.5">
               <div className="relative flex-shrink-0">
-                <div className="w-14 h-14 rounded-xl bg-zinc-900 border-2 border-orange-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(249,115,22,0.15)] text-orange-400">
+                <div className="w-14 h-14 rounded-xl bg-zinc-900 border-2 border-amber-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.15)] text-amber-400">
                   <User className="w-7 h-7" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 bg-orange-500 text-black font-mono font-extrabold text-[9px] px-1.5 py-0.5 rounded shadow">
+                <div className="absolute -bottom-1 -right-1 bg-amber-500 text-black font-mono font-extrabold text-[9px] px-1.5 py-0.5 rounded shadow">
                   {lt.level.substring(0,2).toUpperCase()}.{level}
                 </div>
               </div>
@@ -173,7 +173,7 @@ export function PilotProfileModal({ t, language, isProfileOpen, onClose, playSou
                 <h3 className="text-white font-sans text-base font-bold tracking-tight truncate">
                   {lt.pilotSparrow}
                 </h3>
-                <span className="text-xs text-orange-400/90 font-mono font-medium">
+                <span className="text-xs text-amber-400/90 font-mono font-medium">
                   {getRankName(level)}
                 </span>
                 <span className="text-[9px] text-emerald-400 font-mono font-semibold flex items-center gap-1 mt-1">
@@ -187,7 +187,7 @@ export function PilotProfileModal({ t, language, isProfileOpen, onClose, playSou
             <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/5">
               <div className="p-2.5 rounded-lg bg-black/40 border border-white/5 flex flex-col gap-0.5">
                 <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-wider flex items-center gap-1 leading-none">
-                  <Trophy className="w-3 h-3 text-orange-500 shrink-0" /> <span className="truncate">{lt.completedTracks}</span>
+                  <Trophy className="w-3 h-3 text-amber-500 shrink-0" /> <span className="truncate">{lt.completedTracks}</span>
                 </span>
                 <span className="text-sm font-mono font-bold text-white">
                   {Object.keys(playerService.data.trackRecords).length}
@@ -196,7 +196,7 @@ export function PilotProfileModal({ t, language, isProfileOpen, onClose, playSou
 
               <div className="p-2.5 rounded-lg bg-black/40 border border-white/5 flex flex-col gap-0.5">
                 <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-wider flex items-center gap-1 leading-none">
-                  <BarChart3 className="w-3 h-3 text-orange-500 shrink-0" /> <span className="truncate">{lt.totalFlights}</span>
+                  <BarChart3 className="w-3 h-3 text-amber-500 shrink-0" /> <span className="truncate">{lt.totalFlights}</span>
                 </span>
                 <span className="text-sm font-mono font-bold text-white">
                   {playerService.data.totalRaces || 0}
@@ -209,7 +209,7 @@ export function PilotProfileModal({ t, language, isProfileOpen, onClose, playSou
           <div className="p-3.5 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-orange-500">
+                <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-amber-500">
                   <Shield className="w-3.5 h-3.5" />
                 </div>
                 <div className="flex flex-col">
@@ -217,7 +217,7 @@ export function PilotProfileModal({ t, language, isProfileOpen, onClose, playSou
                   <span className="text-[10px] text-zinc-500 font-mono">{lt.level} {level}</span>
                 </div>
               </div>
-              <span className="text-xs font-mono font-bold text-orange-500">
+              <span className="text-xs font-mono font-bold text-amber-500">
                 {Math.round(playerService.getLevelProgress())}%
               </span>
             </div>
@@ -228,7 +228,7 @@ export function PilotProfileModal({ t, language, isProfileOpen, onClose, playSou
                 initial={{ width: 0 }}
                 animate={{ width: `${playerService.getLevelProgress()}%` }}
                 transition={{ duration: 1.2, ease: "easeOut" }}
-                className="h-full bg-orange-500 rounded-md shadow-[0_0_10px_rgba(249,115,22,0.4)]"
+                className="h-full bg-amber-500 rounded-md shadow-[0_0_10px_rgba(245,158,11,0.4)]"
               />
             </div>
 
@@ -240,10 +240,10 @@ export function PilotProfileModal({ t, language, isProfileOpen, onClose, playSou
               {level < 10 ? (
                 <div className="flex items-center gap-1.5">
                   <span className="text-zinc-500">{lt.remaining}</span>
-                  <span className="text-orange-400 font-bold">{playerService.getXpToNextLevel()} XP</span>
+                  <span className="text-amber-400 font-bold">{playerService.getXpToNextLevel()} XP</span>
                 </div>
               ) : (
-                <span className="text-orange-400 font-bold uppercase text-[9px]">{lt.maxLevel}</span>
+                <span className="text-amber-400 font-bold uppercase text-[9px]">{lt.maxLevel}</span>
               )}
             </div>
           </div>

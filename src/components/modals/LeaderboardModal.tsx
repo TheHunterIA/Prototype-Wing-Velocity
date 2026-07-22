@@ -88,21 +88,21 @@ export function LeaderboardModal({
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
         className="p-6 max-w-md w-full relative overflow-hidden flex flex-col gap-5"
       >
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-orange-500 to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-500/5 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-400/5 via-transparent to-transparent pointer-events-none" />
 
         <button
           onClick={() => {
             playSound("click", isMuted);
             onClose();
           }}
-          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-lg bg-zinc-900 border border-white/5 hover:border-orange-500/40 text-zinc-400 hover:text-white flex items-center justify-center transition-all duration-500 cursor-pointer active:scale-90"
+          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-lg bg-zinc-900 border border-white/5 hover:border-cyan-400/40 text-zinc-400 hover:text-white flex items-center justify-center transition-all duration-500 cursor-pointer active:scale-90"
         >
           <X className="w-4 h-4" />
         </button>
 
         <div className="flex flex-col gap-1 relative">
-          <div className="flex items-center gap-2 text-orange-500 mb-0.5">
+          <div className="flex items-center gap-2 text-cyan-400 mb-0.5">
             <Trophy className="w-4 h-4 animate-pulse" />
             <span className="text-[9px] font-mono tracking-[0.3em] font-bold uppercase">
               {lt.globalLeaderboard}
@@ -111,13 +111,13 @@ export function LeaderboardModal({
           <h2 className="text-white font-sans text-xl font-bold tracking-tight uppercase">
             {routeName}
           </h2>
-          <div className="h-px w-12 bg-orange-500 mt-2" />
+          <div className="h-px w-12 bg-cyan-400 mt-2" />
         </div>
 
         <div className="flex-1 min-h-[250px] max-h-[350px] overflow-y-auto pr-1 flex flex-col gap-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
           {isLoadingLeaderboard ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 py-12">
-              <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
               <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest animate-pulse">
                 {lt.loadingData}
               </span>
@@ -146,7 +146,7 @@ export function LeaderboardModal({
                     key={score.userId + score.time + idx}
                     className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-500 ${
                       isCurrentUser 
-                        ? "bg-orange-500/10 border-orange-500/30 shadow-[0_0_15px_rgba(249,115,22,0.1)]" 
+                        ? "bg-cyan-400/10 border-cyan-400/30 shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
                         : "bg-zinc-900/40 border-white/5 hover:border-white/10"
                     }`}
                   >
@@ -164,7 +164,7 @@ export function LeaderboardModal({
                         <span className="text-[11px] font-mono font-bold text-white flex items-center gap-1.5">
                           {score.userName || "Piloto Sparrow"}
                           {isCurrentUser && (
-                            <span className="px-1 py-0.5 bg-orange-500/20 border border-orange-500/30 text-orange-400 text-[8px] rounded uppercase font-black tracking-widest scale-90">
+                            <span className="px-1 py-0.5 bg-cyan-400/20 border border-cyan-400/30 text-cyan-300 text-[8px] rounded uppercase font-black tracking-widest scale-90">
                               {lt.you}
                             </span>
                           )}

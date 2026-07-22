@@ -46,7 +46,7 @@ export function LoadingScreen({ onProgress, forceExit = false, onExited }: { onP
             <div className="px-6 py-4 rounded-xl bg-black/60 border border-white/10 backdrop-blur-md flex flex-col items-center shadow-2xl">
               <div className="w-64 h-1.5 bg-white/5 rounded-full overflow-hidden mb-3 border border-white/10">
                 <div 
-                  className="h-full bg-gradient-to-r from-orange-600 via-amber-500 to-orange-400 transition-all duration-300 shadow-[0_0_15px_rgba(251,146,60,0.5)]" 
+                  className="h-full bg-gradient-to-r from-cyan-600 via-teal-400 to-cyan-300 transition-all duration-300 shadow-[0_0_15px_rgba(34,211,238,0.5)]" 
                   style={{ width: `${progress}%` }} 
                 />
               </div>

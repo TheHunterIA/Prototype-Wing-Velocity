@@ -49,14 +49,14 @@ export function SettingsModal({
       >
         {/* Header */}
         <div className="flex flex-col gap-1 relative z-10">
-          <div className="flex items-center gap-2 text-orange-500 mb-0.5">
+          <div className="flex items-center gap-2 text-cyan-400 mb-0.5">
             <Settings className="w-3.5 h-3.5 animate-spin-slow" />
             <span className="text-[9px] font-mono tracking-[0.3em] font-bold uppercase">System_Setup</span>
           </div>
           <h2 className="text-white font-sans text-2xl font-light tracking-tight">
             {t.settings}
           </h2>
-          <div className="h-px w-8 bg-orange-500 mt-2" />
+          <div className="h-px w-8 bg-cyan-400 mt-2" />
         </div>
 
         <div className="flex flex-col gap-6 relative z-10">
@@ -86,7 +86,7 @@ export function SettingsModal({
                     }}
                     className={`group relative py-3 rounded-xl border transition-all duration-500 cursor-pointer flex flex-col items-center gap-2 ${
                       isSelected
-                        ? "bg-white/5 border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.1)]"
+                        ? "bg-white/5 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.15)]"
                         : "bg-transparent border-white/5 hover:border-white/20 hover:bg-white/[0.02]"
                     }`}
                   >
@@ -96,7 +96,7 @@ export function SettingsModal({
                       className={`w-6 h-4 object-cover rounded-sm shadow-md transition-all duration-500 ${isSelected ? "brightness-110" : "grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100"}`}
                       referrerPolicy="no-referrer"
                     />
-                    <span className={`text-[8px] font-mono font-bold tracking-widest ${isSelected ? "text-orange-500" : "text-zinc-600"}`}>
+                    <span className={`text-[8px] font-mono font-bold tracking-widest ${isSelected ? "text-cyan-400" : "text-zinc-600"}`}>
                       {lang.short}
                     </span>
                   </button>
@@ -130,7 +130,7 @@ export function SettingsModal({
                     }}
                     className={`relative p-3.5 rounded-xl border transition-all duration-500 cursor-pointer flex flex-col gap-1.5 group ${
                       isSelected
-                        ? "bg-white/5 border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.1)]"
+                        ? "bg-white/5 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.15)]"
                         : "bg-transparent border-white/5 hover:border-white/20 hover:bg-white/[0.02]"
                     }`}
                   >
@@ -138,7 +138,7 @@ export function SettingsModal({
                       <span className={`text-[11px] font-bold tracking-tight ${isSelected ? "text-white" : "text-zinc-500"}`}>
                         {quality.name}
                       </span>
-                      <IconComponent className={`w-3 h-3 transition-transform duration-500 group-hover:scale-110 ${isSelected ? "text-orange-500" : "text-zinc-700"}`} />
+                      <IconComponent className={`w-3 h-3 transition-transform duration-500 group-hover:scale-110 ${isSelected ? "text-cyan-400" : "text-zinc-700"}`} />
                     </div>
                     <p className={`text-[9px] leading-snug text-left ${isSelected ? "text-zinc-400" : "text-zinc-600"}`}>
                       {quality.desc}
