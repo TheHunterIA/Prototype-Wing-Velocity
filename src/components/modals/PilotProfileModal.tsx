@@ -92,7 +92,7 @@ const localTranslations: Record<Language, Record<string, string>> = {
 
 export function PilotProfileModal({ t, language, isProfileOpen, onClose, playSound, isMuted }: PilotProfileModalProps) {
   const level = playerService.data.level;
-  const lt = localTranslations[language] || localTranslations.pt;
+  const lt = localTranslations[language] || localTranslations.en;
 
   const getRankName = (lvl: number) => {
     if (lvl >= 10) return lt.rankAce;

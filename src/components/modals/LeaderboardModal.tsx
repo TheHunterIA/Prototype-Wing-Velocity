@@ -67,7 +67,7 @@ export function LeaderboardModal({
   isMuted,
   language
 }: LeaderboardModalProps) {
-  const lt = localTranslations[language] || localTranslations.pt;
+  const lt = localTranslations[language] || localTranslations.en;
   const routeTrans = leaderboardRouteId ? routeTranslations[language]?.[leaderboardRouteId] : null;
   const routeName = routeTrans ? routeTrans.name : (ROUTES_DATA.find(r => r.id === leaderboardRouteId)?.name || "");
 

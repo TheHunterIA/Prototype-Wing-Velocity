@@ -1154,7 +1154,7 @@ function SpeedParallaxDust({ shipRef, velocityRef, keysRef, abilityActive }: any
 }
 
 const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor, isMuted, onExit, selectedRoute, graphicsQuality, setGraphicsQuality, language, onHangarStateChange, isMobile = false }: SpaceSimulatorProps) {
-  const t = translations[language || "pt"];
+  const t = translations[language || "en"];
   const scoreRef = useRef(0);
   const shieldRef = useRef(100);
   const armorRef = useRef(100);
@@ -2981,7 +2981,7 @@ function TelemetryHUD({
   armorRef: React.MutableRefObject<number>,
   flightVectorRef?: React.RefObject<HTMLDivElement>
 }) {
-  const lang = language || "pt";
+  const lang = language || "en";
   const t = translations[lang];
   const multiplierTextRef = useRef<HTMLSpanElement>(null);
   const multiplierBarRef = useRef<HTMLDivElement>(null);

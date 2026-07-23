@@ -139,7 +139,7 @@ export function ShipUpgradeModal({
   });
   const [timeLeftMs, setTimeLeftMs] = useState(0);
 
-  const lt = localTranslations[language] || localTranslations.pt;
+  const lt = localTranslations[language] || localTranslations.en;
   const isBoostActive = timeLeftMs > 0;
 
   // Sync active boost state on mount/ship change

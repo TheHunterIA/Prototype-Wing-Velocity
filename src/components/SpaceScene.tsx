@@ -133,7 +133,7 @@ export default function SpaceScene() {
       const browserLang = navigator.language.slice(0, 2);
       if (["pt", "en", "es", "fr"].includes(browserLang)) return browserLang as Language;
     } catch {}
-    return "pt";
+    return "en";
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
