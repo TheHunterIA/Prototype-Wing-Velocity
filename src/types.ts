@@ -43,6 +43,11 @@ export interface RouteData {
   difficulty: "Iniciante" | "Fácil" | "Médio" | "Difícil" | "Elite" | "Sobrevivência";
   totalDistance: number; // in meters (for UI display)
   ambientColor: string; // hex color of stars/fog/nebula accent
+  nebulaColors?: [string, string]; // Dual tone colors for glowing nebulae
+  starlightColor?: string; // Tint for background stars
+  dustColor?: string; // Color of cosmic dust passing the ship
+  sunLightColor?: string; // Primary directional light tint
+  fogColor?: string; // Custom atmospheric fog color
   hasMovingAsteroids: boolean;
   trafficShipCount: number; // how many AI ships are cruising around
   gravityWell?: boolean; // pulls the ship slightly

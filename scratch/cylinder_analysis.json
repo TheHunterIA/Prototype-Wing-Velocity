@@ -1,0 +1,339 @@
+{
+  "NaveJogador.glb": {
+    "totalRearPts": 190,
+    "nozzleCount": 2,
+    "nozzles": [
+      {
+        "x": -8.03,
+        "y": -25.67,
+        "z": 471.7,
+        "ptsCount": 171,
+        "avgRadius": 38.36
+      },
+      {
+        "x": 72.25,
+        "y": -40.55,
+        "z": 460.84,
+        "ptsCount": 19,
+        "avgRadius": 8.3
+      }
+    ]
+  },
+  "StarSparrow02.glb": {
+    "totalRearPts": 126,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": 0,
+        "y": -42.56,
+        "z": 473.7,
+        "ptsCount": 126,
+        "avgRadius": 28.9
+      }
+    ]
+  },
+  "StarSparrow03.glb": {
+    "totalRearPts": 114,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": 0,
+        "y": -56.55,
+        "z": 477.25,
+        "ptsCount": 114,
+        "avgRadius": 27.66
+      }
+    ]
+  },
+  "StarSparrow04.glb": {
+    "totalRearPts": 150,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": 0,
+        "y": -11.37,
+        "z": 460.91,
+        "ptsCount": 150,
+        "avgRadius": 32.54
+      }
+    ]
+  },
+  "StarSparrow05.glb": {
+    "totalRearPts": 390,
+    "nozzleCount": 6,
+    "nozzles": [
+      {
+        "x": -4.02,
+        "y": -43.29,
+        "z": -13641.62,
+        "ptsCount": 158,
+        "avgRadius": 38.12
+      },
+      {
+        "x": -441.08,
+        "y": 25.96,
+        "z": -13689.82,
+        "ptsCount": 68,
+        "avgRadius": 45.98
+      },
+      {
+        "x": 441.08,
+        "y": 25.96,
+        "z": -13689.82,
+        "ptsCount": 68,
+        "avgRadius": 45.98
+      },
+      {
+        "x": -258.87,
+        "y": -63.79,
+        "z": -13724.53,
+        "ptsCount": 36,
+        "avgRadius": 46.56
+      },
+      {
+        "x": 258.87,
+        "y": -63.79,
+        "z": -13724.53,
+        "ptsCount": 36,
+        "avgRadius": 46.56
+      },
+      {
+        "x": 81.62,
+        "y": -60.96,
+        "z": -13686.37,
+        "ptsCount": 16,
+        "avgRadius": 9
+      }
+    ]
+  },
+  "StarSparrow06.glb": {
+    "totalRearPts": 149,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": 0.09,
+        "y": 30.87,
+        "z": 565.58,
+        "ptsCount": 149,
+        "avgRadius": 31.81
+      }
+    ]
+  },
+  "StarSparrow07.glb": {
+    "totalRearPts": 147,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": 0,
+        "y": 5.18,
+        "z": 531.93,
+        "ptsCount": 147,
+        "avgRadius": 29.19
+      }
+    ]
+  },
+  "StarSparrow08.glb": {
+    "totalRearPts": 173,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": -4.9,
+        "y": -6.69,
+        "z": 563.19,
+        "ptsCount": 159,
+        "avgRadius": 38.84
+      }
+    ]
+  },
+  "StarSparrow09.glb": {
+    "totalRearPts": 116,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": 0,
+        "y": 2.77,
+        "z": 516.96,
+        "ptsCount": 116,
+        "avgRadius": 27.91
+      }
+    ]
+  },
+  "StarSparrow10.glb": {
+    "totalRearPts": 180,
+    "nozzleCount": 3,
+    "nozzles": [
+      {
+        "x": 0,
+        "y": -40.38,
+        "z": 498.96,
+        "ptsCount": 138,
+        "avgRadius": 35.47
+      },
+      {
+        "x": -88.18,
+        "y": -66.87,
+        "z": 448.6,
+        "ptsCount": 21,
+        "avgRadius": 11.21
+      },
+      {
+        "x": 88.18,
+        "y": -66.87,
+        "z": 448.6,
+        "ptsCount": 21,
+        "avgRadius": 11.21
+      }
+    ]
+  },
+  "StarSparrow11.glb": {
+    "totalRearPts": 94,
+    "nozzleCount": 2,
+    "nozzles": [
+      {
+        "x": 25.18,
+        "y": -2.84,
+        "z": 586.68,
+        "ptsCount": 59,
+        "avgRadius": 36.59
+      },
+      {
+        "x": -43.36,
+        "y": -9.9,
+        "z": 589.25,
+        "ptsCount": 33,
+        "avgRadius": 28.4
+      }
+    ]
+  },
+  "StarSparrow12.glb": {
+    "totalRearPts": 114,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": -0.43,
+        "y": 12.13,
+        "z": 601.61,
+        "ptsCount": 113,
+        "avgRadius": 34.64
+      }
+    ]
+  },
+  "StarSparrow13.glb": {
+    "totalRearPts": 114,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": 0,
+        "y": 25.53,
+        "z": 474.95,
+        "ptsCount": 114,
+        "avgRadius": 27.66
+      }
+    ]
+  },
+  "StarSparrow14.glb": {
+    "totalRearPts": 114,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": 0,
+        "y": -12.53,
+        "z": 472.54,
+        "ptsCount": 114,
+        "avgRadius": 27.66
+      }
+    ]
+  },
+  "StarSparrow15.glb": {
+    "totalRearPts": 178,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": -4.17,
+        "y": 4.25,
+        "z": 454.58,
+        "ptsCount": 168,
+        "avgRadius": 39.59
+      }
+    ]
+  },
+  "StarSparrow16.glb": {
+    "totalRearPts": 126,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": 0,
+        "y": 73.42,
+        "z": 458.39,
+        "ptsCount": 126,
+        "avgRadius": 29.01
+      }
+    ]
+  },
+  "StarSparrow17.glb": {
+    "totalRearPts": 177,
+    "nozzleCount": 3,
+    "nozzles": [
+      {
+        "x": 49.1,
+        "y": -39.67,
+        "z": -31502.09,
+        "ptsCount": 79,
+        "avgRadius": 30.29
+      },
+      {
+        "x": -27.4,
+        "y": -8.12,
+        "z": -31509.59,
+        "ptsCount": 66,
+        "avgRadius": 39.98
+      },
+      {
+        "x": -60.06,
+        "y": -58.39,
+        "z": -31515.98,
+        "ptsCount": 30,
+        "avgRadius": 26.29
+      }
+    ]
+  },
+  "StarSparrow18.glb": {
+    "totalRearPts": 114,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": 0,
+        "y": -29.13,
+        "z": 464.34,
+        "ptsCount": 114,
+        "avgRadius": 27.66
+      }
+    ]
+  },
+  "StarSparrow19.glb": {
+    "totalRearPts": 163,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": -0.29,
+        "y": -116.84,
+        "z": 689.27,
+        "ptsCount": 162,
+        "avgRadius": 33.52
+      }
+    ]
+  },
+  "StarSparrow20.glb": {
+    "totalRearPts": 119,
+    "nozzleCount": 1,
+    "nozzles": [
+      {
+        "x": 0,
+        "y": 4.17,
+        "z": -36205.02,
+        "ptsCount": 119,
+        "avgRadius": 28.48
+      }
+    ]
+  }
+}

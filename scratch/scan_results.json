@@ -1,0 +1,462 @@
+﻿{
+  "NaveJogador.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -673.9797,
+          -162.7668,
+          -540.054
+        ],
+        "max": [
+          673.9795,
+          157.3936,
+          540.0549
+        ]
+      }
+    ]
+  },
+  "StarSparrow02.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -581.3868,
+          -126.8013,
+          -541.8014
+        ],
+        "max": [
+          581.3864,
+          126.8012,
+          541.8015
+        ]
+      }
+    ]
+  },
+  "StarSparrow03.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -472.1097,
+          -140.139,
+          -538.4221
+        ],
+        "max": [
+          472.1101,
+          140.1389,
+          538.4207
+        ]
+      }
+    ]
+  },
+  "StarSparrow04.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -611.1431,
+          -90.4383,
+          -541.782
+        ],
+        "max": [
+          611.143,
+          90.4382,
+          541.782
+        ]
+      }
+    ]
+  },
+  "StarSparrow05.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -554.2556,
+          -140.3315,
+          -14641.638
+        ],
+        "max": [
+          554.2556,
+          140.3314,
+          -13563.043
+        ]
+      }
+    ]
+  },
+  "StarSparrow06.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -537.4158,
+          -142.8511,
+          -647.981
+        ],
+        "max": [
+          537.4158,
+          142.8511,
+          647.9812
+        ]
+      }
+    ]
+  },
+  "StarSparrow07.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -482.5712,
+          -87.6807,
+          -617.9262
+        ],
+        "max": [
+          482.5714,
+          87.6805,
+          617.9275
+        ]
+      }
+    ]
+  },
+  "StarSparrow08.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -600.4001,
+          -261.6119,
+          -653.44
+        ],
+        "max": [
+          600.4005,
+          261.6118,
+          653.4431
+        ]
+      }
+    ]
+  },
+  "StarSparrow09.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -511.3512,
+          -215.1166,
+          -580.006
+        ],
+        "max": [
+          511.3512,
+          215.1165,
+          580.0056
+        ]
+      }
+    ]
+  },
+  "StarSparrow10.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -495.6325,
+          -211.9084,
+          -566.734
+        ],
+        "max": [
+          495.6323,
+          211.9083,
+          566.7341
+        ]
+      }
+    ]
+  },
+  "StarSparrow11.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -596.887,
+          -74.2786,
+          -661.814
+        ],
+        "max": [
+          596.8873,
+          74.2786,
+          661.8152
+        ]
+      }
+    ]
+  },
+  "StarSparrow12.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -310.7369,
+          -173.2767,
+          -678.1289
+        ],
+        "max": [
+          310.7372,
+          173.2766,
+          678.1276
+        ]
+      }
+    ]
+  },
+  "StarSparrow13.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -315.4204,
+          -147.3796,
+          -536.1204
+        ],
+        "max": [
+          315.4209,
+          147.3796,
+          536.1208
+        ]
+      }
+    ]
+  },
+  "StarSparrow14.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -363.8433,
+          -158.8849,
+          -533.7039
+        ],
+        "max": [
+          363.8433,
+          158.8848,
+          533.7068
+        ]
+      }
+    ]
+  },
+  "StarSparrow15.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -355.0945,
+          -331.5679,
+          -529.7262
+        ],
+        "max": [
+          355.0945,
+          331.5682,
+          529.7263
+        ]
+      }
+    ]
+  },
+  "StarSparrow16.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -358.2169,
+          -163.397,
+          -527.7704
+        ],
+        "max": [
+          358.2172,
+          163.397,
+          527.7732
+        ]
+      }
+    ]
+  },
+  "StarSparrow17.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -439.8337,
+          -123.0378,
+          -32511.553
+        ],
+        "max": [
+          439.8338,
+          123.0378,
+          -31450.424
+        ]
+      }
+    ]
+  },
+  "StarSparrow18.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -320.9483,
+          -146.6409,
+          -525.4989
+        ],
+        "max": [
+          320.9483,
+          146.6409,
+          525.5037
+        ]
+      }
+    ]
+  },
+  "StarSparrow19.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -403.537,
+          -294.3961,
+          -794.822
+        ],
+        "max": [
+          403.5372,
+          294.396,
+          794.8201
+        ]
+      }
+    ]
+  },
+  "StarSparrow20.glb": {
+    "nodesCount": 2,
+    "allNodeNames": [
+      "Node0",
+      "Node1"
+    ],
+    "thrusterCandidates": [],
+    "meshBounds": [
+      {
+        "meshName": "Mesh0",
+        "min": [
+          -462.9613,
+          -135.8058,
+          -37359.39
+        ],
+        "max": [
+          462.9614,
+          135.8057,
+          -36139.086
+        ]
+      }
+    ]
+  }
+}

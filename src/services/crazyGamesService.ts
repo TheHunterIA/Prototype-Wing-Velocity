@@ -131,11 +131,7 @@ export class CrazyGamesService {
       return true; // Simulate success if disabled
     }
     if (type === 'midroll') {
-      const now = Date.now();
-      if (now - this.lastMidrollTime < 300000) {
-        return true;
-      }
-      this.lastMidrollTime = now;
+      return true; // Anúncios midroll desativados
     }
     try {
       const sdk = this.sdk;
@@ -172,7 +168,7 @@ export class CrazyGamesService {
               clearTimeout(timer);
               // Se for erro de No Fill ou erro genérico de anúncio, não bloqueamos o jogador
               const errStr = String(error?.message || error || '').toLowerCase();
-              if (errStr.includes('no fill') || errStr.includes('nofill') || errStr.includes('fill') || type === 'midroll') {
+              if (errStr.includes('no fill') || errStr.includes('nofill') || errStr.includes('fill')) {
                 safeResolve(true);
               } else {
                 safeResolve(true); // Resolve true em caso de falha de exibição de anúncio para não travar o jogador

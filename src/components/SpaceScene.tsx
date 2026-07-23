@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, Volume2, VolumeX, Paintbrush, ChevronUp, ChevronDown, Rocket, Gauge, TrendingUp, Flame, Battery, Scale, Lock, Compass, Settings, Globe, X, Sparkles, Sliders, User, Trophy, BarChart3, Star, Play, Wrench } from "lucide-react";
 import Spaceship from "./Spaceship";
 import SpaceSimulator from "./SpaceSimulator";
+import { AAADeepSpaceBackground } from "./AAADeepSpaceBackground";
 import { SHIPS_DATA, calculateShipStats, SHIP_CLASS_PROFILES, ROUTES_DATA, SKINS_DATA } from "../data";
 import { RouteData } from "../types";
 import { translations, routeTranslations, translateDifficulty, translateClass, Language } from "../translations";
@@ -291,8 +292,9 @@ export default function SpaceScene() {
     playSound("paint", isMuted);
   };
 
-  // Keyboard navigation for arrow keys
+  // Keyboard navigation for arrow keys (Somente quando no Hangar, NÃO durante a partida no simulador!)
   useEffect(() => {
+    if (isSimulatorActive) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") {
         handleNext();
@@ -302,7 +304,7 @@ export default function SpaceScene() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isMuted]);
+  }, [isMuted, isSimulatorActive]);
 
   const isCurrentShipLocked = !playerService.hasLicense(currentShip.id, currentShip.requiredLevel);
 
@@ -477,6 +479,7 @@ export default function SpaceScene() {
 
             {/* Localized Suspense boundary to prevent unmounting lights and controls during load */}
             <Suspense fallback={null}>
+              <AAADeepSpaceBackground selectedRoute={selectedRoute} />
               <Environment preset="night" environmentIntensity={isCurrentShipLocked ? 0.2 : 0.8} />
               <Spaceship 
                 modelFile={currentShip.modelFile} 
@@ -488,9 +491,9 @@ export default function SpaceScene() {
 
             {graphicsQuality === "high" && (
               <EffectComposer key="scene-effect-composer">
-                <Bloom luminanceThreshold={0.5} mipmapBlur intensity={0.6} />
-                <Vignette eskil={false} offset={0.15} darkness={0.7} />
-                <ChromaticAberration offset={[0.0008, 0.0008]} />
+                <Bloom luminanceThreshold={0.85} mipmapBlur intensity={0.35} />
+                <Vignette eskil={false} offset={0.15} darkness={0.6} />
+                <ChromaticAberration offset={[0.0006, 0.0006]} />
               </EffectComposer>
             )}
           </Canvas>

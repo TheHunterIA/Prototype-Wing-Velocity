@@ -218,7 +218,7 @@ export const playerService = {
   },
 
   hasLicense(id: string, requiredLevel: number): boolean {
-    if (typeof window !== 'undefined' && window.location.hostname.includes('ais-pre-')) {
+    if (typeof window !== 'undefined' && (window.location.hostname.includes('run.app') || window.location.hostname.includes('ais-pre-') || (import.meta as any).env?.PROD)) {
       return true;
     }
     if (this.data.level >= requiredLevel) return true;
