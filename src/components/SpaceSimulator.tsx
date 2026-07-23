@@ -16,7 +16,14 @@ import {
   Gauge,
   Trophy,
   Rocket,
-  Sparkles
+  Sparkles,
+  Award,
+  Zap,
+  CheckCircle2,
+  BarChart2,
+  Flag,
+  Star,
+  ShieldCheck
 } from "lucide-react";
 import { SHIPS_DATA, calculateShipStats } from "../data";
 import { ShipData, RouteData } from "../types";
@@ -2551,17 +2558,27 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
     const totalDist = selectedRoute.numRings * selectedRoute.ringSpacing;
     let rawPlanets: any[] = getRouteBehavior(selectedRoute.id).planets(totalDist);
 
+    // Dicionário de ângulos e margens específicas para cada rota, mantendo os planetas próximos aos aros de voo com variação visual entre cenários
+    const routePlanetConfigs: Record<string, { angle: number; clearance: number }> = {
+      "route-certification": { angle: 0.35 * Math.PI, clearance: 800 },   // Superior Direito
+      "route-asteroid-alpha": { angle: 0.82 * Math.PI, clearance: 900 },   // Superior Esquerdo
+      "route-highway": { angle: -0.35 * Math.PI, clearance: 850 },        // Inferior Direito
+      "route-orion-nebula": { angle: 0.18 * Math.PI, clearance: 1000 },   // Cima Direita Elevado
+      "route-ice-field": { angle: 0.52 * Math.PI, clearance: 750 },      // Quase Topo Central
+      "route-void": { angle: -0.78 * Math.PI, clearance: 900 },           // Inferior Esquerdo
+      "route-saturn-rings": { angle: 0.38 * Math.PI, clearance: 600 },   // Diagonal Topo
+      "route-plasma": { angle: 0.95 * Math.PI, clearance: 850 },          // Lateral Esquerda Direta
+      "route-supernova": { angle: -0.18 * Math.PI, clearance: 800 },     // Lado Direito Baixo
+      "route-black-hole": { angle: -0.62 * Math.PI, clearance: 950 },    // Fundo Esquerdo
+      "route-dyson": { angle: 0.12 * Math.PI, clearance: 750 },          // Superior Direito Próximo
+    };
+
     return rawPlanets.map(p => {
       let finalPos = p.pos.clone();
 
-      // 1. Escala proporcional e imponente dos planetas no fundo
       const seedVal = p.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
-      const scaleMultiplier = p.id === "earth" ? 2.4 : 2.8 + (seedVal % 3) * 0.8;
+      const scaleMultiplier = p.id === "earth" ? 3.8 : 4.2 + (seedVal % 3) * 0.8;
       const newRadius = p.radius * scaleMultiplier;
-
-      // 2. Posicionamento proporcional no fundo (push de 2.2x)
-      finalPos.x *= 2.2;
-      finalPos.y *= 2.2;
 
       let newMoons = p.moons;
       if (p.moons) {
@@ -2572,26 +2589,19 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
         }));
       }
 
-      // Evitar sobreposição com o trajeto central dos anéis de voo de forma segura
-      if (finalPos.z < 2000 && finalPos.z > -totalDist - 15000) {
-        const routeCenter = getRouteCenterAtZ(finalPos.z);
-        const dx = finalPos.x - routeCenter.x;
-        const dy = finalPos.y - routeCenter.y;
-        const distXY = Math.sqrt(dx * dx + dy * dy);
+      // Posicionamento inteligente próximo aos aros
+      const routeCenter = getRouteCenterAtZ(finalPos.z);
+      const config = routePlanetConfigs[selectedRoute.id] || { angle: 0.4 * Math.PI, clearance: 850 };
 
-        const maxMoonDist = newMoons ? Math.max(...newMoons.map((m: any) => m.distance + m.radius)) : 0;
-        // Se for o planeta Saturno na rota de Saturno, a segurança considera apenas o corpo sólido do planeta, não os anéis ou luas distantes.
-        const safetyRadius = (p.id === "saturn" && selectedRoute.id === "route-saturn-rings")
-          ? newRadius + 1500
-          : newRadius + maxMoonDist + 2800;
+      const maxMoonDist = newMoons ? Math.max(...newMoons.map((m: any) => m.distance + m.radius)) : 0;
+      const safetyRadius = (p.id === "saturn" && selectedRoute.id === "route-saturn-rings")
+        ? newRadius + 1200
+        : newRadius + maxMoonDist + 1500;
 
-        // Impede o reposicionamento automático para a Terra, mantendo-a centralizada no horizonte
-        if (p.id !== "earth" && distXY < safetyRadius) {
-          const angle = distXY > 1 ? Math.atan2(dy, dx) : (newRadius % (Math.PI * 2));
-          finalPos.x = routeCenter.x + Math.cos(angle) * (safetyRadius + 4000);
-          finalPos.y = routeCenter.y + Math.sin(angle) * (safetyRadius + 4000);
-        }
-      }
+      const targetDistance = safetyRadius + config.clearance;
+
+      finalPos.x = routeCenter.x + Math.cos(config.angle) * targetDistance;
+      finalPos.y = routeCenter.y + Math.sin(config.angle) * targetDistance;
 
       return { ...p, radius: newRadius, moons: newMoons, pos: finalPos };
     });
@@ -2984,8 +2994,8 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
         <Canvas 
           camera={{ position: [0, 6, 26], fov: 45, far: 200000 }} 
           shadows="soft"
-          dpr={[1, Math.min(2, typeof window !== 'undefined' ? window.devicePixelRatio : 1)]}
-          gl={{ logarithmicDepthBuffer: true, antialias: true, powerPreference: "high-performance" }}
+          dpr={[1, Math.min(2, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1)]}
+          gl={{ logarithmicDepthBuffer: true, antialias: true, powerPreference: "high-performance", precision: "highp" }}
         >
           <PerformanceController graphicsQuality={graphicsQuality} setGraphicsQuality={setGraphicsQuality} />
           <DynamicFOV velocityRef={velocityRef} />
@@ -3096,7 +3106,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
           </Suspense>
 
           {graphicsQuality === "high" && (
-            <EffectComposer key="sim-composer-high">
+            <EffectComposer key="sim-composer-high" multisampling={8}>
               {/* Bloom threshold 0.82: nebula cores ficam abaixo, só spikes estelares e propulsores disparam */}
               <Bloom luminanceThreshold={0.82} mipmapBlur intensity={0.5} radius={0.65} />
               <ChromaticAberration offset={[0.00055, 0.00055]} radialModulation modulationOffset={0.18} />
@@ -3107,7 +3117,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
             </EffectComposer>
           )}
           {graphicsQuality === "low" && (
-            <EffectComposer key="sim-composer-low">
+            <EffectComposer key="sim-composer-low" multisampling={4}>
               <Bloom luminanceThreshold={0.82} intensity={0.30} />
               <BrightnessContrast brightness={0.01} contrast={0.06} />
               <HueSaturation hue={0} saturation={0.08} />
@@ -3311,118 +3321,207 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
             ref={victoryCardRef}
             onMouseMove={handleVictoryMouseMove}
             onMouseLeave={handleVictoryMouseLeave}
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.85, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="w-full max-w-sm bg-zinc-950/90 border border-emerald-500/40 rounded-2xl p-8 flex flex-col items-center gap-6 text-center relative overflow-hidden backdrop-blur-xl"
+            transition={{ type: "spring", stiffness: 280, damping: 24 }}
+            className="w-full max-w-lg bg-zinc-950/92 border border-emerald-500/50 rounded-2xl p-6 sm:p-8 flex flex-col items-center gap-5 text-center relative overflow-hidden backdrop-blur-2xl"
             style={{
               transform: `perspective(1000px) rotateX(${victoryRotateX}deg) rotateY(${victoryRotateY}deg) scale(1.02)`,
               transformStyle: "preserve-3d",
-              transition: "transform 0.1s ease-out, box-shadow 0.1s ease-out",
+              transition: "transform 0.12s ease-out, box-shadow 0.12s ease-out",
               boxShadow: `
-                ${-victoryRotateY * 1.5}px ${victoryRotateX * 1.5}px 30px rgba(0, 0, 0, 0.8), 
-                0 0 40px rgba(16, 185, 129, ${0.15 + Math.abs(victoryRotateX)/40}), 
-                0 0 100px rgba(16, 185, 129, 0.05)
+                ${-victoryRotateY * 2}px ${victoryRotateX * 2}px 40px rgba(0, 0, 0, 0.85), 
+                0 0 50px rgba(16, 185, 129, ${0.22 + Math.abs(victoryRotateX)/35}), 
+                0 0 120px rgba(16, 185, 129, 0.08)
               `
             }}
           >
             {/* Ambient Glare Effect */}
             <div 
-              className="absolute inset-0 pointer-events-none mix-blend-color-dodge transition-opacity duration-300 opacity-75 z-10"
+              className="absolute inset-0 pointer-events-none mix-blend-color-dodge transition-opacity duration-300 opacity-80 z-10"
               style={{
-                background: `radial-gradient(circle 200px at ${victoryGlowX}% ${victoryGlowY}%, rgba(16, 185, 129, 0.22), transparent 70%)`
+                background: `radial-gradient(circle 260px at ${victoryGlowX}% ${victoryGlowY}%, rgba(16, 185, 129, 0.25), transparent 70%)`
               }}
             />
 
-            {/* Sci-fi decorative borders */}
-            <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-emerald-500/60" />
-            <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-emerald-500/60" />
-            <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-emerald-500/60" />
-            <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-emerald-500/60" />
+            {/* Sci-fi decorative borders & corner brackets */}
+            <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-emerald-400" />
+            <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-emerald-400" />
+            <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-emerald-400" />
+            <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-emerald-400" />
 
-            {/* Decorative Corner Dots */}
-            <div className="absolute top-1.5 left-1.5 w-1 h-1 rounded-full bg-emerald-500/40" />
-            <div className="absolute top-1.5 right-1.5 w-1 h-1 rounded-full bg-emerald-500/40" />
-            <div className="absolute bottom-1.5 left-1.5 w-1 h-1 rounded-full bg-emerald-500/40" />
-            <div className="absolute bottom-1.5 right-1.5 w-1 h-1 rounded-full bg-emerald-500/40" />
-            
-            <div className="relative" style={{ transform: "translateZ(50px)", transformStyle: "preserve-3d" }}>
-              <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-2xl animate-pulse" />
-              <Trophy className="w-16 h-16 text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.6)] relative z-10" />
+            {/* Top Status Ticker */}
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-[9px] font-mono tracking-widest text-emerald-400 uppercase" style={{ transform: "translateZ(30px)" }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span>[ REGISTRO TÁTICO - MISSÃO CUMPRIDA ]</span>
             </div>
-            
-            <div className="flex flex-col gap-1.5" style={{ transform: "translateZ(35px)" }}>
-              <h2 className="text-2xl font-mono font-black tracking-widest text-emerald-400 uppercase">
-                {t.missionComplete}
-              </h2>
-              <p className="text-[10px] font-mono text-zinc-400 tracking-wide uppercase">
-                {t.masteredNavigation}
-              </p>
+
+            {/* 3D Trophy & Rank Header */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full" style={{ transform: "translateZ(55px)", transformStyle: "preserve-3d" }}>
+              <div className="relative flex items-center justify-center p-3">
+                <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-2xl animate-pulse" />
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500/20 via-emerald-500/10 to-zinc-900 border border-amber-400/50 flex items-center justify-center shadow-[0_0_25px_rgba(251,191,36,0.25)] relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(251,191,36,0.3),transparent_70%)]" />
+                  <Trophy className="w-10 h-10 text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.8)] relative z-10" />
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl sm:text-3xl font-mono font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 uppercase drop-shadow-[0_0_12px_rgba(16,185,129,0.5)]">
+                    {t.missionComplete}
+                  </h2>
+                </div>
+                <p className="text-[11px] font-mono text-zinc-400 tracking-wide uppercase mt-1 max-w-xs">
+                  {t.masteredNavigation}
+                </p>
+                
+                {/* Performance Rank Badge */}
+                {(() => {
+                  let rank = "S";
+                  let rankColor = "text-amber-400 border-amber-500/40 bg-amber-500/10";
+                  let rankLabel = "TRAJETO PERFEITO";
+                  if (leaderboardInfo?.isNewRecord) {
+                    rank = "S+";
+                    rankColor = "text-amber-300 border-amber-400/60 bg-amber-500/20";
+                    rankLabel = "NOVO RECORDE";
+                  } else if (selectedRoute.difficulty === "Difícil" || selectedRoute.difficulty === "Elite" || selectedRoute.difficulty === "Sobrevivência") {
+                    rank = "S";
+                    rankColor = "text-emerald-400 border-emerald-500/40 bg-emerald-500/10";
+                    rankLabel = "DESEMPENHO ÉLITE";
+                  } else {
+                    rank = "A";
+                    rankColor = "text-cyan-400 border-cyan-500/40 bg-cyan-500/10";
+                    rankLabel = "NAVEGAÇÃO PRECISA";
+                  }
+                  return (
+                    <div className={`mt-2 inline-flex items-center gap-2 px-2.5 py-0.5 rounded-lg border ${rankColor} text-[10px] font-mono font-bold tracking-wider uppercase`}>
+                      <Award className="w-3.5 h-3.5" />
+                      <span>RANK {rank} • {rankLabel}</span>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
-            
-            <div className="w-full bg-black/60 border border-white/5 rounded-xl p-5 flex flex-col gap-2.5 font-mono text-xs text-left" style={{ transform: "translateZ(25px)" }}>
-              <div className="flex justify-between items-center py-1">
-                <span className="text-zinc-500 uppercase text-[10px] tracking-wider">{t.shipUsed}:</span>
-                <span className="text-white font-bold">{currentShip.name}</span>
+
+            {/* Primary Time Highlight Card */}
+            <div className="w-full bg-gradient-to-b from-black/80 to-zinc-950/80 border border-emerald-500/30 rounded-xl p-4 flex flex-col items-center gap-1 font-mono text-left relative overflow-hidden" style={{ transform: "translateZ(40px)" }}>
+              <div className="absolute -top-12 -right-12 w-28 h-28 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
+              <span className="text-zinc-400 text-[10px] uppercase tracking-widest flex items-center gap-1.5">
+                <Gauge className="w-3.5 h-3.5 text-amber-400" />
+                {t.yourTime}
+              </span>
+              <div className="text-3xl sm:text-4xl font-black font-mono text-amber-300 drop-shadow-[0_0_15px_rgba(251,191,36,0.6)] tracking-wider">
+                {(finalTimeRef.current || 0).toFixed(3)}s
               </div>
-              <div className="flex justify-between items-center py-1 border-t border-white/5">
-                <span className="text-zinc-500 uppercase text-[10px] tracking-wider">{t.yourTime}:</span>
-                <span className="text-amber-400 font-bold text-sm">{(finalTimeRef.current || 0).toFixed(3)}s</span>
+              {leaderboardInfo?.isNewRecord ? (
+                <div className="mt-1 flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 font-bold text-[10px] tracking-widest uppercase animate-pulse">
+                  <Trophy className="w-3 h-3 text-amber-300" />
+                  <span>{t.newRecord}</span>
+                </div>
+              ) : leaderboardInfo?.bestTime ? (
+                <div className="text-[10px] text-zinc-500 tracking-wider uppercase">
+                  {t.record}: <span className="text-zinc-300 font-bold">{leaderboardInfo.bestTime.toFixed(3)}s</span>
+                </div>
+              ) : null}
+            </div>
+
+            {/* 4-Grid Tactical Performance Stats */}
+            <div className="grid grid-cols-2 gap-2.5 w-full font-mono text-xs" style={{ transform: "translateZ(30px)" }}>
+              {/* Ship Used */}
+              <div className="bg-black/60 border border-white/10 hover:border-emerald-500/30 rounded-xl p-3 flex flex-col justify-between gap-1 text-left transition-colors">
+                <span className="text-zinc-500 text-[9px] uppercase tracking-wider flex items-center gap-1">
+                  <Rocket className="w-3 h-3 text-cyan-400" />
+                  {t.shipUsed}
+                </span>
+                <span className="text-white font-bold text-xs truncate">{currentShip.name}</span>
               </div>
-              {leaderboardInfo && (
-                <div className="flex justify-between items-center py-1 border-t border-white/5">
-                  <span className="text-zinc-500 uppercase text-[10px] tracking-wider">{t.record}:</span>
-                  <span className={`${leaderboardInfo.isNewRecord ? 'text-emerald-400' : 'text-zinc-400'} font-bold`}>
-                    {leaderboardInfo.isNewRecord ? t.newRecord : `${leaderboardInfo.bestTime.toFixed(3)}s`}
+
+              {/* Rings Passed */}
+              <div className="bg-black/60 border border-white/10 hover:border-emerald-500/30 rounded-xl p-3 flex flex-col justify-between gap-1 text-left transition-colors">
+                <span className="text-zinc-500 text-[9px] uppercase tracking-wider flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  AROS CONCLUÍDOS
+                </span>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-emerald-400">
+                    {selectedRoute.numRings} / {selectedRoute.numRings}
+                  </span>
+                  <span className="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-1.5 py-0.5 rounded font-bold">
+                    100%
                   </span>
                 </div>
-              )}
-              <div className="flex justify-between items-center py-1 border-t border-white/5">
-                <span className="text-zinc-500 uppercase text-[10px] tracking-wider">{t.xpGained}:</span>
-                <span className="text-emerald-400 font-bold">+{xpGained} XP</span>
               </div>
-              <div className="flex justify-between items-center py-1 border-t border-white/5">
-                <span className="text-zinc-500 uppercase text-[10px] tracking-wider">{t.hullStatus}:</span>
-                <span className="text-emerald-400 font-bold">{Math.max(0, Math.round(armorState))}%</span>
+
+              {/* XP Gained */}
+              <div className="bg-black/60 border border-white/10 hover:border-emerald-500/30 rounded-xl p-3 flex flex-col justify-between gap-1 text-left transition-colors">
+                <span className="text-zinc-500 text-[9px] uppercase tracking-wider flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-amber-400" />
+                  {t.xpGained}
+                </span>
+                <span className="text-emerald-400 font-bold text-xs flex items-center gap-1">
+                  +{xpGained} XP
+                </span>
+              </div>
+
+              {/* Route Difficulty */}
+              <div className="bg-black/60 border border-white/10 hover:border-emerald-500/30 rounded-xl p-3 flex flex-col justify-between gap-1 text-left transition-colors">
+                <span className="text-zinc-500 text-[9px] uppercase tracking-wider flex items-center gap-1">
+                  <Flag className="w-3 h-3 text-purple-400" />
+                  DIFICULDADE
+                </span>
+                <span className="text-purple-300 font-bold text-xs truncate">
+                  {translateDifficulty(selectedRoute.difficulty, language)}
+                </span>
               </div>
             </div>
 
-            {/* Pilot Level Progress */}
-            <div className="w-full flex flex-col gap-2 mt-2" style={{ transform: "translateZ(30px)" }}>
+            {/* Pilot Level Progression Bar */}
+            <div className="w-full bg-black/60 border border-white/10 rounded-xl p-3.5 flex flex-col gap-2" style={{ transform: "translateZ(35px)" }}>
               <div className="flex justify-between items-center text-[10px] font-mono uppercase tracking-widest">
-                <span className="text-zinc-400">{t.pilotLevel} {playerService.data.level}</span>
+                <span className="text-zinc-300 font-bold flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  {t.pilotLevel} {playerService.data.level}
+                </span>
                 {levelUpInfo?.levelUp && (
-                  <span className="text-amber-400 font-bold animate-bounce">{t.levelUp}</span>
+                  <span className="text-amber-400 font-bold animate-bounce flex items-center gap-1">
+                    <Zap className="w-3 h-3" />
+                    {t.levelUp}
+                  </span>
                 )}
-                <span className="text-zinc-500">{Math.round(playerService.getLevelProgress())}%</span>
+                <span className="text-amber-400 font-bold">{Math.round(playerService.getLevelProgress())}%</span>
               </div>
-              <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden border border-white/5">
+              <div className="h-2 w-full bg-zinc-900 rounded-full overflow-hidden border border-white/10 p-0.5">
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${playerService.getLevelProgress()}%` }}
-                  transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
-                  className="h-full bg-gradient-to-r from-amber-500 to-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                  transition={{ duration: 1.5, ease: "easeOut", delay: 0.4 }}
+                  className="h-full rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-emerald-400 shadow-[0_0_12px_rgba(245,158,11,0.6)]"
                 />
               </div>
               {playerService.data.level < 10 && (
-                <span className="text-[8px] font-mono text-zinc-600 text-right uppercase">
-                  {playerService.getXpToNextLevel()} {t.xpToNextLevel}
-                </span>
+                <div className="flex justify-between items-center text-[8px] font-mono text-zinc-500 uppercase">
+                  <span>PROGRESSO DA CARREIRA</span>
+                  <span>{playerService.getXpToNextLevel()} {t.xpToNextLevel}</span>
+                </div>
               )}
             </div>
             
-            <div className="flex flex-col gap-2.5 w-full mt-2" style={{ transform: "translateZ(40px)" }}>
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full mt-1" style={{ transform: "translateZ(50px)" }}>
               <button 
                 onClick={resetGame}
-                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold font-mono text-xs tracking-widest uppercase rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.35)] transition-all active:scale-[0.98] cursor-pointer"
+                className="flex-1 py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-bold font-mono text-xs tracking-widest uppercase rounded-xl shadow-[0_0_25px_rgba(16,185,129,0.4)] hover:shadow-[0_0_35px_rgba(16,185,129,0.6)] transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 border border-emerald-400/40"
               >
-                {t.playAgain}
+                <RotateCcw className="w-4 h-4" />
+                <span>{t.playAgain}</span>
               </button>
               <button 
                 onClick={() => { playSimSound("click", localMuted); onExit(); }}
-                className="w-full py-3.5 bg-zinc-900/80 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white font-bold font-mono text-xs tracking-widest uppercase rounded-xl transition-all active:scale-[0.98] cursor-pointer"
+                className="flex-1 py-3.5 bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 text-zinc-300 hover:text-white font-bold font-mono text-xs tracking-widest uppercase rounded-xl transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 hover:border-white/30 shadow-lg"
               >
-                {t.backToHangar}
+                <ArrowLeft className="w-4 h-4" />
+                <span>{t.backToHangar}</span>
               </button>
             </div>
           </motion.div>

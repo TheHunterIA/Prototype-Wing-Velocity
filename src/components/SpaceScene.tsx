@@ -119,9 +119,9 @@ export default function SpaceScene() {
 
   const [graphicsQuality, setGraphicsQuality] = useState<"high" | "low">(() => {
     try {
-      return (localStorage.getItem("graphicsQuality") as "high" | "low") || "low";
+      return (localStorage.getItem("graphicsQuality") as "high" | "low") || "high";
     } catch {
-      return "low";
+      return "high";
     }
   });
   const [language, setLanguage] = useState<Language>(() => {
@@ -490,7 +490,7 @@ export default function SpaceScene() {
             </Suspense>
 
             {graphicsQuality === "high" && (
-              <EffectComposer key="scene-effect-composer">
+              <EffectComposer key="scene-effect-composer" multisampling={8}>
                 <Bloom luminanceThreshold={0.85} mipmapBlur intensity={0.35} />
                 <Vignette eskil={false} offset={0.15} darkness={0.6} />
                 <ChromaticAberration offset={[0.0006, 0.0006]} />

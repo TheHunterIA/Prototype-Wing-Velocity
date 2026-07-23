@@ -13,7 +13,12 @@ export function usePerformanceMonitor({
   const { gl } = useThree();
   const frameTimes = useRef<number[]>([]);
   const lastTimeRef = useRef(performance.now());
-  const [currentDPR, setCurrentDPR] = useState(() => Math.min(window.devicePixelRatio || 1, 1.5));
+  const mountTimeRef = useRef(performance.now());
+  
+  const targetMaxDPR = Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2.0);
+  const minDPR = graphicsQuality === "high" ? 1.0 : 0.75;
+  
+  const [currentDPR, setCurrentDPR] = useState(() => targetMaxDPR);
   const debounceTimer = useRef<number | null>(null);
   const emergencySpikes = useRef(0);
 
@@ -21,27 +26,38 @@ export function usePerformanceMonitor({
     gl.setPixelRatio(currentDPR);
   }, [currentDPR, gl]);
 
+  // Se a qualidade gráfica for alterada manualmente para "high", reseta o DPR para a resolução máxima
+  useEffect(() => {
+    if (graphicsQuality === "high") {
+      setCurrentDPR(targetMaxDPR);
+    }
+  }, [graphicsQuality, targetMaxDPR]);
+
   useFrame(() => {
     const now = performance.now();
     const delta = now - lastTimeRef.current;
     lastTimeRef.current = now;
 
-    // Resposta de emergência: roda ANTES do descarte de picos isolados abaixo,
-    // pois queremos reagir mesmo a deltas grandes (>150ms) quando se repetem.
-    // Se o frame demorou muito mais que o normal (>300ms, ~<3.3 FPS) por 3 frames
-    // seguidos, reduz a resolução imediatamente, em vez de esperar a janela de
-    // 180 frames (~3s) do ajuste gradual abaixo, que é lenta demais para picos
-    // de explosão/colisão simultâneos.
+    const timeSinceMount = now - mountTimeRef.current;
+
+    // Durante os primeiros 5 segundos (carregamento de modelos/compilação de shaders da GPU),
+    // ignora picos de frame para não derrubar a resolução no início da partida!
+    if (timeSinceMount < 5000) {
+      return;
+    }
+
+    // Resposta de emergência para picos sustentados em meio ao jogo
     if (delta > 300) {
       emergencySpikes.current += 1;
-      if (emergencySpikes.current >= 3 && currentDPR > 0.6) {
-        setCurrentDPR(0.6);
+      if (emergencySpikes.current >= 4 && currentDPR > minDPR) {
+        const newDpr = Math.max(minDPR, currentDPR - 0.25);
+        setCurrentDPR(newDpr);
         debounceTimer.current = now;
         frameTimes.current = [];
         emergencySpikes.current = 0;
-        console.log(`[Dynamic Resolution] Queda brusca de FPS detectada. Reduzindo DPR emergencialmente para 0.6`);
+        console.log(`[Dynamic Resolution] Queda brusca de FPS detectada. Reduzindo DPR emergencialmente para ${newDpr.toFixed(2)}`);
       }
-      return; // Trata como pico isolado normal também (mesmo comportamento de antes)
+      return;
     } else {
       emergencySpikes.current = 0;
     }
@@ -50,32 +66,27 @@ export function usePerformanceMonitor({
     if (delta > 150) return;
 
     frameTimes.current.push(delta);
-    // Janela de 180 frames (~3 segundos a 60 FPS) para amostragem muito mais estável
     if (frameTimes.current.length > 180) {
       frameTimes.current.shift();
     }
 
-    // Apenas analisa a performance após coletar os 180 frames iniciais
-    // Usa um debounce robusto de 8 segundos (8000ms) para evitar reajustes frenéticos
-    if (frameTimes.current.length === 180 && (!debounceTimer.current || now - debounceTimer.current > 8000)) {
+    // Análise de performance a cada janela de amostragem
+    if (frameTimes.current.length === 180 && (!debounceTimer.current || now - debounceTimer.current > 6000)) {
       const avgDelta = frameTimes.current.reduce((a, b) => a + b, 0) / 180;
       const fps = 1000 / avgDelta;
 
-      // Zonas de FPS com histerese ampla
-      if (fps < 45 && currentDPR > 0.8) {
-        // Reduz a resolução para atenuar o fill-rate da GPU
-        const nextDPR = Math.max(0.8, currentDPR - 0.2);
+      if (fps < 45 && currentDPR > minDPR) {
+        const nextDPR = Math.max(minDPR, currentDPR - 0.15);
         setCurrentDPR(nextDPR);
         debounceTimer.current = now;
         frameTimes.current = [];
-        console.log(`[Dynamic Resolution] FPS baixo (${fps.toFixed(1)}). Reduzindo DPR de forma conservadora para ${nextDPR.toFixed(2)}`);
-      } else if (fps > 58.5 && currentDPR < Math.min(window.devicePixelRatio || 1, 1.5)) {
-        // Só recupera a nitidez se o FPS estiver perfeito e de forma altamente sustentada
-        const nextDPR = Math.min(Math.min(window.devicePixelRatio || 1, 1.5), currentDPR + 0.1);
+        console.log(`[Dynamic Resolution] FPS baixo (${fps.toFixed(1)}). Reduzindo DPR para ${nextDPR.toFixed(2)}`);
+      } else if (fps > 58.0 && currentDPR < targetMaxDPR) {
+        const nextDPR = Math.min(targetMaxDPR, currentDPR + 0.15);
         setCurrentDPR(nextDPR);
         debounceTimer.current = now;
         frameTimes.current = [];
-        console.log(`[Dynamic Resolution] FPS excelente e estável (${fps.toFixed(1)}). Restaurando DPR para ${nextDPR.toFixed(2)}`);
+        console.log(`[Dynamic Resolution] FPS excelente (${fps.toFixed(1)}). Restaurando nitidez para ${nextDPR.toFixed(2)}`);
       }
     }
   });

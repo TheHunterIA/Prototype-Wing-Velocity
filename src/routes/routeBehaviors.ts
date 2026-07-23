@@ -115,11 +115,11 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     calculateRingPosition: (idx, seed, ringSpacing) => {
       const baseZ = -4000 - (idx * ringSpacing);
       let x = 0, y = 0;
-      if (idx < 4) { x = 0; y = 0; }
-      else {
-        const factor = Math.min(1.5, (idx - 3) / 4);
-        x = Math.sin((idx - 3) * 0.45) * 280 * factor + (randomValHelper(seed, idx * 10) - 0.5) * 60;
-        y = Math.cos((idx - 3) * 0.35) * 200 * factor + (Math.sin(seed + idx * 11) - 0.5) * 60;
+      if (idx < 2) {
+        x = 0; y = 0;
+      } else {
+        x = Math.sin((idx - 2) * 0.65) * 380 + (randomValHelper(seed, idx * 10) - 0.5) * 40;
+        y = Math.cos((idx - 2) * 0.45) * 260 + (Math.sin(seed + idx * 11) - 0.5) * 40;
       }
       return new THREE.Vector3(x, y, baseZ);
     },
@@ -156,9 +156,8 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     ],
     calculateRingPosition: (idx, seed, ringSpacing) => {
       const baseZ = -4000 - (idx * ringSpacing);
-      const curve = Math.min(1.5, 0.4 + idx * 0.05);
-      const x = Math.sin(idx * 0.55) * 480 * curve + (randomValHelper(seed, idx * 10) - 0.5) * 90;
-      const y = Math.cos(idx * 0.42) * 360 * curve + (Math.sin(seed + idx * 11) - 0.5) * 90;
+      const x = Math.sin(idx * 0.75) * 580 + Math.sin(idx * 1.5) * 160 + (randomValHelper(seed, idx * 10) - 0.5) * 60;
+      const y = Math.cos(idx * 0.60) * 420 + (Math.sin(seed + idx * 11) - 0.5) * 60;
       return new THREE.Vector3(x, y, baseZ);
     },
     updateHUDStatus: (data, currEnv, envLabel, envValueText, envBarContainer) => {
@@ -194,8 +193,8 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     ],
     calculateRingPosition: (idx, seed, ringSpacing) => {
       const baseZ = -4000 - (idx * ringSpacing);
-      const x = Math.sin(idx * 0.05) * 80 + (randomValHelper(seed, idx * 10) - 0.5) * 20;
-      const y = Math.cos(idx * 0.05) * 80 + (Math.sin(seed + idx * 11) - 0.5) * 20;
+      const x = Math.sin(idx * 0.35) * 750 + (randomValHelper(seed, idx * 10) - 0.5) * 50;
+      const y = Math.cos(idx * 0.28) * 520 + (Math.sin(seed + idx * 11) - 0.5) * 50;
       return new THREE.Vector3(x, y, baseZ);
     },
     updateHUDStatus: (data, currEnv, envLabel, envValueText, envBarContainer, envBarFill) => {
@@ -260,8 +259,8 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     ],
     calculateRingPosition: (idx, seed, ringSpacing) => {
       const baseZ = -4000 - (idx * ringSpacing);
-      const x = Math.sin(idx * 0.7) * 600 + (randomValHelper(seed, idx * 10) - 0.5) * 180;
-      const y = Math.cos(idx * 0.7) * 450 + (Math.sin(seed + idx * 11) - 0.5) * 180;
+      const x = Math.sin(idx * 1.1) * 720 + Math.cos(idx * 0.5) * 220 + (randomValHelper(seed, idx * 10) - 0.5) * 100;
+      const y = Math.sin(idx * 0.85) * 520 + (Math.sin(seed + idx * 11) - 0.5) * 100;
       return new THREE.Vector3(x, y, baseZ);
     },
     updateHUDStatus: (data, currEnv, envLabel, envValueText, envBarContainer, envBarFill) => {
@@ -329,8 +328,8 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     ],
     calculateRingPosition: (idx, seed, ringSpacing) => {
       const baseZ = -4000 - (idx * ringSpacing);
-      const x = Math.sin(idx * 0.3) * 350 + (randomValHelper(seed, idx * 10) - 0.5) * 120;
-      const y = Math.cos(idx * 0.2) * 250 + (Math.sin(seed + idx * 11) - 0.5) * 120;
+      const x = Math.sin(idx * 0.85) * 620 + (randomValHelper(seed, idx * 10) - 0.5) * 80;
+      const y = Math.cos(idx * 0.85) * 480 + (Math.sin(seed + idx * 11) - 0.5) * 80;
       return new THREE.Vector3(x, y, baseZ);
     },
     updateHUDStatus: (data, currEnv, envLabel, envValueText, envBarContainer, envBarFill) => {
@@ -380,10 +379,10 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
         ]
       }
     ],
-    calculateRingPosition: (idx, _seed, ringSpacing) => {
+    calculateRingPosition: (idx, seed, ringSpacing) => {
       const baseZ = -4000 - (idx * ringSpacing);
-      const x = Math.sin(idx * 0.25) * 1600;
-      const y = Math.cos(idx * 0.2) * 1200;
+      const x = Math.sin(idx * 0.50) * 1500 + (randomValHelper(seed, idx * 10) - 0.5) * 100;
+      const y = Math.cos(idx * 0.40) * 1100 + (Math.sin(seed + idx * 11) - 0.5) * 100;
       return new THREE.Vector3(x, y, baseZ);
     },
     updateHUDStatus: (data, currEnv, envLabel, envValueText, envBarContainer, envBarFill) => {
@@ -442,8 +441,8 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     ],
     calculateRingPosition: (idx, seed, ringSpacing) => {
       const baseZ = -4000 - (idx * ringSpacing);
-      const x = Math.sin(idx * 0.78) * 920 + (randomValHelper(seed, idx * 10) - 0.5) * 160;
-      const y = Math.cos(idx * 0.60) * 720 + (Math.sin(seed + idx * 11) - 0.5) * 160;
+      const x = Math.sin(idx * 0.95) * 880 + (randomValHelper(seed, idx * 10) - 0.5) * 90;
+      const y = Math.cos(idx * 0.95) * 680 + (Math.sin(seed + idx * 11) - 0.5) * 90;
       return new THREE.Vector3(x, y, baseZ);
     },
     updateHUDStatus: (data, _currEnv, envLabel, envValueText, envBarContainer) => {
@@ -505,8 +504,8 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     ],
     calculateRingPosition: (idx, seed, ringSpacing) => {
       const baseZ = -4000 - (idx * ringSpacing);
-      const x = Math.sin(idx * 1.25) * 800 + (randomValHelper(seed, idx * 10) - 0.5) * 350;
-      const y = Math.cos(idx * 0.95) * 700 + (Math.sin(seed + idx * 11) - 0.5) * 350;
+      const x = Math.sin(idx * 1.35) * 820 + (randomValHelper(seed, idx * 10) - 0.5) * 160;
+      const y = Math.cos(idx * 1.10) * 650 + (Math.sin(seed + idx * 11) - 0.5) * 160;
       return new THREE.Vector3(x, y, baseZ);
     },
     updateHUDStatus: (data, currEnv, envLabel, envValueText, envBarContainer) => {
@@ -562,8 +561,8 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     ],
     calculateRingPosition: (idx, seed, ringSpacing) => {
       const baseZ = -4000 - (idx * ringSpacing);
-      const x = Math.sin(idx * 0.45) * 550 + (randomValHelper(seed, idx * 10) - 0.5) * 350;
-      const y = Math.sin(idx * 1.3) * 950 + (Math.sin(seed + idx * 11) - 0.5) * 350;
+      const x = Math.sin(idx * 1.2) * 800 + Math.cos(idx * 2.1) * 200 + (randomValHelper(seed, idx * 10) - 0.5) * 140;
+      const y = Math.sin(idx * 1.4) * 620 + (Math.sin(seed + idx * 11) - 0.5) * 140;
       return new THREE.Vector3(x, y, baseZ);
     },
     updateHUDStatus: (data, currEnv, envLabel, envValueText, envBarContainer, envBarFill) => {
@@ -638,10 +637,10 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     ],
     calculateRingPosition: (idx, seed, ringSpacing, selectedRoute) => {
       const baseZ = -4000 - (idx * ringSpacing);
-      const numRings = selectedRoute?.numRings || 18;
-      const shrink = Math.max(0.35, 1.15 - (idx / numRings) * 0.65);
-      const x = Math.sin(idx * 1.1) * 1150 * shrink + (randomValHelper(seed, idx * 10) - 0.5) * 180;
-      const y = Math.cos(idx * 1.1) * 920 * shrink + (Math.sin(seed + idx * 11) - 0.5) * 180;
+      const numRings = selectedRoute?.numRings || 22;
+      const spiralFactor = 1.0 + (idx / numRings) * 0.8;
+      const x = Math.sin(idx * 1.1) * 980 * spiralFactor + (randomValHelper(seed, idx * 10) - 0.5) * 120;
+      const y = Math.cos(idx * 1.1) * 780 * spiralFactor + (Math.sin(seed + idx * 11) - 0.5) * 120;
       return new THREE.Vector3(x, y, baseZ);
     },
     updateHUDStatus: (data, currEnv, envLabel, envValueText, envBarContainer, envBarFill) => {
@@ -703,8 +702,8 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     ],
     calculateRingPosition: (idx, seed, ringSpacing) => {
       const baseZ = -4000 - (idx * ringSpacing);
-      const x = Math.sin(idx * 0.35) * 400 + (randomValHelper(seed, idx * 10) - 0.5) * 450;
-      const y = Math.cos(idx * 0.35) * 400 + (Math.sin(seed + idx * 11) - 0.5) * 450;
+      const x = Math.sin(idx * 0.90) * 650 + Math.cos(idx * 1.8) * 180 + (randomValHelper(seed, idx * 10) - 0.5) * 100;
+      const y = Math.cos(idx * 0.90) * 550 + (Math.sin(seed + idx * 11) - 0.5) * 100;
       return new THREE.Vector3(x, y, baseZ);
     },
     updateHUDStatus: (data, currEnv, envLabel, envValueText, envBarContainer) => {
