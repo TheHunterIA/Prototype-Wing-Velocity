@@ -15,11 +15,13 @@ export function usePerformanceMonitor({
   const lastTimeRef = useRef(performance.now());
   const mountTimeRef = useRef(performance.now());
   
+  const isMobileDevice = typeof window !== "undefined" && (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768);
+
   const targetMaxDPR = Math.min(
     typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1,
-    graphicsQuality === "high" ? 1.5 : 1.0
+    graphicsQuality === "high" ? (isMobileDevice ? 1.25 : 1.5) : (isMobileDevice ? 0.9 : 1.0)
   );
-  const minDPR = graphicsQuality === "high" ? 0.85 : 0.70;
+  const minDPR = graphicsQuality === "high" ? 0.75 : 0.55;
   
   const [currentDPR, setCurrentDPR] = useState(() => targetMaxDPR);
   const debounceTimer = useRef<number | null>(null);

@@ -22,6 +22,7 @@ interface SpaceshipProps {
   textureFile: string;
   position?: [number, number, number];
   isLocked?: boolean;
+  isMobile?: boolean;
 }
 
 interface SpaceshipViewProps {
@@ -30,6 +31,7 @@ interface SpaceshipViewProps {
   position?: [number, number, number];
   isGlb?: boolean;
   isLocked?: boolean;
+  isMobile?: boolean;
 }
 
 const SpaceshipView = memo(function SpaceshipView({
@@ -37,7 +39,8 @@ const SpaceshipView = memo(function SpaceshipView({
   textureFile,
   position = [0, 0, 0],
   isGlb = false,
-  isLocked = false
+  isLocked = false,
+  isMobile = false
 }: SpaceshipViewProps) {
   // Base color texture
   const texture = useTexture(textureFile);
@@ -159,7 +162,7 @@ const SpaceshipView = memo(function SpaceshipView({
       <group ref={internalRef}>
         <primitive
           object={clonedObj}
-          scale={0.015} // Appropriately scale the 1000-unit model to fit the scene
+          scale={isMobile ? 0.009 : 0.015} // Appropriately scale model to fit mobile and desktop viewports
           position={[0, 0, 0]}
         />
       </group>
@@ -192,27 +195,28 @@ const SpaceshipView = memo(function SpaceshipView({
   );
 });
 
-function GLTFSpaceship({ modelFile, textureFile, position, isLocked }: SpaceshipProps) {
+function GLTFSpaceship({ modelFile, textureFile, position, isLocked, isMobile }: SpaceshipProps) {
   const gltf = useLoader(GLTFLoader, modelFile);
-  return <SpaceshipView scene={gltf.scene} textureFile={textureFile} position={position} isGlb={true} isLocked={isLocked} />;
+  return <SpaceshipView scene={gltf.scene} textureFile={textureFile} position={position} isGlb={true} isLocked={isLocked} isMobile={isMobile} />;
 }
 
-function OBJSpaceship({ modelFile, textureFile, position, isLocked }: SpaceshipProps) {
+function OBJSpaceship({ modelFile, textureFile, position, isLocked, isMobile }: SpaceshipProps) {
   const obj = useLoader(OBJLoader, modelFile);
-  return <SpaceshipView scene={obj} textureFile={textureFile} position={position} isGlb={false} isLocked={isLocked} />;
+  return <SpaceshipView scene={obj} textureFile={textureFile} position={position} isGlb={false} isLocked={isLocked} isMobile={isMobile} />;
 }
 
 const Spaceship = memo(function Spaceship({
   modelFile, 
   textureFile, 
   position = [0, 0, 0],
-  isLocked = false
+  isLocked = false,
+  isMobile = false
 }: SpaceshipProps) {
   const isGlb = modelFile.endsWith(".glb");
   if (isGlb) {
-    return <GLTFSpaceship modelFile={modelFile} textureFile={textureFile} position={position} isLocked={isLocked} />;
+    return <GLTFSpaceship modelFile={modelFile} textureFile={textureFile} position={position} isLocked={isLocked} isMobile={isMobile} />;
   } else {
-    return <OBJSpaceship modelFile={modelFile} textureFile={textureFile} position={position} isLocked={isLocked} />;
+    return <OBJSpaceship modelFile={modelFile} textureFile={textureFile} position={position} isLocked={isLocked} isMobile={isMobile} />;
   }
 });
 

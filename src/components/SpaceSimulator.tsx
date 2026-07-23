@@ -440,7 +440,7 @@ const PlanetModel = memo(function PlanetModel({ planet }: { planet: { id: string
         baseColor      = new THREE.Color("#fff8e8");
         emissiveColor  = new THREE.Color("#ffcc80");
         emissiveIntensity = 1.2;
-        roughness = 0.1; metalness = 0.0; toneMapped = false;
+        roughness = 0.1; metalness = 0.0; toneMapped = true;
         break;
       case "jupiter":
         emissiveColor = new THREE.Color(planet.color).lerp(new THREE.Color("#c88b67"), 0.4);
@@ -890,20 +890,20 @@ function RenderNeonRings({ ringsRef, shipRef }: { ringsRef: React.MutableRefObje
       green: new THREE.MeshStandardMaterial({
         color: "#10b981",
         emissive: "#10b981",
-        emissiveIntensity: 12.0,
-        toneMapped: false,
+        emissiveIntensity: 3.5,
+        toneMapped: true,
       }),
       purple: new THREE.MeshStandardMaterial({
         color: "#a855f7",
         emissive: "#a855f7",
-        emissiveIntensity: 12.0,
-        toneMapped: false,
+        emissiveIntensity: 3.5,
+        toneMapped: true,
       }),
       red: new THREE.MeshStandardMaterial({
         color: "#ef4444",
         emissive: "#ef4444",
-        emissiveIntensity: 12.0,
-        toneMapped: false,
+        emissiveIntensity: 3.5,
+        toneMapped: true,
       }),
     };
   }, []);
@@ -914,21 +914,21 @@ function RenderNeonRings({ ringsRef, shipRef }: { ringsRef: React.MutableRefObje
       green: new THREE.MeshBasicMaterial({
         color: "#10b981",
         transparent: true,
-        opacity: 0.45,
+        opacity: 0.25,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       }),
       purple: new THREE.MeshBasicMaterial({
         color: "#c084fc", // Roxo ligeiramente mais claro para sobressair no espaço
         transparent: true,
-        opacity: 0.45,
+        opacity: 0.25,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       }),
       red: new THREE.MeshBasicMaterial({
         color: "#f87171", // Vermelho mais vibrante para a linha de chegada
         transparent: true,
-        opacity: 0.45,
+        opacity: 0.25,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       }),
@@ -1093,8 +1093,8 @@ function ShipCrosshair({ selectedColor }: { selectedColor: any }) {
   );
 }
 
-function SpeedParallaxDust({ shipRef, velocityRef, keysRef, abilityActive }: any) {
-  const count = 1200;
+function SpeedParallaxDust({ shipRef, velocityRef, keysRef, abilityActive, graphicsQuality }: any) {
+  const count = graphicsQuality === "low" ? 120 : 300;
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
@@ -1105,18 +1105,18 @@ function SpeedParallaxDust({ shipRef, velocityRef, keysRef, abilityActive }: any
         x: (Math.random() - 0.5) * 600,
         y: (Math.random() - 0.5) * 600,
         z: (Math.random() - 0.5) * 1000 - 300,
-        size: 0.15 + Math.random() * 0.5,
+        size: 0.15 + Math.random() * 0.4,
         speedFactor: 0.75 + Math.random() * 0.5
       });
     }
     return arr;
   }, []);
 
-  const geo = useMemo(() => new THREE.BoxGeometry(0.25, 0.25, 1.4), []);
+  const geo = useMemo(() => new THREE.BoxGeometry(0.2, 0.2, 1.2), []);
   const mat = useMemo(() => new THREE.MeshBasicMaterial({
     color: "#a0e8ff",
     transparent: true,
-    opacity: 0.65,
+    opacity: 0.35,
     blending: THREE.AdditiveBlending,
     depthWrite: false
   }), []);
@@ -1135,8 +1135,8 @@ function SpeedParallaxDust({ shipRef, velocityRef, keysRef, abilityActive }: any
     const speed = Math.max(0, velocityRef.current || 0);
     const isBoost = (keysRef.current && (keysRef.current[' '] || keysRef.current.ArrowUp || keysRef.current.Shift || keysRef.current.e)) || abilityActive;
 
-    const stretchZ = 1.0 + (speed / 100.0) * (isBoost ? 6.0 : 3.0);
-    mat.opacity = isBoost ? 0.95 : Math.min(0.8, 0.25 + (speed / 350.0) * 0.55);
+    const stretchZ = Math.min(8.0, 1.0 + (speed / 150.0) * (isBoost ? 3.0 : 1.5));
+    mat.opacity = isBoost ? 0.45 : Math.min(0.35, 0.15 + (speed / 450.0) * 0.2);
 
     for (let i = 0; i < count; i++) {
       const p = particles[i];
@@ -1306,6 +1306,9 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
   const multiplierRef = useRef(1);
   const keysRef = useRef<KeysPressed>({ w: false, s: false, a: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, Shift: false, e: false, ' ': false });
   const pointerRef = useRef({ x: 0, y: 0 }); const shakeRef = useRef(0);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const lastTapTimeRef = useRef<number>(0);
+  const touchBoostActiveRef = useRef<boolean>(false);
   const repulsionVelRef = useRef<THREE.Vector3>(new THREE.Vector3());
   const explosionsRef = useRef<ExplosionState[]>([]);
   const customRouteDataRef = useRef({
@@ -1757,15 +1760,55 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
         pointerRef.current.y = 0;
       }
     };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (isHangarActive) return;
+      const now = Date.now();
+      if (now - lastTapTimeRef.current < 320) {
+        // Double tap toggles Turbo / Boost
+        touchBoostActiveRef.current = !touchBoostActiveRef.current;
+        keysRef.current[' '] = touchBoostActiveRef.current;
+        playSimSound(touchBoostActiveRef.current ? "boost" : "click", localMuted);
+      }
+      lastTapTimeRef.current = now;
+
+      if (e.touches[0]) {
+        touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (isHangarActive || !touchStartRef.current || !e.touches[0]) return;
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchStartRef.current.x;
+      const deltaY = touch.clientY - touchStartRef.current.y;
+
+      const sens = 0.012;
+      pointerRef.current.x = THREE.MathUtils.clamp(deltaX * sens, -1.5, 1.5);
+      pointerRef.current.y = THREE.MathUtils.clamp(-deltaY * sens, -1.5, 1.5);
+    };
+
+    const handleTouchEnd = () => {
+      touchStartRef.current = null;
+    };
+
     window.addEventListener("keydown", down); 
     window.addEventListener("keyup", up); 
     window.addEventListener("mousemove", move);
     document.addEventListener("pointerlockchange", pointerLockChange);
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", handleTouchEnd, { passive: true });
     return () => { 
       window.removeEventListener("keydown", down); 
       window.removeEventListener("keyup", up); 
       window.removeEventListener("mousemove", move); 
       document.removeEventListener("pointerlockchange", pointerLockChange);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("touchcancel", handleTouchEnd);
     };
   }, [isGameOver, localMuted, isHangarActive]);
 
@@ -1870,6 +1913,8 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
   const flightVectorRef = useRef<HTMLDivElement>(null);
 
   const resetGame = () => {
+    touchBoostActiveRef.current = false;
+    keysRef.current[' '] = false;
     setIsGameOver(false);
     setIsVictory(false);
     setAbilityActive(false);
@@ -1977,15 +2022,15 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
       </AnimatePresence>
       
 
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 bg-black">
         <Canvas 
           camera={{ position: [0, 6, 26], fov: 45, near: 0.5, far: 90000 }} 
           shadows={graphicsQuality === "high" ? "basic" : false}
           dpr={[0.75, graphicsQuality === "high" ? 1.5 : 1.0]}
           gl={{ logarithmicDepthBuffer: false, antialias: true, powerPreference: "high-performance" }}
+          onCreated={({ gl }) => gl.setClearColor("#000000")}
         >
           <PerformanceController graphicsQuality={graphicsQuality} setGraphicsQuality={setGraphicsQuality} />
-          <DynamicFOV velocityRef={velocityRef} />
           <SpeedParticles velocityRef={velocityRef} shipRef={shipRef} graphicsQuality={graphicsQuality} />
           <SpaceDust shipRef={shipRef} dustColor={selectedRoute.dustColor || "#5e6d8a"} graphicsQuality={graphicsQuality} />
           <color attach="background" args={[selectedRoute.ambientColor === "#09090b" ? "#000000" : "#020205"]} />
@@ -2067,7 +2112,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
               />
             
             <RenderNeonRings ringsRef={neonRingsRef} shipRef={shipRef} />
-            <SpeedParallaxDust shipRef={shipRef} velocityRef={velocityRef} keysRef={keysRef} abilityActive={abilityActive} />
+            <SpeedParallaxDust shipRef={shipRef} velocityRef={velocityRef} keysRef={keysRef} abilityActive={abilityActive} graphicsQuality={graphicsQuality} />
 
             
             {/* Planets always visible so the corridor exit frames them beautifully */}
@@ -2226,8 +2271,8 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
               flightVectorRef={flightVectorRef}
             />
 
-            {/* Desktop Control Info Panel (positioned on the right side of the screen) */}
-            <div className="flex absolute bottom-6 right-6 z-10 pointer-events-none flex-col gap-1.5 bg-black/60 backdrop-blur-md p-3 rounded-lg border border-white/5 w-[210px] font-mono select-none shadow-2xl">
+            {/* Desktop Control Info Panel (positioned on the right side of the screen - hidden on mobile) */}
+            <div className="hidden md:flex absolute bottom-6 right-6 z-10 pointer-events-none flex-col gap-1.5 bg-black/60 backdrop-blur-md p-3 rounded-lg border border-white/5 w-[210px] font-mono select-none shadow-2xl">
               <div className="flex items-center justify-between border-b border-white/10 pb-1 text-[8px] tracking-wider text-zinc-400">
                 <span className="font-bold flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
@@ -2449,7 +2494,8 @@ const DUST_VERTEX_SHADER = `
     vAlpha = smoothstep(0.0, 60.0, distToEdge) * 0.22;
     
     vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
-    gl_PointSize = 0.85 * (400.0 / -mvPosition.z);
+    float depth = max(1.0, -mvPosition.z);
+    gl_PointSize = min(12.0, 0.85 * (400.0 / depth));
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -2610,19 +2656,7 @@ function SpaceDust({ shipRef, dustColor = "#5e6d8a", graphicsQuality }: { shipRe
 }
 
 function DynamicFOV({ velocityRef }: { velocityRef: React.MutableRefObject<number> }) {
-  const { camera } = useThree();
-  useFrame((state, dt) => {
-    const speed = Math.abs(velocityRef.current);
-    // Base FOV é 45. Aumentamos bastante para dar sensação de alta velocidade logo de início
-    // speed normal ~450, turbo ~1125
-    const targetFOV = 45 + Math.min(80, (speed / 150) * 15);
-    const cam = camera as THREE.PerspectiveCamera;
-    const newFov = THREE.MathUtils.lerp(cam.fov, targetFOV, dt * 2.5);
-    if (Math.abs(cam.fov - newFov) > 0.01) {
-      cam.fov = newFov;
-      cam.updateProjectionMatrix();
-    }
-  });
+  // FOV tracking is now handled directly inside GameEngine to prevent dual-controller matrix fights
   return null;
 }
 
@@ -2720,7 +2754,8 @@ const STAR_VERTEX_SHADER = `
     // Cintilação sutil: cada estrela tem uma fase própria pra não piscarem em sincronia
     vTwinkle = aBrightness * (0.78 + 0.22 * sin(uTime * (0.6 + aPhase * 0.9) + aPhase * 6.2831));
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = aSize * (420.0 / -mvPosition.z);
+    float depth = max(10.0, -mvPosition.z);
+    gl_PointSize = min(24.0, aSize * (420.0 / depth));
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -2854,7 +2889,16 @@ const RenderExplosions = memo(function RenderExplosions({ explosionsRef }: { exp
 
       // Nenhuma explosão ativa e o buffer já foi zerado antes: não há nada
       // novo pra subir pra GPU, então pulamos o frame inteiro.
-      if (explosions.length === 0 && lastParticleCountRef.current === 0) {
+      if (explosions.length === 0) {
+        if (lastParticleCountRef.current !== 0) {
+          if (meshRef.current && meshRef.current.geometry) {
+            meshRef.current.geometry.setDrawRange(0, 0);
+          }
+          lastParticleCountRef.current = 0;
+          for (let i = 0; i < EXPLOSION_LIGHT_POOL_SIZE; i++) {
+            if (lightPoolRef.current[i]) lightPoolRef.current[i]!.intensity = 0;
+          }
+        }
         return;
       }
 
@@ -3634,22 +3678,22 @@ function TelemetryHUD({
       </div>
 
       {/* Container Integrado de Radar e Telemetria no Lado Esquerdo */}
-      <div className="absolute bottom-6 left-6 z-10 pointer-events-auto select-none flex flex-col items-center gap-3">
+      <div className="absolute bottom-2 left-2 sm:bottom-6 sm:left-6 z-10 pointer-events-auto select-none flex flex-col items-center gap-1.5 sm:gap-3">
         {/* Radar Circular Tático via Canvas */}
-        <div className="flex flex-col items-center gap-1.5">
-          <div className="w-[140px] h-[140px] relative border border-white/15 bg-black/75 backdrop-blur-md rounded-full shadow-[0_0_20px_rgba(0,0,0,0.8)] overflow-hidden flex items-center justify-center">
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-[90px] h-[90px] sm:w-[140px] sm:h-[140px] relative border border-white/15 bg-black/75 backdrop-blur-md rounded-full shadow-[0_0_20px_rgba(0,0,0,0.8)] overflow-hidden flex items-center justify-center">
             <canvas 
               ref={radarCanvasRef} 
               width={140} 
               height={140} 
-              className="rounded-full"
+              className="w-full h-full rounded-full object-cover"
             />
           </div>
 
           {/* Badge Informativo do Radar */}
           <div 
             ref={radarBadgeRef}
-            className="px-2 py-0.5 bg-black/70 backdrop-blur-sm rounded border border-white/5 text-[8px] font-bold font-mono tracking-widest uppercase shadow-md flex items-center gap-1.5"
+            className="px-1.5 sm:px-2 py-0.5 bg-black/70 backdrop-blur-sm rounded border border-white/5 text-[7px] sm:text-[8px] font-bold font-mono tracking-widest uppercase shadow-md flex items-center gap-1 sm:gap-1.5"
           >
             <span>{currEnv.nextRing}</span>
             <span className="w-1 h-1 rounded-full bg-current animate-pulse" />
@@ -3658,30 +3702,30 @@ function TelemetryHUD({
         </div>
 
         {/* Painel de Telemetria */}
-        <div className="flex flex-col gap-1.5 bg-black/60 backdrop-blur-md p-3 rounded-lg border border-white/5 w-[200px] font-mono shadow-2xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-1 text-[8px] tracking-wider text-zinc-400">
+        <div className="flex flex-col gap-1 sm:gap-1.5 bg-black/60 backdrop-blur-md p-2 sm:p-3 rounded-lg border border-white/5 w-[130px] sm:w-[200px] font-mono shadow-2xl text-[8px] sm:text-[10px]">
+          <div className="flex items-center justify-between border-b border-white/10 pb-0.5 sm:pb-1 text-[7px] sm:text-[8px] tracking-wider text-zinc-400">
             <span className="font-bold flex items-center gap-1">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
               {t.telemetry}
             </span>
-            <span className="text-[7px] text-zinc-600">SYS_OK</span>
+            <span className="text-[6px] sm:text-[7px] text-zinc-600">SYS_OK</span>
           </div>
           
           {/* Speed & Energy */}
-          <div className="flex justify-between items-center text-[10px]">
-            <span className="text-zinc-500 uppercase tracking-widest text-[8px]">{t.speedLabel}</span>
+          <div className="flex justify-between items-center text-[8px] sm:text-[10px]">
+            <span className="text-zinc-500 uppercase tracking-widest text-[7px] sm:text-[8px]">{t.speedLabel}</span>
             <span className="font-bold text-cyan-300 flex items-center gap-0.5">
-              <span ref={velTextRef}>0</span> <span className="text-[7px] text-zinc-500">km/s</span>
+              <span ref={velTextRef}>0</span> <span className="text-[6px] sm:text-[7px] text-zinc-500">km/s</span>
             </span>
           </div>
 
           {/* Energy Bar */}
           <div className="flex flex-col gap-0.5 mt-0.5">
-            <div className="flex justify-between items-center text-[8px] font-bold">
+            <div className="flex justify-between items-center text-[7px] sm:text-[8px] font-bold">
               <span ref={energyLabelRef} className="text-emerald-400 uppercase tracking-widest">{t.energy}</span>
               <span ref={energyTextRef} className="text-emerald-300">100%</span>
             </div>
-            <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden border border-white/5">
+            <div className="h-1 sm:h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden border border-white/5">
               <div 
                 ref={energyBarRef}
                 className="h-full bg-emerald-400 transition-all duration-150" 
@@ -3690,26 +3734,24 @@ function TelemetryHUD({
             </div>
           </div>
 
-
-
-          <div className="flex flex-col gap-1 mt-1 pt-1.5 border-t border-white/5 text-[10px]">
+          <div className="flex flex-col gap-0.5 sm:gap-1 mt-0.5 sm:mt-1 pt-1 sm:pt-1.5 border-t border-white/5 text-[8px] sm:text-[10px]">
             <div className="flex justify-between items-center">
-              <span className="text-zinc-500 uppercase tracking-widest text-[8px]">{currEnv.activeRing}</span>
+              <span className="text-zinc-500 uppercase tracking-widest text-[7px] sm:text-[8px]">{currEnv.activeRing}</span>
               <span ref={activeRingTextRef} className="font-bold font-mono tracking-wider">1 / {selectedRoute.numRings}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-zinc-500 uppercase tracking-widest text-[8px]">{currEnv.totalTime}</span>
+              <span className="text-zinc-500 uppercase tracking-widest text-[7px] sm:text-[8px]">{currEnv.totalTime}</span>
               <span ref={activeRingDistRef} className="font-bold font-mono text-cyan-400">0.00s</span>
             </div>
           </div>
 
           {/* MÓDULO AMBIENTAL DINÂMICO */}
-          <div id="env-module" className="flex flex-col gap-1 mt-1 pt-1.5 border-t border-white/10 text-[10px]">
+          <div id="env-module" className="flex flex-col gap-0.5 sm:gap-1 mt-0.5 sm:mt-1 pt-1 sm:pt-1.5 border-t border-white/10 text-[8px] sm:text-[10px]">
             <div className="flex justify-between items-center">
-              <span id="env-label" className="text-zinc-500 uppercase tracking-widest text-[8px]">{currEnv.sector}</span>
-              <span id="env-value-text" className="font-bold text-zinc-300">{currEnv.stable}</span>
+              <span id="env-label" className="text-zinc-500 uppercase tracking-widest text-[7px] sm:text-[8px]">{currEnv.sector}</span>
+              <span id="env-value-text" className="font-bold text-zinc-300 truncate max-w-[65px] sm:max-w-none">{currEnv.stable}</span>
             </div>
-            <div id="env-bar-container" className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden border border-white/5 hidden">
+            <div id="env-bar-container" className="h-1 sm:h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden border border-white/5 hidden">
               <div 
                 id="env-bar-fill"
                 className="h-full bg-purple-500 transition-all duration-75" 
@@ -3764,7 +3806,7 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
   const movementDirRef = useRef(new THREE.Vector3(0, 0, -1));
   
   useFrame((state, delta) => {
-    const ship = shipRef.current; if (!ship) return; const dt = Math.min(delta, 0.1);
+    const ship = shipRef.current; if (!ship) return; const dt = Math.min(delta, 0.033);
     
     // Processar vetor de repulsão física elástica (afasta a nave de obstáculos após colisão)
     if (repulsionVelRef && repulsionVelRef.current && repulsionVelRef.current.lengthSq() > 0.01) {
@@ -4224,8 +4266,11 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
     const cam = state.camera as THREE.PerspectiveCamera;
     if (cam.fov !== undefined) {
       const targetFov = isCurrentlyBoosting ? 82.0 : 65.0 + Math.min(14.0, (speedFactor * 12.0));
-      cam.fov = THREE.MathUtils.lerp(cam.fov, targetFov, dt * 6.0);
-      cam.updateProjectionMatrix();
+      const nextFov = THREE.MathUtils.lerp(cam.fov, targetFov, dt * 6.0);
+      if (Math.abs(cam.fov - nextFov) > 0.01) {
+        cam.fov = nextFov;
+        cam.updateProjectionMatrix();
+      }
     }
 
     // Câmera posicionada ainda mais distante para enfatizar a escala e velocidade
@@ -4263,7 +4308,7 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
     // Smoothly transition UP vector
     const hangarUp = v_hangarUp.current.set(0, 1, 0);
     const spaceUp = v_spaceUp.current.set(0, 1, 0).applyQuaternion(camQuat);
-    state.camera.up.copy(hangarUp.lerp(spaceUp, transitionFactor));
+    state.camera.up.copy(hangarUp.lerp(spaceUp, transitionFactor)).normalize();
  
     // Smoothly transition lookAt target
     const lookAtHangarVec = v_temp1.current.set(0, 0.1, -10).applyQuaternion(camQuat);

@@ -145,7 +145,8 @@ void main() {
   vColor   = aColor;
   vTwinkle = 0.72 + 0.28*sin(uTime*(0.45 + aPhase*0.65) + aPhase*6.283);
   vec4 mv  = modelViewMatrix * vec4(position, 1.0);
-  gl_PointSize = aSize * (480.0 / -mv.z);
+  float depth = max(10.0, -mv.z);
+  gl_PointSize = min(32.0, aSize * (480.0 / depth));
   gl_Position  = projectionMatrix * mv;
 }
 `;

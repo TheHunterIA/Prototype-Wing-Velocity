@@ -352,7 +352,11 @@ export function Takeoff3DShipCanvas({
 }) {
   return (
     <div className="absolute inset-0 z-20 pointer-events-none">
-      <Canvas camera={{ position: [0, 2, 16], fov: 50 }}>
+      <Canvas 
+        camera={{ position: [0, 2, 16], fov: 50 }}
+        gl={{ alpha: true }}
+        onCreated={({ gl }) => gl.setClearColor("#000000", 0)}
+      >
         <ambientLight intensity={0.7} color="#8090b0" />
         <directionalLight position={[10, 15, 10]} intensity={2.2} color="#ffffff" />
         <directionalLight position={[-10, -5, -10]} intensity={1.2} color={selectedColor.colorHex} />
