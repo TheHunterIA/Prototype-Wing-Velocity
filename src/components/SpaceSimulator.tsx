@@ -1587,6 +1587,140 @@ function PilotShip({ currentShip, selectedColor, abilityActive, isHangarActive }
   return <PilotShipView scene={gltf.scene} currentShip={currentShip} selectedColor={selectedColor} abilityActive={abilityActive} isHangarActive={isHangarActive} />;
 }
 
+function TakeoffThrusterFlames({ 
+  scene, 
+  currentShip, 
+  selectedColor, 
+  takeoffPercent, 
+  takeoffStarted 
+}: { 
+  scene: THREE.Group, 
+  currentShip: ShipData, 
+  selectedColor: any, 
+  takeoffPercent: number, 
+  takeoffStarted: boolean 
+}) {
+  const flamesGroupRef = useRef<THREE.Group>(null);
+  const lightRef = useRef<THREE.PointLight>(null);
+
+  const rawOffsets = useMemo(() => scanShipThrusterPositions(scene, currentShip.modelFile), [scene, currentShip.modelFile]);
+  
+  const unscaledNozzle = useMemo(() => {
+    const first = rawOffsets[0] || [0, -0.3 * 0.015, 10 * 0.015];
+    return [first[0] / 0.015, first[1] / 0.015, first[2] / 0.015] as [number, number, number];
+  }, [rawOffsets]);
+
+  const coreMat = useMemo(() => new THREE.MeshBasicMaterial({
+    color: "#ffffff",
+    transparent: true,
+    opacity: 0.9,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  }), []);
+
+  const outerMat = useMemo(() => new THREE.MeshBasicMaterial({
+    color: selectedColor.colorHex || "#00ffff",
+    transparent: true,
+    opacity: 0.85,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  }), [selectedColor.colorHex]);
+
+  const fireMat = useMemo(() => new THREE.MeshBasicMaterial({
+    color: "#ff5500",
+    transparent: true,
+    opacity: 0.75,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  }), []);
+
+  const coreGeo = useMemo(() => {
+    const g = new THREE.ConeGeometry(0.8, 5.0, 16);
+    g.translate(0, 2.5, 0);
+    g.rotateX(Math.PI / 2);
+    return g;
+  }, []);
+
+  const outerGeo = useMemo(() => {
+    const g = new THREE.ConeGeometry(1.6, 9.0, 16);
+    g.translate(0, 4.5, 0);
+    g.rotateX(Math.PI / 2);
+    return g;
+  }, []);
+
+  const fireGeo = useMemo(() => {
+    const g = new THREE.ConeGeometry(2.8, 15.0, 16);
+    g.translate(0, 7.5, 0);
+    g.rotateX(Math.PI / 2);
+    return g;
+  }, []);
+
+  useFrame((state) => {
+    if (!flamesGroupRef.current) return;
+
+    const time = state.clock.elapsedTime;
+    const progress = takeoffStarted ? Math.min(1.0, takeoffPercent / 100) : 0;
+    const pulse = 0.88 + Math.sin(time * 48) * 0.12 + Math.cos(time * 32) * 0.08;
+
+    if (!takeoffStarted) {
+      flamesGroupRef.current.scale.set(
+        0.55 * pulse,
+        0.55 * pulse,
+        0.75 * (0.85 + Math.sin(time * 12) * 0.15)
+      );
+      coreMat.opacity = 0.7;
+      outerMat.opacity = 0.6;
+      fireMat.opacity = 0.35;
+
+      if (lightRef.current) {
+        lightRef.current.intensity = 15 + Math.sin(time * 20) * 5;
+      }
+    } else {
+      const flameLength = (1.5 + progress * 8.0) * (0.9 + Math.sin(time * 65) * 0.18);
+      const flameThickness = (1.1 + progress * 2.4) * pulse;
+
+      flamesGroupRef.current.scale.set(
+        flameThickness,
+        flameThickness,
+        flameLength
+      );
+
+      coreMat.opacity = Math.min(1.0, 0.85 + progress * 0.15);
+      outerMat.opacity = Math.min(1.0, 0.75 + progress * 0.25);
+      fireMat.opacity = Math.min(1.0, 0.45 + progress * 0.55);
+
+      if (lightRef.current) {
+        lightRef.current.intensity = (40 + progress * 350) * pulse;
+      }
+    }
+  });
+
+  return (
+    <group position={unscaledNozzle}>
+      <group ref={flamesGroupRef}>
+        <mesh geometry={coreGeo} material={coreMat} />
+        <mesh geometry={outerGeo} material={outerMat} />
+        <mesh geometry={fireGeo} material={fireMat} />
+      </group>
+      <pointLight
+        ref={lightRef}
+        position={[0, 0, 1.5]}
+        color={selectedColor.colorHex || "#00ffff"}
+        intensity={20}
+        distance={80}
+        decay={1.2}
+      />
+      <pointLight
+        position={[0, 0, 4.0]}
+        color="#ff5500"
+        intensity={takeoffStarted ? 140 : 12}
+        distance={55}
+        decay={1.5}
+      />
+    </group>
+  );
+}
+
 function Takeoff3DShipView({ scene, currentShip, selectedColor, takeoffPercent, takeoffStarted }: { scene: THREE.Group, currentShip: ShipData, selectedColor: any, takeoffPercent: number, takeoffStarted: boolean }) {
   const texture = useTexture(selectedColor.textureFile) as THREE.Texture;
   const pbrMaps = useTexture({
@@ -1670,21 +1804,17 @@ function Takeoff3DShipView({ scene, currentShip, selectedColor, takeoffPercent, 
     }
   });
 
-  const thrusterOffsets = useMemo(() => scanShipThrusterPositions(scene, currentShip.modelFile), [scene, currentShip.modelFile]);
-
   return (
     <group ref={groupRef} position={[0, 0, 0]}>
       <primitive object={shipMesh} />
-      {/* Propulsores quânticos: posicionados nos bocais reais escaneados da geometria 3D da nave */}
-      {thrusterOffsets.map((o, idx) => (
-        <pointLight 
-          key={idx}
-          position={[o[0] * 65, o[1] * 65, -5]} 
-          intensity={takeoffStarted ? Math.max(25, 65 * (takeoffPercent / 35)) : 5} 
-          distance={45} 
-          color={selectedColor.colorHex} 
-        />
-      ))}
+      {/* Fogo de turbina e iluminação dinâmica na decolagem */}
+      <TakeoffThrusterFlames 
+        scene={scene} 
+        currentShip={currentShip} 
+        selectedColor={selectedColor} 
+        takeoffPercent={takeoffPercent} 
+        takeoffStarted={takeoffStarted} 
+      />
     </group>
   );
 }
@@ -1698,9 +1828,9 @@ function Takeoff3DShipCanvas({ currentShip, selectedColor, takeoffPercent, takeo
   return (
     <div className="absolute inset-0 z-20 pointer-events-none">
       <Canvas camera={{ position: [0, 2, 16], fov: 50 }}>
-        <ambientLight intensity={1.8} color="#8090b0" />
-        <directionalLight position={[10, 15, 10]} intensity={4.5} color="#ffffff" />
-        <directionalLight position={[-10, -5, -10]} intensity={2.5} color={selectedColor.colorHex} />
+        <ambientLight intensity={0.7} color="#8090b0" />
+        <directionalLight position={[10, 15, 10]} intensity={2.2} color="#ffffff" />
+        <directionalLight position={[-10, -5, -10]} intensity={1.2} color={selectedColor.colorHex} />
         <Suspense fallback={null}>
           <Takeoff3DShipLoader currentShip={currentShip} selectedColor={selectedColor} takeoffPercent={takeoffPercent} takeoffStarted={takeoffStarted} />
         </Suspense>
