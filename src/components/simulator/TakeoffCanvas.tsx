@@ -114,10 +114,10 @@ function SingleNozzleFlame({
       fireMat.opacity = 0.45;
 
       if (lightRef.current) {
-        lightRef.current.intensity = 25 + Math.sin(time * 20) * 8;
+        lightRef.current.intensity = 12 + Math.sin(time * 20) * 4;
       }
       if (fireLightRef.current) {
-        fireLightRef.current.intensity = 18 + Math.sin(time * 15) * 6;
+        fireLightRef.current.intensity = 8 + Math.sin(time * 15) * 3;
       }
     } else {
       // Estado de decolagem ativa (chama se expande massivamente)
@@ -135,10 +135,10 @@ function SingleNozzleFlame({
       fireMat.opacity = Math.min(1.0, 0.5 + progress * 0.5);
 
       if (lightRef.current) {
-        lightRef.current.intensity = (50 + progress * 400) * pulse;
+        lightRef.current.intensity = (12 + progress * 24) * pulse;
       }
       if (fireLightRef.current) {
-        fireLightRef.current.intensity = (30 + progress * 250) * pulse;
+        fireLightRef.current.intensity = (8 + progress * 16) * pulse;
       }
     }
   });

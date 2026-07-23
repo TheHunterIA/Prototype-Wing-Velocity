@@ -766,9 +766,18 @@ const RenderAsteroids = memo(function RenderAsteroids({ asteroids, texture, sele
     return () => clearTimeout(t);
   }, [asteroids, count, geometryToUse]);
 
+  const frameCountRef = useRef(0);
+
   // Executar a rotação e animação contínua de todos os asteroides a cada frame para dar sensação de universo em movimento
   useFrame((state, delta) => {
     if (!meshRef.current) return;
+    frameCountRef.current++;
+
+    // Em qualidade baixa quando os asteroides apenas rotacionam no lugar, alterna a atualização dos dados a cada 2 frames para economizar tráfego na GPU
+    if (graphicsQuality === "low" && !selectedRoute.hasMovingAsteroids && !asteroidsChangedRef?.current && frameCountRef.current % 2 !== 0) {
+      return;
+    }
+
     const dt = Math.min(delta, 0.05);
     const time = state.clock.elapsedTime;
 
@@ -1849,7 +1858,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
         // Iniciar de forma extremamente veloz e fluida
         const startSpeed = 150 + (stats.maxVelocity / 100) * 280;
         velocityRef.current = startSpeed;
-        takeoffProgressRef.current = 1.0; // Inicia direto em 1.0 para impedir salto de câmera (glitch)
+        takeoffProgressRef.current = 0.0; // Inicia em 0.0 para transição suave de câmera sem salto
         shakeRef.current = 0.0; // Sem tremor na transição
         playSimSound("warp", localMuted);
         crazyGamesService.gameplayStart();
@@ -1876,7 +1885,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
     setIsHangarActive(true);
     setTakeoffStarted(false);
     setTakeoffPercent(0);
-    takeoffProgressRef.current = 1;
+    takeoffProgressRef.current = 0;
     multiplierRef.current = 1;
     if (shipRef.current) { shipRef.current.position.set(0, 0, 0); shipRef.current.rotation.set(0, 0, 0); }
     if (neonRingsRef.current) {
@@ -1970,15 +1979,15 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
 
       <div className="absolute inset-0 z-0">
         <Canvas 
-          camera={{ position: [0, 6, 26], fov: 45, far: 200000 }} 
-          shadows="soft"
-          dpr={[1, Math.min(2, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1)]}
-          gl={{ logarithmicDepthBuffer: true, antialias: true, powerPreference: "high-performance", precision: "highp" }}
+          camera={{ position: [0, 6, 26], fov: 45, near: 0.5, far: 90000 }} 
+          shadows={graphicsQuality === "high" ? "basic" : false}
+          dpr={[0.75, graphicsQuality === "high" ? 1.5 : 1.0]}
+          gl={{ logarithmicDepthBuffer: false, antialias: true, powerPreference: "high-performance" }}
         >
           <PerformanceController graphicsQuality={graphicsQuality} setGraphicsQuality={setGraphicsQuality} />
           <DynamicFOV velocityRef={velocityRef} />
-          <SpeedParticles velocityRef={velocityRef} shipRef={shipRef} />
-          <SpaceDust shipRef={shipRef} dustColor={selectedRoute.dustColor || "#5e6d8a"} />
+          <SpeedParticles velocityRef={velocityRef} shipRef={shipRef} graphicsQuality={graphicsQuality} />
+          <SpaceDust shipRef={shipRef} dustColor={selectedRoute.dustColor || "#5e6d8a"} graphicsQuality={graphicsQuality} />
           <color attach="background" args={[selectedRoute.ambientColor === "#09090b" ? "#000000" : "#020205"]} />
           <fog attach="fog" args={[selectedRoute.fogColor || selectedRoute.ambientColor, 1000, 100000]} />
           <Suspense fallback={null}>
@@ -1993,8 +2002,8 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
               position={[18, 30, 10]} 
               intensity={5.5}
               color={selectedRoute.sunLightColor || "#ffe8d0"}
-              castShadow 
-              shadow-mapSize={[2048, 2048]}
+              castShadow={graphicsQuality === "high"} 
+              shadow-mapSize={graphicsQuality === "high" ? [1024, 1024] : [512, 512]}
               shadow-camera-near={1}
               shadow-camera-far={200}
               shadow-camera-left={-60}
@@ -2076,30 +2085,27 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
               <ShipThrusters currentShip={currentShip} selectedColor={selectedColor} keysRef={keysRef} abilityActive={abilityActive} velocityRef={velocityRef} takeoffProgressRef={takeoffProgressRef} />
               <ShipCrosshair selectedColor={selectedColor} />
 
-              {/* Luzes locais de altíssimo brilho atreladas à nave para destacá-la no espaço */}
-              <pointLight position={[0, 10, 15]} intensity={30.0} distance={200} decay={1.0} />
-              <pointLight position={[0, -8, -15]} intensity={25.0} distance={150} decay={1.0} color={selectedColor.colorHex} />
+              {/* Luzes locais de destaque atreladas à nave */}
+              {graphicsQuality === "high" ? (
+                <>
+                  <pointLight position={[0, 6, 10]} intensity={8.0} distance={100} decay={1.5} />
+                  <pointLight position={[0, -6, -10]} intensity={6.0} distance={80} decay={1.5} color={selectedColor.colorHex} />
+                </>
+              ) : (
+                <pointLight position={[0, 5, 8]} intensity={5.0} distance={60} decay={1.5} />
+              )}
               <directionalLight position={[5, 15, 15]} intensity={6.0} />
             </group>
           </Suspense>
 
           {graphicsQuality === "high" && (
-            <EffectComposer key="sim-composer-high" multisampling={8}>
+            <EffectComposer key="sim-composer-high" multisampling={0}>
               {/* Bloom threshold 0.82: nebula cores ficam abaixo, só spikes estelares e propulsores disparam */}
-              <Bloom luminanceThreshold={0.82} mipmapBlur intensity={0.5} radius={0.65} />
-              <ChromaticAberration offset={[0.00055, 0.00055]} radialModulation modulationOffset={0.18} />
+              <Bloom luminanceThreshold={0.82} mipmapBlur intensity={0.45} radius={0.6} />
+              <ChromaticAberration offset={[0.0004, 0.0004]} radialModulation modulationOffset={0.18} />
               <BrightnessContrast brightness={0.01} contrast={0.08} />
               <HueSaturation hue={0} saturation={0.10} />
-              <Noise opacity={0.006} />
               <Vignette eskil={false} offset={0.12} darkness={0.55} />
-            </EffectComposer>
-          )}
-          {graphicsQuality === "low" && (
-            <EffectComposer key="sim-composer-low" multisampling={4}>
-              <Bloom luminanceThreshold={0.82} intensity={0.30} />
-              <BrightnessContrast brightness={0.01} contrast={0.06} />
-              <HueSaturation hue={0} saturation={0.08} />
-              <Vignette eskil={false} offset={0.18} darkness={0.48} />
             </EffectComposer>
           )}
         </Canvas>
@@ -2493,10 +2499,10 @@ const SPEED_PARTICLES_FRAGMENT_SHADER = `
   }
 `;
 
-function SpeedParticles({ velocityRef, shipRef }: { velocityRef: React.MutableRefObject<number>, shipRef: React.RefObject<THREE.Group> }) {
+function SpeedParticles({ velocityRef, shipRef, graphicsQuality }: { velocityRef: React.MutableRefObject<number>, shipRef: React.RefObject<THREE.Group>, graphicsQuality?: "high" | "low" }) {
   const pointsRef = useRef<THREE.Points>(null); 
   const materialRef = useRef<THREE.ShaderMaterial>(null);
-  const count = 900;
+  const count = graphicsQuality === "low" ? 350 : 900;
   
   const [positions, speeds] = useMemo(() => {
     const pos = new Float32Array(count * 3);
@@ -2552,10 +2558,10 @@ function SpeedParticles({ velocityRef, shipRef }: { velocityRef: React.MutableRe
   );
 }
 
-function SpaceDust({ shipRef, dustColor = "#5e6d8a" }: { shipRef: React.RefObject<THREE.Group>, dustColor?: string }) {
+function SpaceDust({ shipRef, dustColor = "#5e6d8a", graphicsQuality }: { shipRef: React.RefObject<THREE.Group>, dustColor?: string, graphicsQuality?: "high" | "low" }) {
   const pointsRef = useRef<THREE.Points>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
-  const count = 1200; // extremamente leve, única chamada de desenho
+  const count = graphicsQuality === "low" ? 400 : 1200;
   
   const positions = useMemo(() => {
     const pos = new Float32Array(count * 3);
@@ -3389,20 +3395,15 @@ function TelemetryHUD({
             const pulse = 0.85 + Math.sin(Date.now() / 150) * 0.15;
             const blipColor = isBehind ? "#ef4444" : primaryHex;
 
-            ctx.shadowBlur = isBehind ? 4 : 12;
-            ctx.shadowColor = blipColor;
             ctx.fillStyle = blipColor;
             
             ctx.beginPath();
             ctx.arc(baseX, elevY, (isBehind ? 3.5 : 4.5) * pulse, 0, Math.PI * 2);
             ctx.fill();
-            ctx.shadowBlur = 0;
           }
 
           // Desenhar a nave do jogador no centro (Seta indicadora de direção branca brilhante)
           ctx.fillStyle = "#ffffff";
-          ctx.shadowBlur = 6;
-          ctx.shadowColor = "#ffffff";
           ctx.beginPath();
           ctx.moveTo(cx, cy - 5);      // bico da nave
           ctx.lineTo(cx - 4, cy + 4);  // asa esquerda
@@ -3410,7 +3411,6 @@ function TelemetryHUD({
           ctx.lineTo(cx + 4, cy + 4);  // asa direita
           ctx.closePath();
           ctx.fill();
-          ctx.shadowBlur = 0;
         }
       }
 
@@ -3899,13 +3899,13 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
     const currentAccelRate = isCurrentlyBoosting ? baseAccelRate * boostAccelMultiplier : baseAccelRate;
 
     if (isHangarActive) {
-      if (takeoffProgressRef.current !== 1) {
+      if (takeoffProgressRef.current !== 0) {
         ship.position.set(0, 0, 0);
         velocityRef.current = 0;
         baseQuat.current.identity();
         ship.quaternion.identity();
         movementDirRef.current.set(0, 0, -1);
-        takeoffProgressRef.current = 1;
+        takeoffProgressRef.current = 0;
       }
       cameraLagInitialized.current = false;
 
@@ -4130,33 +4130,36 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
       
       if (absZDiff < 2500) {
         const aDist = 3.6 + a.scale * 0.9;
-        const distSq = ship.position.distanceToSquared(a.pos);
-        if (distSq < aDist * aDist) {
-          cm = false;
-          // Redução significativa de velocidade mantida ao colidir
-          velocityRef.current = Math.max(30, velocityRef.current * 0.35);
-          
-          const pushDir = v_pushDir.current.subVectors(ship.position, a.pos).normalize();
-          if (pushDir.lengthSq() === 0) pushDir.set(0, 1, -1).normalize();
+        // Fast-path: só executa física 3D pesada se o asteroide estiver realmente próximo do raio da nave
+        if (absZDiff < aDist + 15 && Math.abs(a.pos.x - ship.position.x) < aDist + 15 && Math.abs(a.pos.y - ship.position.y) < aDist + 15) {
+          const distSq = ship.position.distanceToSquared(a.pos);
+          if (distSq < aDist * aDist) {
+            cm = false;
+            // Redução significativa de velocidade mantida ao colidir
+            velocityRef.current = Math.max(30, velocityRef.current * 0.35);
+            
+            const pushDir = v_pushDir.current.subVectors(ship.position, a.pos).normalize();
+            if (pushDir.lengthSq() === 0) pushDir.set(0, 1, -1).normalize();
 
-          // Ejeção geométrica instantânea fora do raio de colisão do meteoro
-          ship.position.copy(a.pos).addScaledVector(pushDir, aDist + 3.0);
-          
-          // Impulso de repulsão física elástica
-          if (repulsionVelRef && repulsionVelRef.current) {
-            repulsionVelRef.current.copy(pushDir).multiplyScalar(95.0);
-          }
+            // Ejeção geométrica instantânea fora do raio de colisão do meteoro
+            ship.position.copy(a.pos).addScaledVector(pushDir, aDist + 3.0);
+            
+            // Impulso de repulsão física elástica
+            if (repulsionVelRef && repulsionVelRef.current) {
+              repulsionVelRef.current.copy(pushDir).multiplyScalar(95.0);
+            }
 
-          if (canTakeDamage) {
-            if (isCurrentlyBoosting && ["sparrow-03", "sparrow-06", "sparrow-17", "sparrow-20"].includes(currentShip.id)) { 
-              createExplosion(a.pos, "#00ffea"); 
-              playSimSound("shield_hit", localMuted); 
-              collisionCooldownRef.current = 0.1;
-            } else {
-              shakeRef.current = Math.max(0.3, 1.5 - (massStat / 120) * 1.1); 
-              createExplosion(ship.position, "#ff3a00");
-              playSimSound("hull_hit", localMuted); 
-              collisionCooldownRef.current = 0.35;
+            if (canTakeDamage) {
+              if (isCurrentlyBoosting && ["sparrow-03", "sparrow-06", "sparrow-17", "sparrow-20"].includes(currentShip.id)) { 
+                createExplosion(a.pos, "#00ffea"); 
+                playSimSound("shield_hit", localMuted); 
+                collisionCooldownRef.current = 0.1;
+              } else {
+                shakeRef.current = Math.max(0.3, 1.5 - (massStat / 120) * 1.1); 
+                createExplosion(ship.position, "#ff3a00");
+                playSimSound("hull_hit", localMuted); 
+                collisionCooldownRef.current = 0.35;
+              }
             }
           }
         }

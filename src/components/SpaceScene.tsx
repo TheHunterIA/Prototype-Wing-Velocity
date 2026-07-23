@@ -490,7 +490,7 @@ export default function SpaceScene() {
             </Suspense>
 
             {graphicsQuality === "high" && (
-              <EffectComposer key="scene-effect-composer" multisampling={8}>
+              <EffectComposer key="scene-effect-composer" multisampling={0}>
                 <Bloom luminanceThreshold={0.85} mipmapBlur intensity={0.35} />
                 <Vignette eskil={false} offset={0.15} darkness={0.6} />
                 <ChromaticAberration offset={[0.0006, 0.0006]} />

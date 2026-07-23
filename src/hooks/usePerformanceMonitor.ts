@@ -15,22 +15,24 @@ export function usePerformanceMonitor({
   const lastTimeRef = useRef(performance.now());
   const mountTimeRef = useRef(performance.now());
   
-  const targetMaxDPR = Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2.0);
-  const minDPR = graphicsQuality === "high" ? 1.0 : 0.75;
+  const targetMaxDPR = Math.min(
+    typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1,
+    graphicsQuality === "high" ? 1.5 : 1.0
+  );
+  const minDPR = graphicsQuality === "high" ? 0.85 : 0.70;
   
   const [currentDPR, setCurrentDPR] = useState(() => targetMaxDPR);
   const debounceTimer = useRef<number | null>(null);
   const emergencySpikes = useRef(0);
+  const lowFpsCount = useRef(0);
 
   useEffect(() => {
     gl.setPixelRatio(currentDPR);
   }, [currentDPR, gl]);
 
-  // Se a qualidade gráfica for alterada manualmente para "high", reseta o DPR para a resolução máxima
+  // Se a qualidade gráfica for alterada manualmente para "high", reseta o DPR para a resolução máxima de alta qualidade
   useEffect(() => {
-    if (graphicsQuality === "high") {
-      setCurrentDPR(targetMaxDPR);
-    }
+    setCurrentDPR(targetMaxDPR);
   }, [graphicsQuality, targetMaxDPR]);
 
   useFrame(() => {
@@ -41,16 +43,16 @@ export function usePerformanceMonitor({
     const timeSinceMount = now - mountTimeRef.current;
 
     // Durante os primeiros 5 segundos (carregamento de modelos/compilação de shaders da GPU),
-    // ignora picos de frame para não derrubar a resolução no início da partida!
+    // ignora picos de frame para não derrubar a resolução nem causar flashes ao mudar de rota!
     if (timeSinceMount < 5000) {
       return;
     }
 
     // Resposta de emergência para picos sustentados em meio ao jogo
-    if (delta > 300) {
+    if (delta > 250) {
       emergencySpikes.current += 1;
-      if (emergencySpikes.current >= 4 && currentDPR > minDPR) {
-        const newDpr = Math.max(minDPR, currentDPR - 0.25);
+      if (emergencySpikes.current >= 3 && currentDPR > minDPR) {
+        const newDpr = Math.max(minDPR, currentDPR - 0.20);
         setCurrentDPR(newDpr);
         debounceTimer.current = now;
         frameTimes.current = [];
@@ -66,27 +68,34 @@ export function usePerformanceMonitor({
     if (delta > 150) return;
 
     frameTimes.current.push(delta);
-    if (frameTimes.current.length > 180) {
+    if (frameTimes.current.length > 90) {
       frameTimes.current.shift();
     }
 
-    // Análise de performance a cada janela de amostragem
-    if (frameTimes.current.length === 180 && (!debounceTimer.current || now - debounceTimer.current > 6000)) {
-      const avgDelta = frameTimes.current.reduce((a, b) => a + b, 0) / 180;
+    // Análise de performance a cada janela de amostragem (1.5s)
+    if (frameTimes.current.length === 90 && (!debounceTimer.current || now - debounceTimer.current > 3000)) {
+      const avgDelta = frameTimes.current.reduce((a, b) => a + b, 0) / 90;
       const fps = 1000 / avgDelta;
 
-      if (fps < 45 && currentDPR > minDPR) {
+      if (fps < 48 && currentDPR > minDPR) {
         const nextDPR = Math.max(minDPR, currentDPR - 0.15);
         setCurrentDPR(nextDPR);
         debounceTimer.current = now;
         frameTimes.current = [];
-        console.log(`[Dynamic Resolution] FPS baixo (${fps.toFixed(1)}). Reduzindo DPR para ${nextDPR.toFixed(2)}`);
+        lowFpsCount.current += 1;
+
+        // Se persistir muito baixo mesmo baixando o DPR, alterna para modo de baixa fidelidade automaticamente
+        if (lowFpsCount.current >= 3 && graphicsQuality === "high") {
+          console.log(`[Dynamic Resolution] FPS persistentemente baixo (${fps.toFixed(1)}). Alternando para modo otimizado.`);
+          setGraphicsQuality("low");
+          lowFpsCount.current = 0;
+        }
       } else if (fps > 58.0 && currentDPR < targetMaxDPR) {
         const nextDPR = Math.min(targetMaxDPR, currentDPR + 0.15);
         setCurrentDPR(nextDPR);
         debounceTimer.current = now;
         frameTimes.current = [];
-        console.log(`[Dynamic Resolution] FPS excelente (${fps.toFixed(1)}). Restaurando nitidez para ${nextDPR.toFixed(2)}`);
+        if (fps > 59.0) lowFpsCount.current = Math.max(0, lowFpsCount.current - 1);
       }
     }
   });

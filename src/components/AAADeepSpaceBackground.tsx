@@ -32,7 +32,7 @@ void main() {
 // → Bloom threshold 0.82 leaves nebula alone, blooms only stars/thrusters
 // ============================================================================
 const SKYBOX_FRAG = `
-precision highp float;
+precision mediump float;
 
 uniform vec3  uC0;       // void background
 uniform vec3  uC1;       // outer haze
@@ -61,10 +61,17 @@ float noise(vec3 p) {
     f.z);
 }
 
-// 4-octave FBM (good visual quality, ~35% faster than 6-octave)
+// 3-octave FBM for main nebular structures (ultra-fast, pristine visual result)
 float fbm(vec3 p) {
   float v=0.0, a=0.5;
-  for (int i=0;i<4;i++) { v+=a*noise(p); p=p*2.03+vec3(1.7,9.2,3.4); a*=0.5; }
+  for (int i=0; i<3; i++) { v+=a*noise(p); p=p*2.03+vec3(1.7,9.2,3.4); a*=0.5; }
+  return v;
+}
+
+// 2-octave FBM for domain warp pass
+float fbmWarp(vec3 p) {
+  float v=0.0, a=0.5;
+  for (int i=0; i<2; i++) { v+=a*noise(p); p=p*2.03+vec3(1.7,9.2,3.4); a*=0.5; }
   return v;
 }
 
@@ -74,10 +81,10 @@ void main() {
   // Slow drift — very subtle to avoid dizziness at full sky rotation
   vec3 p = d * 1.6 + vec3(uTime*0.001, uTime*0.0007, uSeed*0.05);
 
-  // Single domain-warp pass (cheaper, still beautiful)
-  vec3 q = vec3(fbm(p),
-                fbm(p + vec3(5.2,1.3,2.8)),
-                fbm(p + vec3(1.7,9.2,4.4)));
+  // Optimized domain-warp pass (2-octaves per coordinate)
+  vec3 q = vec3(fbmWarp(p),
+                fbmWarp(p + vec3(5.2,1.3,2.8)),
+                fbmWarp(p + vec3(1.7,9.2,4.4)));
   float f = fbm(p + 3.2*q);
   float n = clamp(f*0.5+0.5, 0.0, 1.0); // 0..1
 
@@ -202,6 +209,17 @@ export const AAADeepSpaceBackground = React.memo(function AAADeepSpaceBackground
     uDensity: { value: palette.density },
     uSeed:    { value: palette.seed },
   }), [palette]);
+
+  React.useEffect(() => {
+    if (skyRef.current) {
+      skyRef.current.uniforms.uC0.value = palette.c0;
+      skyRef.current.uniforms.uC1.value = palette.c1;
+      skyRef.current.uniforms.uC2.value = palette.c2;
+      skyRef.current.uniforms.uC3.value = palette.c3;
+      skyRef.current.uniforms.uDensity.value = palette.density;
+      skyRef.current.uniforms.uSeed.value = palette.seed;
+    }
+  }, [palette]);
 
   // Diffraction stars (300, sparse, bright)
   const stars = useMemo(() => {
