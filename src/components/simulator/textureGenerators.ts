@@ -362,10 +362,19 @@ export function generateNormalMapFromAlbedo(albedo: THREE.CanvasTexture, cacheKe
 
   const src = albedo.image as HTMLCanvasElement;
   if (!src || !src.getContext) return null;
-  const width = src.width, height = src.height;
-  const srcCtx = src.getContext("2d");
-  if (!srcCtx) return null;
-  const srcData = srcCtx.getImageData(0, 0, width, height).data;
+
+  // Clampa a resolução máxima para 256x128 para cálculo de Sobel ultra-rápido no CPU
+  const width = Math.min(256, src.width || 256);
+  const height = Math.min(128, src.height || 128);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  // Desenha a imagem original redimensionada para amostragem leve
+  ctx.drawImage(src, 0, 0, width, height);
+  const srcData = ctx.getImageData(0, 0, width, height).data;
 
   const heights = new Float32Array(width * height);
   for (let i = 0; i < width * height; i++) {
@@ -373,9 +382,6 @@ export function generateNormalMapFromAlbedo(albedo: THREE.CanvasTexture, cacheKe
     heights[i] = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   }
 
-  const canvas = document.createElement("canvas");
-  canvas.width = width; canvas.height = height;
-  const ctx = canvas.getContext("2d")!;
   const outData = ctx.createImageData(width, height);
 
   const at = (x: number, y: number) => {

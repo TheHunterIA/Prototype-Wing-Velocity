@@ -5,6 +5,7 @@ import { RouteData } from '../types';
 
 interface AAADeepSpaceBackgroundProps {
   selectedRoute: RouteData;
+  graphicsQuality?: "high" | "low";
 }
 
 // ============================================================================
@@ -41,6 +42,7 @@ uniform vec3  uC3;       // bright core
 uniform float uTime;
 uniform float uDensity;
 uniform float uSeed;
+uniform float uPerfMode; // 1.0 = low quality (ultra-fast pass), 0.0 = high quality
 
 varying vec3 vDir;
 
@@ -78,53 +80,45 @@ float fbmWarp(vec3 p) {
 void main() {
   vec3 d = normalize(vDir);
 
-  // Slow drift — very subtle to avoid dizziness at full sky rotation
+  // Slow drift
   vec3 p = d * 1.6 + vec3(uTime*0.001, uTime*0.0007, uSeed*0.05);
 
-  // Optimized domain-warp pass (2-octaves per coordinate)
-  vec3 q = vec3(fbmWarp(p),
-                fbmWarp(p + vec3(5.2,1.3,2.8)),
-                fbmWarp(p + vec3(1.7,9.2,4.4)));
-  float f = fbm(p + 3.2*q);
-  float n = clamp(f*0.5+0.5, 0.0, 1.0); // 0..1
+  float n = 0.0;
+  if (uPerfMode > 0.5) {
+    // Ultra-fast single-pass FBM (avoids 15+ sub-noise evaluations per fragment)
+    n = clamp(fbm(p)*0.5+0.5, 0.0, 1.0);
+  } else {
+    // High-quality domain-warped FBM pass
+    vec3 q = vec3(fbmWarp(p),
+                  fbmWarp(p + vec3(5.2,1.3,2.8)),
+                  fbmWarp(p + vec3(1.7,9.2,4.4)));
+    float f = fbm(p + 3.2*q);
+    n = clamp(f*0.5+0.5, 0.0, 1.0);
+  }
 
-  // ---- Nebula colour layers — kept dark intentionally ----
-  vec3 col = uC0;  // start from near-black void
-  col += uC1 * 0.08 * smoothstep(0.30, 0.68, n) * uDensity;   // outer haze
-  col += uC2 * 0.14 * smoothstep(0.52, 0.82, n) * uDensity;   // cloud body
-  col += uC3 * 0.22 * smoothstep(0.72, 1.00, n)
-             * pow(n, 2.5)                        * uDensity;   // bright core
+  // ---- Nebula colour layers ----
+  vec3 col = uC0;
+  col += uC1 * 0.08 * smoothstep(0.30, 0.68, n) * uDensity;
+  col += uC2 * 0.14 * smoothstep(0.52, 0.82, n) * uDensity;
+  col += uC3 * 0.22 * smoothstep(0.72, 1.00, n) * pow(n, 2.5) * uDensity;
 
-  // ---- Dark dust absorption lanes (molecular cloud silhouettes) ----
-  float dust = fbm(p*2.8 + vec3(12.4, 5.1+uSeed*0.2, 8.9));
-  col  = mix(col, uC0*0.5, smoothstep(0.60, 0.85, dust) * 0.82);
+  if (uPerfMode < 0.5) {
+    // Dark dust absorption lanes
+    float dust = fbm(p*2.8 + vec3(12.4, 5.1+uSeed*0.2, 8.9));
+    col = mix(col, uC0*0.5, smoothstep(0.60, 0.85, dust) * 0.82);
+  }
 
-  // ---- Galactic belt (narrow luminous band at y≈0) ----
-  float belt   = exp(-d.y*d.y * 14.0);           // tight equatorial ribbon
-  float bdetail = fbm(d*3.5 + vec3(0.0, 0.0, uSeed));
-  col += uC3 * 0.09 * belt * (0.4 + 0.6*bdetail);
+  // ---- Galactic belt ----
+  float belt = exp(-d.y*d.y * 14.0);
+  col += uC3 * 0.09 * belt;
   col += uC2 * 0.04 * belt;
 
-  // ---- Procedural star field — 2 sparse layers ----
-  // Layer A: dense micro-stars (faint, many)
-  {
-    vec3 sg = floor(d * 420.0);
-    float sh = hash(sg);
-    if (sh > 0.982) {
-      float b = pow((sh-0.982)/0.018, 1.8)
-                * (0.55 + 0.45*sin(uTime*2.2 + sh*120.0));
-      col += vec3(b * 0.75);
-    }
-  }
-  // Layer B: bright reference stars (sparse — trigger Bloom diffraction)
-  {
-    vec3 sg = floor(d * 160.0);
-    float sh = hash(sg);
-    if (sh > 0.9975) {
-      float b = pow((sh-0.9975)/0.0025, 2.0)
-                * (0.85 + 0.15*sin(uTime*1.1 + sh*80.0));
-      col += vec3(b * 2.0); // intentionally > Bloom threshold
-    }
+  // ---- Procedural star field ----
+  vec3 sg = floor(d * 220.0);
+  float sh = hash(sg);
+  if (sh > 0.988) {
+    float b = pow((sh-0.988)/0.012, 1.8) * (0.6 + 0.4*sin(uTime*2.2 + sh*120.0));
+    col += vec3(b * 0.85);
   }
 
   gl_FragColor = vec4(max(col, vec3(0.0)), 1.0);
@@ -179,10 +173,11 @@ void main() {
 // React component
 // ============================================================================
 export const AAADeepSpaceBackground = React.memo(function AAADeepSpaceBackground(
-  { selectedRoute }: AAADeepSpaceBackgroundProps
+  { selectedRoute, graphicsQuality = "high" }: AAADeepSpaceBackgroundProps
 ) {
   const skyRef  = useRef<THREE.ShaderMaterial>(null);
   const starRef = useRef<THREE.ShaderMaterial>(null);
+  const isLowPerf = graphicsQuality === "low";
 
   // Per-route palette — nebula colours are deliberately dim (no blow-out)
   const palette = useMemo(() => {
@@ -202,14 +197,15 @@ export const AAADeepSpaceBackground = React.memo(function AAADeepSpaceBackground
   }, [selectedRoute]);
 
   const skyUniforms = useMemo(() => ({
-    uC0:      { value: palette.c0 },
-    uC1:      { value: palette.c1 },
-    uC2:      { value: palette.c2 },
-    uC3:      { value: palette.c3 },
-    uTime:    { value: 0 },
-    uDensity: { value: palette.density },
-    uSeed:    { value: palette.seed },
-  }), [palette]);
+    uC0:       { value: palette.c0 },
+    uC1:       { value: palette.c1 },
+    uC2:       { value: palette.c2 },
+    uC3:       { value: palette.c3 },
+    uTime:     { value: 0 },
+    uDensity:  { value: palette.density },
+    uSeed:     { value: palette.seed },
+    uPerfMode: { value: isLowPerf ? 1.0 : 0.0 },
+  }), [palette, isLowPerf]);
 
   React.useEffect(() => {
     if (skyRef.current) {
@@ -219,12 +215,13 @@ export const AAADeepSpaceBackground = React.memo(function AAADeepSpaceBackground
       skyRef.current.uniforms.uC3.value = palette.c3;
       skyRef.current.uniforms.uDensity.value = palette.density;
       skyRef.current.uniforms.uSeed.value = palette.seed;
+      skyRef.current.uniforms.uPerfMode.value = isLowPerf ? 1.0 : 0.0;
     }
-  }, [palette]);
+  }, [palette, isLowPerf]);
 
-  // Diffraction stars (300, sparse, bright)
+  // Diffraction stars (300 on high, 120 on low)
   const stars = useMemo(() => {
-    const COUNT = 300;
+    const COUNT = isLowPerf ? 120 : 300;
     const pos   = new Float32Array(COUNT * 3);
     const col   = new Float32Array(COUNT * 3);
     const size  = new Float32Array(COUNT);
@@ -256,7 +253,7 @@ export const AAADeepSpaceBackground = React.memo(function AAADeepSpaceBackground
       phase[i] = Math.random() * 10;
     }
     return { pos, col, size, phase, COUNT };
-  }, []);
+  }, [isLowPerf]);
 
   const starUniforms = useMemo(() => ({ uTime: { value: 0 } }), []);
 
@@ -268,9 +265,9 @@ export const AAADeepSpaceBackground = React.memo(function AAADeepSpaceBackground
 
   return (
     <group>
-      {/* ── Volumetric Skybox Dome (48-seg for perf, BackSide) ── */}
+      {/* ── Volumetric Skybox Dome (24-seg on low for perf, 36 on high, BackSide) ── */}
       <mesh scale={26000} renderOrder={-2000}>
-        <sphereGeometry args={[1, 48, 48]} />
+        <sphereGeometry args={[1, isLowPerf ? 24 : 36, isLowPerf ? 24 : 36]} />
         <shaderMaterial
           ref={skyRef}
           vertexShader={SKYBOX_VERT}

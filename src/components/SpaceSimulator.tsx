@@ -1305,7 +1305,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
   const takeoffProgressRef = useRef(0); const shipRef = useRef<THREE.Group>(null); const containerRef = useRef<HTMLDivElement>(null);
   const multiplierRef = useRef(1);
   const keysRef = useRef<KeysPressed>({ w: false, s: false, a: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, Shift: false, e: false, ' ': false });
-  const pointerRef = useRef({ x: 0, y: 0 }); const shakeRef = useRef(0);
+  const pointerRef = useRef({ x: 0, y: 0 }); const targetPointerRef = useRef({ x: 0, y: 0 }); const shakeRef = useRef(0);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const lastTapTimeRef = useRef<number>(0);
   const touchBoostActiveRef = useRef<boolean>(false);
@@ -1758,23 +1758,23 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
       if (document.pointerLockElement) {
         // Sensibilidade balanceada para controle preciso com Pointer Lock
         const sens = 0.002;
-        pointerRef.current.x += e.movementX * sens;
-        pointerRef.current.y -= e.movementY * sens; // Natural: mouse para cima = nariz para cima
+        targetPointerRef.current.x += e.movementX * sens;
+        targetPointerRef.current.y -= e.movementY * sens; // Natural: mouse para cima = nariz para cima
         
-        pointerRef.current.x = Math.max(-1.5, Math.min(1.5, pointerRef.current.x));
-        pointerRef.current.y = Math.max(-1.5, Math.min(1.5, pointerRef.current.y));
+        targetPointerRef.current.x = Math.max(-1.5, Math.min(1.5, targetPointerRef.current.x));
+        targetPointerRef.current.y = Math.max(-1.5, Math.min(1.5, targetPointerRef.current.y));
       } else {
         // Suporte a controle de mouse livre mesmo fora do Pointer Lock
         const normX = (e.clientX - window.innerWidth / 2) / (window.innerWidth / 2);
         const normY = -(e.clientY - window.innerHeight / 2) / (window.innerHeight / 2);
-        pointerRef.current.x = THREE.MathUtils.clamp(normX * 1.2, -1.2, 1.2);
-        pointerRef.current.y = THREE.MathUtils.clamp(normY * 1.2, -1.2, 1.2);
+        targetPointerRef.current.x = THREE.MathUtils.clamp(normX * 1.2, -1.2, 1.2);
+        targetPointerRef.current.y = THREE.MathUtils.clamp(normY * 1.2, -1.2, 1.2);
       }
     };
     const pointerLockChange = () => {
       if (!document.pointerLockElement) {
-        pointerRef.current.x = 0;
-        pointerRef.current.y = 0;
+        targetPointerRef.current.x = 0;
+        targetPointerRef.current.y = 0;
       }
     };
 
@@ -1801,12 +1801,14 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
       const deltaY = touch.clientY - touchStartRef.current.y;
 
       const sens = 0.012;
-      pointerRef.current.x = THREE.MathUtils.clamp(deltaX * sens, -1.5, 1.5);
-      pointerRef.current.y = THREE.MathUtils.clamp(-deltaY * sens, -1.5, 1.5);
+      targetPointerRef.current.x = THREE.MathUtils.clamp(deltaX * sens, -1.5, 1.5);
+      targetPointerRef.current.y = THREE.MathUtils.clamp(-deltaY * sens, -1.5, 1.5);
     };
 
     const handleTouchEnd = () => {
       touchStartRef.current = null;
+      targetPointerRef.current.x = 0;
+      targetPointerRef.current.y = 0;
     };
 
     window.addEventListener("keydown", down); 
@@ -2041,10 +2043,10 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
 
       <div className="absolute inset-0 z-0 bg-black">
         <Canvas 
-          camera={{ position: [0, 6, 26], fov: 45, near: 0.5, far: 90000 }} 
+          camera={{ position: [0, 6, 26], fov: 45, near: 1.5, far: 60000 }} 
           shadows={graphicsQuality === "high" ? "basic" : false}
           dpr={[0.75, graphicsQuality === "high" ? 1.5 : 1.0]}
-          gl={{ logarithmicDepthBuffer: false, antialias: true, powerPreference: "high-performance" }}
+          gl={{ logarithmicDepthBuffer: false, antialias: graphicsQuality === "high", powerPreference: "high-performance" }}
           onCreated={({ gl }) => gl.setClearColor("#000000")}
         >
           <PerformanceController graphicsQuality={graphicsQuality} setGraphicsQuality={setGraphicsQuality} />
@@ -2079,8 +2081,8 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
             {/* Fill baixo suave — evita sombras completamente pretas */}
             <directionalLight position={[0, -25, 5]} intensity={1.2} color="#1a2040" />
             {/* AAA Deep Space Environment (Volumetric Ray-warped Skybox + Flare Stars) */}
-            <AAADeepSpaceBackground selectedRoute={selectedRoute} />
-            <RenderBackgroundStars starlightColor={selectedRoute.starlightColor} />
+            <AAADeepSpaceBackground selectedRoute={selectedRoute} graphicsQuality={graphicsQuality} />
+            <RenderBackgroundStars starlightColor={selectedRoute.starlightColor} graphicsQuality={graphicsQuality} />
             
               <GameEngine 
                 shipRef={shipRef} 
@@ -2090,6 +2092,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
                 setIsHangarActive={setIsHangarActive} 
                 takeoffProgressRef={takeoffProgressRef} 
                 pointerRef={pointerRef} 
+                targetPointerRef={targetPointerRef}
                 keysRef={keysRef} 
                 scoreRef={scoreRef}
                 multiplierRef={multiplierRef}
@@ -2789,11 +2792,11 @@ const STAR_FRAGMENT_SHADER = `
   }
 `;
 
-const RenderBackgroundStars = memo(function RenderBackgroundStars({ starlightColor }: { starlightColor?: string }) {
+const RenderBackgroundStars = memo(function RenderBackgroundStars({ starlightColor, graphicsQuality = "high" }: { starlightColor?: string; graphicsQuality?: "high" | "low" }) {
   const pointsRef = useRef<THREE.Points>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
 
-  const count = 6000; // Shader do skybox já gera micro-estrelas procedurais; aqui apenas estrelas de médio porte
+  const count = graphicsQuality === "low" ? 2200 : 6000;
 
   const { positions, colors, sizes, phases, brightnesses } = useMemo(() => {
     const pos = new Float32Array(count * 3);
@@ -3783,7 +3786,7 @@ function TelemetryHUD({
 }
 
 
-function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHangarActive, takeoffProgressRef, pointerRef, keysRef, scoreRef, multiplierRef, planets, asteroids, satellites, abilityActive, setAbilityActive, energyRef, currentShip, createExplosion, localMuted, shieldRef, armorRef, setIsGameOver, setIsVictory, trafficShips, shakeRef, explosionsRef, selectedColor, countdown, stats, neonRingsRef, selectedRoute, customRouteDataRef, asteroidsChangedRef, flightVectorRef, repulsionVelRef }: any) {
+function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHangarActive, takeoffProgressRef, pointerRef, targetPointerRef, keysRef, scoreRef, multiplierRef, planets, asteroids, satellites, abilityActive, setAbilityActive, energyRef, currentShip, createExplosion, localMuted, shieldRef, armorRef, setIsGameOver, setIsVictory, trafficShips, shakeRef, explosionsRef, selectedColor, countdown, stats, neonRingsRef, selectedRoute, customRouteDataRef, asteroidsChangedRef, flightVectorRef, repulsionVelRef }: any) {
   const cameraOffset = useRef(new THREE.Vector3(0, 2.5, 15));
   // Quaternion "atrasado" só para orientar a câmera (nunca a posição/física da nave) — dá um
   // leve efeito de câmera cinematográfica em curvas fechadas sem tocar na física ou na
@@ -3834,18 +3837,31 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
     // Atualizar som do motor e turbo (Web Audio API)
     audioService.updateEngine(velocityRef.current, keysRef.current[' '] || keysRef.current.ArrowUp, localMuted);
 
-    // Amortecimento dinâmico: os controles retornam suavemente ao centro quando não há input ativo
-    // Sempre aplicamos damping para evitar que a nave fique girando eternamente se o pointer lock cair
-    const damping = Math.exp(-dt * 2.8); 
-    pointerRef.current.x *= damping;
-    pointerRef.current.y *= damping;
+    // Amortecimento dinâmico e consolidação de entradas de teclado + mouse/touch
+    let kbX = 0;
+    let kbY = 0;
+    let kbRoll = 0;
+    if (keysRef.current.w || (keysRef.current.ArrowUp && !abilityActive)) kbY += 1.0;
+    if (keysRef.current.s || keysRef.current.ArrowDown) kbY -= 1.0;
+    if (keysRef.current.ArrowLeft) kbX -= 1.0;
+    if (keysRef.current.ArrowRight) kbX += 1.0;
+    if (keysRef.current.a) kbRoll -= 2.2;
+    if (keysRef.current.d) kbRoll += 2.2;
 
-    // WASD steering support (same function as mouse)
-    const kbRate = 3.5 * dt;
-    if (keysRef.current.w) pointerRef.current.y = Math.min(1.5, pointerRef.current.y + kbRate);
-    if (keysRef.current.s) pointerRef.current.y = Math.max(-1.5, pointerRef.current.y - kbRate);
-    if (keysRef.current.a) pointerRef.current.x = Math.max(-1.5, pointerRef.current.x - kbRate);
-    if (keysRef.current.d) pointerRef.current.x = Math.min(1.5, pointerRef.current.x + kbRate);
+    // Se estiver em Pointer Lock (movimento relativo do mouse), amortecer targetPointerRef suavemente
+    if (document.pointerLockElement) {
+      const damping = Math.exp(-dt * 3.0); 
+      targetPointerRef.current.x *= damping;
+      targetPointerRef.current.y *= damping;
+    }
+
+    // Combina alvo do mouse/touch com entradas de teclado sem duplicar nem gerar saltos bruscos
+    const desX = THREE.MathUtils.clamp(targetPointerRef.current.x + kbX, -1.5, 1.5);
+    const desY = THREE.MathUtils.clamp(targetPointerRef.current.y + kbY, -1.5, 1.5);
+
+    // Suavização ultra-fluida de 60fps para eliminar qualquer tremor/glitch no desktop ou celular
+    pointerRef.current.x = THREE.MathUtils.lerp(pointerRef.current.x, desX, Math.min(1, dt * 10.0));
+    pointerRef.current.y = THREE.MathUtils.lerp(pointerRef.current.y, desY, Math.min(1, dt * 10.0));
     
     // Zona morta mínima para evitar micro-oscilações
     if (Math.abs(pointerRef.current.x) < 0.001) pointerRef.current.x = 0;
@@ -3854,9 +3870,8 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
     // Atualizar a posição do retículo dinâmico no HUD (60 FPS)
     const vectorEl = flightVectorRef.current;
     if (vectorEl) {
-      // Mapear pointerRef.current de [-1.5, 1.5] para pixels de translação (limite de 44px correspondente ao círculo HUD)
       const xPx = (pointerRef.current.x / 1.5) * 44; 
-      const yPx = -(pointerRef.current.y / 1.5) * 44; // Negativo pois Y no canvas é para cima, mas no CSS é para baixo
+      const yPx = -(pointerRef.current.y / 1.5) * 44;
       vectorEl.style.transform = `translate3d(${xPx}px, ${yPx}px, 0)`;
     }
     
@@ -3987,18 +4002,7 @@ function GameEngine({ shipRef, velocityRef, baseQuat, isHangarActive, setIsHanga
     // Fade in steering sensitivity after exit
     let ptr = pointerRef.current.y * 1.5 * transitionFactor; 
     let ytr = -pointerRef.current.x * 1.5 * transitionFactor; 
-    let rtr = 0;
-
-    // Suporte direto a controle de pilotagem por teclado (W/S ou setas para Pitch, A/D para Roll)
-    if (keysRef.current.w) ptr += 1.6 * transitionFactor;
-    if (keysRef.current.s) ptr -= 1.6 * transitionFactor;
-    if (keysRef.current.ArrowUp && !isCurrentlyBoosting) ptr += 1.6 * transitionFactor;
-    if (keysRef.current.ArrowDown) ptr -= 1.6 * transitionFactor;
-    if (keysRef.current.ArrowLeft) ytr -= 1.6 * transitionFactor;
-    if (keysRef.current.ArrowRight) ytr += 1.6 * transitionFactor;
-
-    if (keysRef.current.a) rtr -= 2.2 * transitionFactor; 
-    if (keysRef.current.d) rtr += 2.2 * transitionFactor; 
+    let rtr = kbRoll * transitionFactor; 
     
     // Apply EMP reverse polarity control glitch effect on inputs
     if (customRouteDataRef && customRouteDataRef.current && customRouteDataRef.current.controlGlitched) {

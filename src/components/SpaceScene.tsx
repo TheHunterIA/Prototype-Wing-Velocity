@@ -446,8 +446,8 @@ export default function SpaceScene() {
         <div className="absolute inset-0 pointer-events-auto">
           <Canvas 
             camera={{ position: [0, isMobile ? 1.2 : 1.5, isMobile ? 22 : 16], fov: isMobile ? 48 : 40 }} 
-            dpr={[1, 2]} 
-            shadows="soft"
+            dpr={[0.75, graphicsQuality === "high" ? 1.5 : 1.0]} 
+            shadows={graphicsQuality === "high" ? "basic" : false}
             gl={{ alpha: true, powerPreference: "high-performance" }}
             onCreated={({ gl }) => gl.setClearColor("#000000", 0)}
           >
@@ -488,7 +488,7 @@ export default function SpaceScene() {
 
             {/* Localized Suspense boundary to prevent unmounting lights and controls during load */}
             <Suspense fallback={null}>
-              <AAADeepSpaceBackground selectedRoute={selectedRoute} />
+              <AAADeepSpaceBackground selectedRoute={selectedRoute} graphicsQuality={graphicsQuality} />
               <Environment preset="night" environmentIntensity={isCurrentShipLocked ? 0.2 : 0.8} />
               <Spaceship 
                 modelFile={currentShip.modelFile} 
