@@ -1569,16 +1569,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
       const scaleMultiplier = p.id === "saturn" ? 1.8 : p.id === "earth" ? 2.0 : 2.1 + (seedVal % 3) * 0.2;
       const newRadius = p.radius * scaleMultiplier;
 
-      let newMoons = p.moons;
-      if (p.moons) {
-        newMoons = p.moons.map((m: any) => ({
-          ...m,
-          radius: m.radius * scaleMultiplier,
-          distance: m.distance * 1.25
-        }));
-      }
-
-      // Posicionamento elegante e visível no horizonte da câmera perto do trajeto dos aros
+      // Posicionamento seguro e elegante para garantir que NENHUM aro fique dentro do planeta ou sua atmosfera
       const routeCenter = getRouteCenterAtZ(finalPos.z);
       
       let dx = p.pos.x - routeCenter.x;
@@ -1589,20 +1580,46 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
         dx /= distToCenter;
         dy /= distToCenter;
       } else {
-        dx = 0;
-        dy = 1;
+        dx = 0.7071;
+        dy = 0.7071;
       }
 
-      // Distância de segurança para o planeta ficar visível e imponente na visão sem colidir com os aros
-      const clearance = p.id === "saturn" ? 1800 : 2200;
-      const targetDistance = newRadius + clearance;
+      // Distância base generosa
+      const baseClearance = p.id === "saturn" ? 4500 : 3800;
+      let targetDistance = newRadius + baseClearance;
+
+      // Garantia matemática: testar contra todos os aros da pista e afastar o planeta se necessário
+      const minRequiredSafety = newRadius + 3000; // Margem de segurança de 3000 unidades entre superfície do planeta e qualquer aro
+      for (let r of ringsData) {
+        let candidatePos = new THREE.Vector3(
+          routeCenter.x + dx * targetDistance,
+          routeCenter.y + dy * targetDistance,
+          finalPos.z
+        );
+        let dist3D = candidatePos.distanceTo(r.pos);
+        if (dist3D < minRequiredSafety + (r.radius || 120)) {
+          const needed = (minRequiredSafety + (r.radius || 120)) - dist3D + 500;
+          targetDistance += needed;
+        }
+      }
 
       finalPos.x = routeCenter.x + dx * targetDistance;
       finalPos.y = routeCenter.y + dy * targetDistance;
 
+      // Ajuste proporcional das luas para orbitarem o planeta em área limpa
+      let newMoons = p.moons;
+      if (p.moons) {
+        const maxMoonOrbit = Math.max(newRadius * 1.2, targetDistance - newRadius - 1500);
+        newMoons = p.moons.map((m: any) => ({
+          ...m,
+          radius: m.radius * scaleMultiplier,
+          distance: Math.min(m.distance * 1.25, maxMoonOrbit)
+        }));
+      }
+
       return { ...p, radius: newRadius, moons: newMoons, pos: finalPos };
     });
-  }, [selectedRoute, getRouteCenterAtZ]);
+  }, [selectedRoute, getRouteCenterAtZ, ringsData]);
 
   const nebulas = useMemo(() => {
     const seed = selectedRoute.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);

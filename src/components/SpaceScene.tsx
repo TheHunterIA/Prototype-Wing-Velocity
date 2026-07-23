@@ -445,7 +445,7 @@ export default function SpaceScene() {
       <main className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 pointer-events-auto">
           <Canvas 
-            camera={{ position: [0, 1.2, isMobile ? 22 : 16], fov: isMobile ? 48 : 40 }} 
+            camera={{ position: [0, isMobile ? 1.2 : 1.5, isMobile ? 22 : 16], fov: isMobile ? 48 : 40 }} 
             dpr={[1, 2]} 
             shadows="soft"
             gl={{ alpha: true, powerPreference: "high-performance" }}
