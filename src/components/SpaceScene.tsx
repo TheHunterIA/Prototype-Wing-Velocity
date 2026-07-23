@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, Volume2, VolumeX, Paintbrush, ChevronUp, ChevronDown, Rocket, Gauge, TrendingUp, Flame, Battery, Scale, Lock, Compass, Settings, Globe, X, Sparkles, Sliders, User, Trophy, BarChart3, Star, Play, Wrench } from "lucide-react";
 import Spaceship from "./Spaceship";
 import SpaceSimulator from "./SpaceSimulator";
-import { AAADeepSpaceBackground } from "./AAADeepSpaceBackground";
 import { SHIPS_DATA, calculateShipStats, SHIP_CLASS_PROFILES, ROUTES_DATA, SKINS_DATA } from "../data";
 import { RouteData } from "../types";
 import { translations, routeTranslations, translateDifficulty, translateClass, Language } from "../translations";
@@ -18,6 +17,7 @@ import { crazyGamesService } from "../services/crazyGamesService";
 import { playerService } from "../services/playerService";
 import { audioService } from "../services/audioService";
 import { leaderboardService, LeaderboardEntry } from "../lib/leaderboardService";
+import { detectLowEndHardware } from "../utils/hardware";
 
 import { AdModal } from "./modals/AdModal";
 import { SimulatedAdOverlay } from "./modals/SimulatedAdOverlay";
@@ -119,10 +119,9 @@ export default function SpaceScene() {
 
   const [graphicsQuality, setGraphicsQuality] = useState<"high" | "low">(() => {
     try {
-      const saved = localStorage.getItem("graphicsQuality");
+      const saved = localStorage.getItem("graphicsQuality") as "high" | "low" | null;
       if (saved === "high" || saved === "low") return saved;
-      const isMobileDevice = typeof window !== "undefined" && (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768);
-      return isMobileDevice ? "low" : "high";
+      return detectLowEndHardware() ? "low" : "high";
     } catch {
       return "high";
     }
@@ -136,7 +135,7 @@ export default function SpaceScene() {
       const browserLang = navigator.language.slice(0, 2);
       if (["pt", "en", "es", "fr"].includes(browserLang)) return browserLang as Language;
     } catch {}
-    return "en";
+    return "pt";
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -185,20 +184,20 @@ export default function SpaceScene() {
   const [adTarget, setAdTarget] = useState<{ id: string, type: 'ship' | 'skin', name: string } | null>(null);
   const [tick, setTick] = useState(0);
   // Atualiza a UI periodicamente para refletir a expiração de licenças/boosts temporários.
-  // - Não roda enquanto o simulador (jogo) está ativo, pois essa tela nem é renderizada
-  //   durante a corrida e o tick só causaria re-renders inúteis no componente pai.
-  // - Intervalo de 3s (em vez de 1s) é suficiente para timers de licença e reduz
-  //   a frequência de re-render de toda a árvore do hangar em ~66%.
+  // - Não roda se não houver tempo ativo, prevenindo re-renders constantes.
   useEffect(() => {
     audioService.init();
     if (isSimulatorActive) return;
     const boostLeft = SHIPS_DATA[currentIndex] ? playerService.getShipBoostTimeLeft(SHIPS_DATA[currentIndex].id) : 0;
-    const intervalTime = boostLeft > 0 ? 1000 : 3000;
-    const interval = setInterval(() => {
-      setTick(prev => prev + 1);
-    }, intervalTime);
-    return () => clearInterval(interval);
-  }, [isSimulatorActive, currentIndex]);
+    const tempLicenseLeft = SHIPS_DATA[currentIndex] ? playerService.getTempLicenseTimeLeft(SHIPS_DATA[currentIndex].id) : 0;
+    
+    if (boostLeft > 0 || tempLicenseLeft > 0) {
+      const interval = setInterval(() => {
+        setTick(prev => prev + 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isSimulatorActive, currentIndex, tick]);
 
   useEffect(() => {
     audioService.setMute(isMuted);
@@ -331,9 +330,9 @@ export default function SpaceScene() {
   return (
     <div className="absolute inset-0 z-0 bg-[#020205] text-slate-100 overflow-hidden select-none font-sans flex flex-col justify-between">
       
-      {/* Background Uploaded Hangar Image Scenario with a clean sci-fi vignette */}
+      {/* Background Uploaded Hangar Image Scenario with a clean sci-fi vignette - scale-115 para cortar faixas pretas das bordas */}
       <div 
-        className="absolute inset-0 z-0 bg-cover bg-center transition-all duration-1000 ease-in-out scale-105"
+        className="absolute inset-0 z-0 bg-cover bg-center transition-all duration-1000 ease-in-out scale-115 overflow-hidden"
         style={{ backgroundImage: "url('/hangar_bg.webp')" }}
       >
         {/* Dark vignette overlay to make the ship and text highly legible */}
@@ -364,10 +363,10 @@ export default function SpaceScene() {
 
       {/* Top minimal header with ship title and active index */}
       {!isRouteSelectionOpen && (
-        <header className="z-10 px-3 sm:px-12 py-3 sm:py-6 flex justify-between items-start shrink-0 pointer-events-none">
-          <div className="flex flex-col pointer-events-auto max-w-[65%] sm:max-w-md">
+        <header className="z-10 px-12 py-6 flex justify-between items-start shrink-0 pointer-events-none">
+          <div className="flex flex-col pointer-events-auto">
             {/* Active indicator */}
-            <span className="text-[9px] sm:text-[10px] font-mono tracking-[0.2em] sm:tracking-[0.3em] text-cyan-400 uppercase font-semibold mb-0.5 sm:mb-1 flex items-center gap-1.5">
+            <span className="text-[10px] font-mono tracking-[0.3em] text-cyan-400 uppercase font-semibold mb-1 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
               {t.prototypeWing}
             </span>
@@ -381,14 +380,14 @@ export default function SpaceScene() {
                 transition={{ duration: 0.25 }}
                 className="flex flex-col"
               >
-                <h1 className="text-white font-display text-xl sm:text-4xl font-extrabold tracking-[0.1em] sm:tracking-[0.15em] uppercase drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] truncate">
+                <h1 className="text-white font-display text-4xl font-extrabold tracking-[0.15em] uppercase drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
                   {currentShip.name}
                 </h1>
-                <div className="flex flex-col gap-0.5 sm:gap-1 mt-0.5 sm:mt-1">
-                  <span className="text-zinc-400 font-mono text-[8px] sm:text-[10px] tracking-[0.15em] sm:tracking-[0.2em] uppercase">
+                <div className="flex flex-col gap-1 mt-1">
+                  <span className="text-zinc-400 font-mono text-[10px] tracking-[0.2em] uppercase">
                     {t.classLabel}: {translateClass(currentShip.class, language)}
                   </span>
-                  <p className="text-zinc-300 font-serif text-xs sm:text-sm max-w-md leading-tight sm:leading-relaxed italic line-clamp-2 sm:line-clamp-none">
+                  <p className="text-zinc-300 font-serif text-sm max-w-md leading-relaxed mt-1 italic">
                     {shipDescriptions[language][currentShip.id] || currentShip.description}
                   </p>
                 </div>
@@ -397,16 +396,16 @@ export default function SpaceScene() {
           </div>
 
           {/* Settings, Mute, Profile and index indicator */}
-          <div className="flex items-center gap-1.5 sm:gap-4 pointer-events-auto">
+          <div className="flex items-center gap-4 pointer-events-auto">
             <button
               onClick={() => {
                 setIsProfileOpen(true);
                 playSound("click", isMuted);
               }}
-              className="p-2 sm:p-2.5 bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/20 rounded-full text-white/70 hover:text-white transition-all cursor-pointer backdrop-blur-md active:scale-95 shadow-lg flex items-center justify-center group"
+              className="p-2.5 bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/20 rounded-full text-white/70 hover:text-white transition-all cursor-pointer backdrop-blur-md active:scale-95 shadow-lg flex items-center justify-center group"
               title={t.pilotProfile}
             >
-              <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 group-hover:scale-110 transition-transform duration-300" />
+              <User className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform duration-300" />
             </button>
 
             <button
@@ -414,10 +413,10 @@ export default function SpaceScene() {
                 setIsSettingsOpen(true);
                 playSound("click", isMuted);
               }}
-              className="p-2 sm:p-2.5 bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/20 rounded-full text-white/70 hover:text-white transition-all cursor-pointer backdrop-blur-md active:scale-95 shadow-lg flex items-center justify-center group"
+              className="p-2.5 bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/20 rounded-full text-white/70 hover:text-white transition-all cursor-pointer backdrop-blur-md active:scale-95 shadow-lg flex items-center justify-center group"
               title={t.settings}
             >
-              <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-300 group-hover:rotate-45 transition-transform duration-300" />
+              <Settings className="w-4 h-4 text-cyan-300 group-hover:rotate-45 transition-transform duration-300" />
             </button>
 
             <button
@@ -426,30 +425,32 @@ export default function SpaceScene() {
                 setIsMuted(newMuted);
                 playSound("click", newMuted);
               }}
-              className="p-2 sm:p-2.5 bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/20 rounded-full text-white/70 hover:text-white transition-all cursor-pointer backdrop-blur-md active:scale-95 shadow-lg flex items-center justify-center"
+              className="p-2.5 bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/20 rounded-full text-white/70 hover:text-white transition-all cursor-pointer backdrop-blur-md active:scale-95 shadow-lg flex items-center justify-center"
               title={isMuted ? t.activateSound : t.muteSound}
             >
-              {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 animate-pulse" />}
+              {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />}
             </button>
             
-            <div className="px-2.5 sm:px-4 py-1 sm:py-1.5 bg-black/40 border border-white/10 rounded-full backdrop-blur-md shadow-lg font-mono text-[10px] sm:text-xs text-white/80 tracking-widest">
+            <div className="px-4 py-1.5 bg-black/40 border border-white/10 rounded-full backdrop-blur-md shadow-lg font-mono text-xs text-white/80 tracking-widest">
               <span className="text-white font-bold">{(currentIndex + 1).toString().padStart(2, '0')}</span>
-              <span className="text-white/30 mx-1 sm:mx-1.5">/</span>
+              <span className="text-white/30 mx-1.5">/</span>
               <span>{SHIPS_DATA.length.toString().padStart(2, '0')}</span>
             </div>
           </div>
         </header>
       )}
 
-      {/* Main interactive viewport - absolute inset-0 so 3D Canvas spans entire screen transparently */}
-      <main className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 pointer-events-auto">
+      {/* Main interactive viewport */}
+      <main className="flex-1 relative min-h-0 z-0">
+        <div className="absolute inset-0">
           <Canvas 
-            camera={{ position: [0, isMobile ? 1.2 : 1.5, isMobile ? 22 : 16], fov: isMobile ? 48 : 40 }} 
-            dpr={[0.75, graphicsQuality === "high" ? 1.5 : 1.0]} 
-            shadows={graphicsQuality === "high" ? "basic" : false}
-            gl={{ alpha: true, powerPreference: "high-performance" }}
-            onCreated={({ gl }) => gl.setClearColor("#000000", 0)}
+            camera={{ position: [0, 1.5, 16], fov: 40 }} 
+            shadows={graphicsQuality === "low" ? false : "soft"}
+            dpr={graphicsQuality === "low" ? 0.75 : [1, 1.5]}
+            gl={graphicsQuality === "low" 
+              ? { alpha: true, antialias: false, powerPreference: "high-performance", precision: "lowp" }
+              : { alpha: true, antialias: true, powerPreference: "high-performance" }
+            }
           >
             <OrbitControls 
               enablePan={false} 
@@ -458,8 +459,8 @@ export default function SpaceScene() {
               makeDefault 
               autoRotate={true}
               autoRotateSpeed={1.0}
-              maxDistance={isMobile ? 32 : 25}
-              minDistance={isMobile ? 10 : 8}
+              maxDistance={25}
+              minDistance={8}
               maxPolarAngle={Math.PI / 2 + 0.1}
               minPolarAngle={Math.PI / 4}
               enableDamping={true}
@@ -488,19 +489,18 @@ export default function SpaceScene() {
 
             {/* Localized Suspense boundary to prevent unmounting lights and controls during load */}
             <Suspense fallback={null}>
-              <AAADeepSpaceBackground selectedRoute={selectedRoute} graphicsQuality={graphicsQuality} />
-              <Environment preset="night" environmentIntensity={isCurrentShipLocked ? 0.2 : 0.8} />
+              <Environment preset="studio" environmentIntensity={isCurrentShipLocked ? 0.2 : 0.8} />
               <Spaceship 
                 modelFile={currentShip.modelFile} 
                 textureFile={selectedColor.textureFile}
-                position={[0, isMobile ? -0.2 : -0.6, 0]} 
+                position={[0, -0.6, 0]} 
                 isLocked={isCurrentShipLocked}
-                isMobile={isMobile}
+                graphicsQuality={graphicsQuality}
               />
             </Suspense>
 
             {graphicsQuality === "high" && (
-              <EffectComposer key="scene-effect-composer" multisampling={0}>
+              <EffectComposer key="scene-effect-composer" multisampling={8}>
                 <Bloom luminanceThreshold={0.85} mipmapBlur intensity={0.35} />
                 <Vignette eskil={false} offset={0.15} darkness={0.6} />
                 <ChromaticAberration offset={[0.0006, 0.0006]} />
@@ -509,9 +509,9 @@ export default function SpaceScene() {
           </Canvas>
         </div>
 
-        {/* Telemetry Dashboard (Left Side) - Super Compact & Responsive */}
+        {/* Telemetry Dashboard (Left Side) - Super Compact & Low-Profile */}
         {!isRouteSelectionOpen && (
-          <div className="absolute left-2 sm:left-6 bottom-2 sm:bottom-4 z-20 w-32 sm:w-48">
+          <div className="absolute left-6 bottom-4 z-20 w-48">
             <AnimatePresence>
               <motion.div 
                 key={currentShip.id}
@@ -519,18 +519,18 @@ export default function SpaceScene() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className="bg-black/75 backdrop-blur-md p-2 sm:p-3 rounded-xl border border-white/10 shadow-2xl flex flex-col gap-1 sm:gap-2 pointer-events-auto text-[8px] sm:text-[10px] font-mono select-none"
+                className="bg-black/70 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-2xl flex flex-col gap-2 pointer-events-auto text-[10px] font-mono select-none"
               >
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-0.5 sm:pb-1 text-[7px] sm:text-[8px] tracking-widest text-zinc-400">
-                  <span className="font-bold flex items-center gap-1.5 uppercase">
+                <div className="flex items-center justify-between border-b border-white/10 pb-1 text-[8px] tracking-widest text-zinc-400">
+                  <span className="font-bold flex items-center gap-2 uppercase">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                     {t.telemetry}
                   </span>
                 </div>
 
                 {/* Segmented Stats Rows */}
-                <div className="flex flex-col gap-1 sm:gap-1.5">
+                <div className="flex flex-col gap-1.5">
                   {[
                     { id: 'vel', label: t.speed, score: stats.vel, color: "bg-cyan-400", empty: "bg-cyan-950/40" },
                     { id: 'ace', label: t.acceleration, score: stats.ace, color: "bg-amber-400", empty: "bg-amber-950/40" },
@@ -539,9 +539,9 @@ export default function SpaceScene() {
                     { id: 'mas', label: t.mass, score: stats.mas, color: "bg-purple-400", empty: "bg-purple-950/40" }
                   ].map(stat => (
                     <div key={stat.id} className="flex flex-col gap-0.5">
-                      <div className="flex justify-between items-center text-[8px] sm:text-[9px] font-mono">
-                        <span className="text-zinc-400 uppercase tracking-wider truncate">{stat.label}</span>
-                        <span className="text-amber-400 font-bold ml-1">{stat.score}/10</span>
+                      <div className="flex justify-between items-center text-[9px] font-mono">
+                        <span className="text-zinc-400 uppercase tracking-wider">{stat.label}</span>
+                        <span className="text-amber-400 font-bold">{stat.score}/10</span>
                       </div>
                       <div className="flex items-center gap-0.5 w-full">
                         {Array.from({ length: 10 }).map((_, i) => {
@@ -549,7 +549,7 @@ export default function SpaceScene() {
                           return (
                             <div 
                               key={i} 
-                              className={`h-1 sm:h-1.5 flex-1 rounded-sm transition-colors duration-300 ${isActive ? stat.color : stat.empty}`} 
+                              className={`h-1.5 flex-1 rounded-sm transition-colors duration-300 ${isActive ? stat.color : stat.empty}`} 
                             />
                           );
                         })}
@@ -565,25 +565,25 @@ export default function SpaceScene() {
         {!isRouteSelectionOpen && (
           <>
             {/* Elegant side navigation arrows on desktop */}
-            <div className="absolute inset-x-0 top-1/3 -translate-y-1/2 px-2 sm:px-10 flex justify-between pointer-events-none z-10">
+            <div className="absolute inset-x-0 top-1/3 -translate-y-1/2 px-10 flex justify-between pointer-events-none z-10">
               <button
                 onClick={handlePrev}
-                className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/30 text-white/80 hover:text-white transition-all flex items-center justify-center cursor-pointer pointer-events-auto backdrop-blur-md active:scale-95 hover:scale-105 shadow-xl group"
+                className="w-14 h-14 rounded-full bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/30 text-white/80 hover:text-white transition-all flex items-center justify-center cursor-pointer pointer-events-auto backdrop-blur-md active:scale-95 hover:scale-105 shadow-xl group"
               >
-                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 group-hover:-translate-x-0.5 transition-transform" />
+                <ChevronLeft className="w-6 h-6 group-hover:-translate-x-0.5 transition-transform" />
               </button>
               
               <button
                 onClick={handleNext}
-                className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/30 text-white/80 hover:text-white transition-all flex items-center justify-center cursor-pointer pointer-events-auto backdrop-blur-md active:scale-95 hover:scale-105 shadow-xl group"
+                className="w-14 h-14 rounded-full bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/30 text-white/80 hover:text-white transition-all flex items-center justify-center cursor-pointer pointer-events-auto backdrop-blur-md active:scale-95 hover:scale-105 shadow-xl group"
               >
-                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight className="w-6 h-6 group-hover:translate-x-0.5 transition-transform" />
               </button>
             </div>
 
-            {/* Centered Space Launch / Select Ship Button & Drag Hint */}
-            <div className="absolute left-1/2 top-[58%] sm:top-auto sm:bottom-6 -translate-x-1/2 z-20 flex flex-col items-center">
-              <div className="flex flex-col items-center gap-1.5 sm:gap-2">
+            {/* Centered Space Launch / Select Ship Button */}
+            <div className="absolute left-1/2 bottom-6 -translate-x-1/2 z-20">
+              <div className="flex flex-col items-center gap-3">
                 <ChooseShipButton 
                   t={t}
                   onClick={() => {
@@ -600,14 +600,11 @@ export default function SpaceScene() {
                   }}
                   isMobile={isMobile}
                 />
-                <span className="text-[8px] sm:text-[9px] font-mono tracking-widest text-white/40 uppercase pointer-events-none select-none text-center">
-                  {t.dragToRotate}
-                </span>
               </div>
             </div>
 
             {/* Right side controls: Upgrade button & Color picker */}
-            <div className="absolute right-2 sm:right-8 bottom-3 sm:bottom-6 z-20 flex flex-col items-end gap-2 sm:gap-3 pointer-events-auto">
+            <div className="absolute right-8 bottom-6 z-20 flex flex-col items-end gap-3 pointer-events-auto">
               {/* Upgrade Button above Color Selector */}
               <div className="relative flex items-center gap-2">
                 {(() => {
@@ -627,7 +624,7 @@ export default function SpaceScene() {
                       }}
                       disabled={isBoostActive}
                       className={`
-                        w-10 h-10 sm:w-14 sm:h-14 rounded-full border transition-all duration-300 flex flex-col items-center justify-center pointer-events-auto backdrop-blur-md shadow-2xl relative group shrink-0 select-none
+                        w-14 h-14 rounded-full border transition-all duration-300 flex flex-col items-center justify-center pointer-events-auto backdrop-blur-md shadow-2xl relative group shrink-0 select-none
                         ${isBoostActive 
                           ? 'border-red-500/80 bg-black/85 shadow-[0_0_20px_rgba(239,68,68,0.5)] cursor-not-allowed' 
                           : 'border-white/10 hover:border-amber-500/50 cursor-pointer active:scale-95 bg-black/50 hover:bg-black/80'}
@@ -636,13 +633,13 @@ export default function SpaceScene() {
                     >
                       {isBoostActive ? (
                         <div className="flex flex-col items-center justify-center pointer-events-none">
-                          <Wrench className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-400 opacity-80 mb-0.5" />
-                          <span className="font-mono text-[8px] sm:text-[10px] font-black tracking-tighter text-red-500 animate-pulse drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]">
+                          <Wrench className="w-3.5 h-3.5 text-red-400 opacity-80 mb-0.5" />
+                          <span className="font-mono text-[10px] font-black tracking-tighter text-red-500 animate-pulse drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]">
                             {formattedTime}
                           </span>
                         </div>
                       ) : (
-                        <Wrench className="w-4 h-4 sm:w-6 sm:h-6 text-amber-400/90 group-hover:scale-115 group-hover:rotate-12 transition-transform duration-500" />
+                        <Wrench className="w-6 h-6 text-amber-400/90 group-hover:scale-115 group-hover:rotate-12 transition-transform duration-500" />
                       )}
                     </button>
                   );
@@ -664,7 +661,14 @@ export default function SpaceScene() {
         )}
       </main>
 
-
+      {/* Bottom footer helper text */}
+      {!isRouteSelectionOpen && (
+        <footer className="z-10 px-6 py-6 flex flex-col items-center justify-center shrink-0">
+          <span className="text-[9px] font-mono tracking-widest text-white/30 uppercase">
+            {t.dragToRotate}
+          </span>
+        </footer>
+      )}
 
 
       <AdModal 

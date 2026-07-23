@@ -427,7 +427,7 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     planets: (totalDist) => [
       {
         id: "saturn",
-        pos: new THREE.Vector3(16000, 12000, -totalDist * 0.65),
+        pos: new THREE.Vector3(0, 7000, -totalDist * 0.65),
         radius: 6500,
         color: "#fef08a",
         emissive: "#854d0e",
@@ -690,7 +690,7 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     planets: (totalDist) => [
       {
         id: "dyson-core",
-        pos: new THREE.Vector3(16000, -12000, -totalDist * 0.55),
+        pos: new THREE.Vector3(0, -9000, -totalDist * 0.55),
         radius: 6000,
         color: "#ca8a04",
         emissive: "#713f12",

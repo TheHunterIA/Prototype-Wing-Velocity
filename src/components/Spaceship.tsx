@@ -22,7 +22,7 @@ interface SpaceshipProps {
   textureFile: string;
   position?: [number, number, number];
   isLocked?: boolean;
-  isMobile?: boolean;
+  graphicsQuality?: "high" | "low";
 }
 
 interface SpaceshipViewProps {
@@ -31,7 +31,7 @@ interface SpaceshipViewProps {
   position?: [number, number, number];
   isGlb?: boolean;
   isLocked?: boolean;
-  isMobile?: boolean;
+  graphicsQuality?: "high" | "low";
 }
 
 const SpaceshipView = memo(function SpaceshipView({
@@ -40,7 +40,7 @@ const SpaceshipView = memo(function SpaceshipView({
   position = [0, 0, 0],
   isGlb = false,
   isLocked = false,
-  isMobile = false
+  graphicsQuality = "high"
 }: SpaceshipViewProps) {
   // Base color texture
   const texture = useTexture(textureFile);
@@ -52,16 +52,18 @@ const SpaceshipView = memo(function SpaceshipView({
   const internalRef = useRef<THREE.Group>(null);
   const scaleRef = useRef(0);
 
+  const isLow = graphicsQuality === "low";
+
   // Apply the texture to the cloned object to avoid side-effects on cache
   const { clonedObj, sharedMaterial } = useMemo(() => {
     const clone = scene.clone();
 
     // Configure textures
-    const textures = [texture, ...Object.values(pbrMaps)];
+    const textures = isLow ? [texture] : [texture, ...Object.values(pbrMaps)];
     textures.forEach(t => {
       t.wrapS = THREE.RepeatWrapping;
       t.wrapT = THREE.RepeatWrapping;
-      t.anisotropy = 8; // 8x is high-performance and visually identical to 16x
+      t.anisotropy = isLow ? 1 : 8; // 1x anisotropy on low quality, 8x on high
       t.flipY = isGlb ? false : true;
       t.needsUpdate = true;
     });
@@ -69,19 +71,24 @@ const SpaceshipView = memo(function SpaceshipView({
     texture.colorSpace = THREE.SRGBColorSpace;
 
     // Create a single shared material instance for this ship
-    const material = new THREE.MeshStandardMaterial({
-      map: texture,
-      normalMap: pbrMaps.normalMap,
-      roughnessMap: pbrMaps.roughnessMap,
-      metalnessMap: pbrMaps.metalnessMap,
-      emissiveMap: isLocked ? null : pbrMaps.emissiveMap,
-      emissive: isLocked ? new THREE.Color(0x000000) : new THREE.Color(0xffffff),
-      emissiveIntensity: isLocked ? 0 : 0.5,
-      roughness: 1,
-      metalness: 1,
-      envMapIntensity: 1.15,
-      side: THREE.DoubleSide,
-    });
+    const material = isLow
+      ? new THREE.MeshLambertMaterial({
+          map: texture,
+          side: THREE.DoubleSide,
+        })
+      : new THREE.MeshStandardMaterial({
+          map: texture,
+          normalMap: pbrMaps.normalMap,
+          roughnessMap: pbrMaps.roughnessMap,
+          metalnessMap: pbrMaps.metalnessMap,
+          emissiveMap: isLocked ? null : pbrMaps.emissiveMap,
+          emissive: isLocked ? new THREE.Color(0x000000) : new THREE.Color(0xffffff),
+          emissiveIntensity: isLocked ? 0 : 0.5,
+          roughness: 1,
+          metalness: 1,
+          envMapIntensity: 1.15,
+          side: THREE.DoubleSide,
+        });
 
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
@@ -103,8 +110,8 @@ const SpaceshipView = memo(function SpaceshipView({
         }
 
         mesh.material = material;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
+        mesh.castShadow = !isLow;
+        mesh.receiveShadow = !isLow;
       }
     });
 
@@ -162,7 +169,7 @@ const SpaceshipView = memo(function SpaceshipView({
       <group ref={internalRef}>
         <primitive
           object={clonedObj}
-          scale={isMobile ? 0.009 : 0.015} // Appropriately scale model to fit mobile and desktop viewports
+          scale={0.015} // Appropriately scale the 1000-unit model to fit the scene
           position={[0, 0, 0]}
         />
       </group>
@@ -195,14 +202,14 @@ const SpaceshipView = memo(function SpaceshipView({
   );
 });
 
-function GLTFSpaceship({ modelFile, textureFile, position, isLocked, isMobile }: SpaceshipProps) {
+function GLTFSpaceship({ modelFile, textureFile, position, isLocked, graphicsQuality }: SpaceshipProps) {
   const gltf = useLoader(GLTFLoader, modelFile);
-  return <SpaceshipView scene={gltf.scene} textureFile={textureFile} position={position} isGlb={true} isLocked={isLocked} isMobile={isMobile} />;
+  return <SpaceshipView scene={gltf.scene} textureFile={textureFile} position={position} isGlb={true} isLocked={isLocked} graphicsQuality={graphicsQuality} />;
 }
 
-function OBJSpaceship({ modelFile, textureFile, position, isLocked, isMobile }: SpaceshipProps) {
+function OBJSpaceship({ modelFile, textureFile, position, isLocked, graphicsQuality }: SpaceshipProps) {
   const obj = useLoader(OBJLoader, modelFile);
-  return <SpaceshipView scene={obj} textureFile={textureFile} position={position} isGlb={false} isLocked={isLocked} isMobile={isMobile} />;
+  return <SpaceshipView scene={obj} textureFile={textureFile} position={position} isGlb={false} isLocked={isLocked} graphicsQuality={graphicsQuality} />;
 }
 
 const Spaceship = memo(function Spaceship({
@@ -210,13 +217,13 @@ const Spaceship = memo(function Spaceship({
   textureFile, 
   position = [0, 0, 0],
   isLocked = false,
-  isMobile = false
+  graphicsQuality
 }: SpaceshipProps) {
   const isGlb = modelFile.endsWith(".glb");
   if (isGlb) {
-    return <GLTFSpaceship modelFile={modelFile} textureFile={textureFile} position={position} isLocked={isLocked} isMobile={isMobile} />;
+    return <GLTFSpaceship modelFile={modelFile} textureFile={textureFile} position={position} isLocked={isLocked} graphicsQuality={graphicsQuality} />;
   } else {
-    return <OBJSpaceship modelFile={modelFile} textureFile={textureFile} position={position} isLocked={isLocked} isMobile={isMobile} />;
+    return <OBJSpaceship modelFile={modelFile} textureFile={textureFile} position={position} isLocked={isLocked} graphicsQuality={graphicsQuality} />;
   }
 });
 

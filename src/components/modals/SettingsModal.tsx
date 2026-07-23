@@ -125,6 +125,7 @@ export function SettingsModal({
                       setGraphicsQuality(quality.code as "high" | "low");
                       try {
                         localStorage.setItem("graphicsQuality", quality.code);
+                        localStorage.setItem("graphicsQualityManual", "true");
                       } catch {}
                       playSound("click", isMuted);
                     }}

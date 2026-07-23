@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { useThree, useFrame } from "@react-three/fiber";
+import { useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 
 export interface UsePerformanceMonitorProps {
   graphicsQuality: "high" | "low";
@@ -10,97 +10,82 @@ export function usePerformanceMonitor({
   graphicsQuality,
   setGraphicsQuality,
 }: UsePerformanceMonitorProps) {
-  const { gl } = useThree();
-  const frameTimes = useRef<number[]>([]);
-  const lastTimeRef = useRef(performance.now());
+  const frameDeltas = useRef<{ time: number; delta: number }[]>([]);
   const mountTimeRef = useRef(performance.now());
   
-  const isMobileDevice = typeof window !== "undefined" && (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768);
+  // Timers for sustained FPS conditions (accumulated milliseconds)
+  const timeBelow32 = useRef<number>(0);
+  const timeAbove58 = useRef<number>(0);
+  const lastCheckTime = useRef<number>(performance.now());
 
-  const targetMaxDPR = Math.min(
-    typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1,
-    graphicsQuality === "high" ? (isMobileDevice ? 1.25 : 1.5) : (isMobileDevice ? 0.9 : 1.0)
-  );
-  const minDPR = graphicsQuality === "high" ? 0.75 : 0.55;
-  
-  const [currentDPR, setCurrentDPR] = useState(() => targetMaxDPR);
-  const debounceTimer = useRef<number | null>(null);
-  const emergencySpikes = useRef(0);
-  const lowFpsCount = useRef(0);
-
-  useEffect(() => {
-    gl.setPixelRatio(currentDPR);
-  }, [currentDPR, gl]);
-
-  // Se a qualidade gráfica for alterada manualmente para "high", reseta o DPR para a resolução máxima de alta qualidade
-  useEffect(() => {
-    setCurrentDPR(targetMaxDPR);
-  }, [graphicsQuality, targetMaxDPR]);
-
-  useFrame(() => {
+  useFrame((state, delta) => {
     const now = performance.now();
-    const delta = now - lastTimeRef.current;
-    lastTimeRef.current = now;
-
     const timeSinceMount = now - mountTimeRef.current;
 
-    // Durante os primeiros 5 segundos (carregamento de modelos/compilação de shaders da GPU),
-    // ignora picos de frame para não derrubar a resolução nem causar flashes ao mudar de rota!
+    // Skip the first 5 seconds of the simulator to avoid load spikes (shader compile, model loading)
     if (timeSinceMount < 5000) {
+      lastCheckTime.current = now;
       return;
     }
 
-    // Resposta de emergência para picos sustentados em meio ao jogo
-    if (delta > 250) {
-      emergencySpikes.current += 1;
-      if (emergencySpikes.current >= 3 && currentDPR > minDPR) {
-        const newDpr = Math.max(minDPR, currentDPR - 0.20);
-        setCurrentDPR(newDpr);
-        debounceTimer.current = now;
-        frameTimes.current = [];
-        emergencySpikes.current = 0;
-        console.log(`[Dynamic Resolution] Queda brusca de FPS detectada. Reduzindo DPR emergencialmente para ${newDpr.toFixed(2)}`);
-      }
+    // Respect manual user selection
+    let isManual = false;
+    try {
+      isManual = localStorage.getItem("graphicsQualityManual") === "true";
+    } catch (e) {}
+
+    if (isManual) {
       return;
-    } else {
-      emergencySpikes.current = 0;
     }
 
-    // Ignora picos isolados grandes (carregamentos, GC, foco da aba)
-    if (delta > 150) return;
+    // Record frame delta
+    frameDeltas.current.push({ time: now, delta });
 
-    frameTimes.current.push(delta);
-    if (frameTimes.current.length > 90) {
-      frameTimes.current.shift();
+    // Clean up frames older than 2.5 seconds (2500ms sliding window)
+    const windowStart = now - 2500;
+    frameDeltas.current = frameDeltas.current.filter((f) => f.time >= windowStart);
+
+    // We need at least some frames to calculate average FPS
+    if (frameDeltas.current.length < 30) {
+      lastCheckTime.current = now;
+      return;
     }
 
-    // Análise de performance a cada janela de amostragem (1.5s)
-    if (frameTimes.current.length === 90 && (!debounceTimer.current || now - debounceTimer.current > 3000)) {
-      const avgDelta = frameTimes.current.reduce((a, b) => a + b, 0) / 90;
-      const fps = 1000 / avgDelta;
+    // Calculate sliding average FPS
+    const totalDelta = frameDeltas.current.reduce((sum, f) => sum + f.delta, 0);
+    const avgFPS = frameDeltas.current.length / totalDelta;
 
-      if (fps < 48 && currentDPR > minDPR) {
-        const nextDPR = Math.max(minDPR, currentDPR - 0.15);
-        setCurrentDPR(nextDPR);
-        debounceTimer.current = now;
-        frameTimes.current = [];
-        lowFpsCount.current += 1;
+    const elapsed = now - lastCheckTime.current;
+    lastCheckTime.current = now;
 
-        // Se persistir muito baixo mesmo baixando o DPR, alterna para modo de baixa fidelidade automaticamente
-        if (lowFpsCount.current >= 3 && graphicsQuality === "high") {
-          console.log(`[Dynamic Resolution] FPS persistentemente baixo (${fps.toFixed(1)}). Alternando para modo otimizado.`);
+    if (graphicsQuality === "high") {
+      if (avgFPS < 32) {
+        timeBelow32.current += elapsed;
+        if (timeBelow32.current >= 4000) { // 4 seconds continuous
+          console.log(`[PerformanceMonitor] Low FPS detected (${avgFPS.toFixed(1)}). Downgrading to low quality.`);
           setGraphicsQuality("low");
-          lowFpsCount.current = 0;
+          timeBelow32.current = 0;
+          timeAbove58.current = 0;
+          frameDeltas.current = [];
         }
-      } else if (fps > 58.0 && currentDPR < targetMaxDPR) {
-        const nextDPR = Math.min(targetMaxDPR, currentDPR + 0.15);
-        setCurrentDPR(nextDPR);
-        debounceTimer.current = now;
-        frameTimes.current = [];
-        if (fps > 59.0) lowFpsCount.current = Math.max(0, lowFpsCount.current - 1);
+      } else {
+        timeBelow32.current = 0;
+      }
+    } else if (graphicsQuality === "low") {
+      if (avgFPS >= 58) {
+        timeAbove58.current += elapsed;
+        if (timeAbove58.current >= 12000) { // 12 seconds continuous
+          console.log(`[PerformanceMonitor] High FPS detected (${avgFPS.toFixed(1)}). Upgrading to high quality.`);
+          setGraphicsQuality("high");
+          timeBelow32.current = 0;
+          timeAbove58.current = 0;
+          frameDeltas.current = [];
+        }
+      } else {
+        timeAbove58.current = 0;
       }
     }
   });
 
-  return { currentDPR };
+  return null;
 }
