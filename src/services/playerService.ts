@@ -105,17 +105,72 @@ export const playerService = {
     try {
       const playerDoc = doc(db, "players", uid);
       
-      // Initial fetch
+      // Initial fetch from server
       const snapshot = await getDoc(playerDoc);
       if (snapshot.exists()) {
         const remoteData = snapshot.data() as PlayerData;
-        // Simple merge: if remote has more XP, use it
-        if (remoteData.xp > this.data.xp) {
-          this.data = { ...this.data, ...remoteData };
-        } else {
-          // If local is "better", push it to remote
-          await this.save();
-        }
+        
+        // Intelligent data merging
+        const mergedXp = Math.max(this.data.xp || 0, remoteData.xp || 0);
+        const mergedLevel = Math.max(this.data.level || 1, remoteData.level || 1);
+        const mergedTotalRaces = Math.max(this.data.totalRaces || 0, remoteData.totalRaces || 0);
+
+        // Merge track records: keep the best (lowest) time for every track
+        const mergedRecords: Record<string, TrackRecord> = {
+          ...(remoteData.trackRecords || {}),
+          ...(this.data.trackRecords || {})
+        };
+        const allTrackKeys = new Set([
+          ...Object.keys(remoteData.trackRecords || {}),
+          ...Object.keys(this.data.trackRecords || {})
+        ]);
+        allTrackKeys.forEach((trackId) => {
+          const remoteRec = remoteData.trackRecords?.[trackId];
+          const localRec = this.data.trackRecords?.[trackId];
+          if (remoteRec && localRec) {
+            mergedRecords[trackId] = remoteRec.time < localRec.time ? remoteRec : localRec;
+          } else if (remoteRec) {
+            mergedRecords[trackId] = remoteRec;
+          } else if (localRec) {
+            mergedRecords[trackId] = localRec;
+          }
+        });
+
+        // Merge temporary licenses: keep furthest expiration
+        const mergedLicenses: Record<string, number> = {
+          ...(remoteData.temporaryLicenses || {}),
+          ...(this.data.temporaryLicenses || {})
+        };
+        const allLicenseKeys = new Set([
+          ...Object.keys(remoteData.temporaryLicenses || {}),
+          ...Object.keys(this.data.temporaryLicenses || {})
+        ]);
+        allLicenseKeys.forEach((shipId) => {
+          const remoteExp = remoteData.temporaryLicenses?.[shipId] || 0;
+          const localExp = this.data.temporaryLicenses?.[shipId] || 0;
+          mergedLicenses[shipId] = Math.max(remoteExp, localExp);
+        });
+
+        // Merge ship boosts
+        const mergedBoosts = {
+          ...(remoteData.shipBoosts || {}),
+          ...(this.data.shipBoosts || {})
+        };
+
+        this.data = {
+          xp: mergedXp,
+          level: mergedLevel,
+          trackRecords: mergedRecords,
+          temporaryLicenses: mergedLicenses,
+          shipBoosts: mergedBoosts,
+          totalRaces: mergedTotalRaces,
+        };
+
+        this.saveLocal();
+        await setDoc(playerDoc, {
+          ...this.data,
+          updatedAt: new Date()
+        }, { merge: true });
       } else {
         // Create initial doc if it doesn't exist
         await setDoc(playerDoc, {
@@ -125,11 +180,12 @@ export const playerService = {
       }
 
       // Real-time listener
-      onSnapshot(playerDoc, (doc) => {
-        if (doc.exists()) {
-          const remoteData = doc.data() as PlayerData;
-          if (remoteData.xp > this.data.xp) {
-             this.data = { ...this.data, ...remoteData };
+      onSnapshot(playerDoc, (snapshotDoc) => {
+        if (snapshotDoc.exists()) {
+          const remoteData = snapshotDoc.data() as PlayerData;
+          if (remoteData.xp > this.data.xp || remoteData.level > this.data.level) {
+            this.data = { ...this.data, ...remoteData };
+            this.saveLocal();
           }
         }
       }, (err) => {
@@ -143,6 +199,9 @@ export const playerService = {
   },
 
   async save() {
+    // Always persist locally immediately
+    this.saveLocal();
+
     if (this.isFirebaseEnabled && this.currentUser) {
       const playerDoc = doc(db, "players", this.currentUser.uid);
       try {
@@ -151,11 +210,8 @@ export const playerService = {
           updatedAt: new Date()
         }, { merge: true });
       } catch (e) {
-        console.error("Error saving to Firebase", e);
-        this.saveLocal();
+        console.warn("Error saving player data to Firebase:", e);
       }
-    } else {
-      this.saveLocal();
     }
   },
 

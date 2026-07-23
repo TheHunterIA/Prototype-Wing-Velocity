@@ -59,17 +59,18 @@ export function LoadingScreen({
             </div>
           )}
           
-          <div className="absolute bottom-12 left-0 right-0 z-20 flex flex-col items-center justify-center px-4">
-            <div className="px-6 py-4 rounded-xl bg-black/75 border border-white/10 backdrop-blur-md flex flex-col items-center shadow-2xl">
-              <div className="w-64 h-1.5 bg-white/5 rounded-full overflow-hidden mb-3 border border-white/10">
-                <div 
-                  className="h-full bg-gradient-to-r from-cyan-600 via-teal-400 to-cyan-300 transition-all duration-300 shadow-[0_0_15px_rgba(34,211,238,0.5)]" 
-                  style={{ width: `${progress}%` }} 
-                />
-              </div>
-              <p className="font-mono text-[10px] font-bold tracking-[0.25em] text-white/90 uppercase">
-                {progress < 35 ? "⚡ ALINHANDO NAVE NO HANGAR" : progress < 75 ? "🛠️ CALIBRANDO SISTEMAS DA NAVE" : "🚀 NAVE PRONTA NO HANGAR"} ... {Math.round(progress)}%
-              </p>
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center justify-center w-72 sm:w-80 px-2 pointer-events-none">
+            <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 transition-all duration-300 shadow-[0_0_8px_rgba(34,211,238,0.4)]" 
+                style={{ width: `${progress}%` }} 
+              />
+            </div>
+            <div className="flex justify-between items-center w-full mt-2 font-mono text-[10px] text-zinc-400 uppercase tracking-wider opacity-85">
+              <span>
+                {progress < 35 ? "ALINHANDO NAVE" : progress < 75 ? "CALIBRANDO SISTEMAS" : "SISTEMAS PRONTOS"}
+              </span>
+              <span className="text-cyan-400 font-semibold">{Math.round(progress)}%</span>
             </div>
           </div>
         </motion.div>

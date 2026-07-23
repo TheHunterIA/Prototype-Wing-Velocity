@@ -1,5 +1,5 @@
-import { db } from "./firebase";
-import { collection, query, where, orderBy, limit, getDocs, setDoc, doc, serverTimestamp } from "firebase/firestore";
+import { db, auth } from "./firebase";
+import { collection, query, where, orderBy, limit, getDocs, setDoc, doc, serverTimestamp, getDoc } from "firebase/firestore";
 import { crazyGamesService } from "../services/crazyGamesService";
 import { playerService } from "../services/playerService";
 
@@ -15,25 +15,35 @@ export const leaderboardService = {
   async submitScore(trackId: string, time: number, shipId: string) {
     // 1. Prioridade para CrazyGames Leaderboard
     if (crazyGamesService.isEnabled()) {
-      // Nota: CrazyGames geralmente usa milissegundos para tempos precisos
       await crazyGamesService.submitScore(trackId, time * 1000);
       return;
     }
 
-    // 2. Fallback para Firebase se estiver em produção/desenvolvimento
-    if (!playerService.isFirebaseEnabled || !playerService.currentUser) return;
+    // 2. Fallback para Firebase fora da CrazyGames
+    const activeUser = playerService.currentUser || auth.currentUser;
+    if (!activeUser) return;
 
     try {
-      const entryId = `${playerService.currentUser.uid}_${trackId}`;
+      const entryId = `${activeUser.uid}_${trackId}`;
       const leaderboardRef = doc(db, "leaderboards", entryId);
       
+      // Check existing doc to avoid overwriting a better time
+      const existingDoc = await getDoc(leaderboardRef);
+      if (existingDoc.exists()) {
+        const existingData = existingDoc.data();
+        if (existingData.time && existingData.time <= time) {
+          // Current record is already equal or better
+          return;
+        }
+      }
+
       await setDoc(leaderboardRef, {
-        userId: playerService.currentUser.uid,
+        userId: activeUser.uid,
         userName: "Piloto Sparrow",
         trackId,
         time,
         shipId,
-        level: playerService.data.level,
+        level: playerService.data.level || 1,
         updatedAt: serverTimestamp()
       }, { merge: true });
     } catch (e) {
@@ -42,7 +52,7 @@ export const leaderboardService = {
   },
 
   async getTopScores(trackId: string, limitCount: number = 10): Promise<LeaderboardEntry[]> {
-    // 1. Se estiver na CrazyGames, buscar de lá (exige implementação de UI para exibir os dados do SDK)
+    // 1. Se estiver na CrazyGames, buscar do SDK
     if (crazyGamesService.isEnabled()) {
       const data = await crazyGamesService.getScores(trackId);
       if (data && data.items) {
@@ -58,8 +68,6 @@ export const leaderboardService = {
     }
 
     // 2. Fallback Firebase
-    if (!playerService.isFirebaseEnabled) return [];
-
     try {
       const q = query(
         collection(db, "leaderboards"),
@@ -76,3 +84,4 @@ export const leaderboardService = {
     }
   }
 };
+

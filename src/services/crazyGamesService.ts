@@ -40,17 +40,14 @@ export class CrazyGamesService {
       const env = sdk.environment;
       
       if (env === 'disabled') return false;
-      if (env === 'crazygames' || env === 'local') return true;
+      if (env === 'crazygames') return true;
 
       const hostname = window.location.hostname;
-      const isAllowedDomain = 
+      const isCrazyGamesDomain = 
         hostname.includes('crazygames') || 
-        hostname.includes('crazy.games') || 
-        hostname.includes('localhost') || 
-        hostname.includes('127.0.0.1') ||
-        hostname.includes('run.app');
+        hostname.includes('crazy.games');
       
-      return isAllowedDomain;
+      return isCrazyGamesDomain;
     } catch (e) {
       return false;
     }
