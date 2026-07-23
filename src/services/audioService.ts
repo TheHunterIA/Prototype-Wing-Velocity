@@ -129,7 +129,7 @@ class AudioService {
   }
 
   public async playSfx(type: "laser" | "explosion" | "shield_hit" | "hull_hit" | "ability" | "click" | "warp", forceMute = false) {
-    if ((this.isMuted || this.isAdMuted || forceMute) && type !== "click") return;
+    if (this.isMuted || this.isAdMuted || forceMute) return;
     if (!this.ctx) await this.init();
     if (!this.ctx) return;
 
@@ -176,41 +176,58 @@ class AudioService {
       osc.start(t);
       osc.stop(t + 0.2);
     } else if (type === "click") {
+      // Efeito sonoro de clique de menu nítido e bem audível
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = "sine";
-      osc.frequency.setValueAtTime(1800, t);
-      osc.frequency.exponentialRampToValueAtTime(900, t + 0.05);
-      gain.gain.setValueAtTime(0.05, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+      osc.frequency.setValueAtTime(2200, t);
+      osc.frequency.exponentialRampToValueAtTime(1100, t + 0.06);
+      gain.gain.setValueAtTime(0.25, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start(t);
-      osc.stop(t + 0.05);
+      osc.stop(t + 0.06);
     } else if (type === "warp") {
+      // Som de dobra/hiperespaço épico com varredura grave e filtro
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(60, t);
-      osc.frequency.exponentialRampToValueAtTime(400, t + 0.8);
-      gain.gain.setValueAtTime(0.1, t);
+      osc.frequency.setValueAtTime(70, t);
+      osc.frequency.exponentialRampToValueAtTime(650, t + 0.8);
+      gain.gain.setValueAtTime(0.22, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start(t);
       osc.stop(t + 0.8);
     } else if (type === "ability") {
-      const osc = this.ctx.createOscillator();
+      // Som de ativação de Turbo / Nitro: Impacto de energia + ronco de turbina acelerando
+      const osc1 = this.ctx.createOscillator();
+      const osc2 = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(440, t);
-      osc.frequency.exponentialRampToValueAtTime(880, t + 0.4);
-      gain.gain.setValueAtTime(0.1, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-      osc.connect(gain);
+
+      // Oscilador 1: Varredura synth de energia futurista
+      osc1.type = "sawtooth";
+      osc1.frequency.setValueAtTime(220, t);
+      osc1.frequency.exponentialRampToValueAtTime(980, t + 0.5);
+
+      // Oscilador 2: Sub-grave de propulsão
+      osc2.type = "triangle";
+      osc2.frequency.setValueAtTime(90, t);
+      osc2.frequency.exponentialRampToValueAtTime(320, t + 0.5);
+
+      gain.gain.setValueAtTime(0.25, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
       gain.connect(this.ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.4);
+
+      osc1.start(t);
+      osc2.start(t);
+      osc1.stop(t + 0.5);
+      osc2.stop(t + 0.5);
     }
   }
 
