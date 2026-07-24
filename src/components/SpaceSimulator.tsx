@@ -2600,17 +2600,17 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
   const fallbackAsteroidTexture = useMemo(() => generateNoiseTexture(128, 128, "asteroid", "#4a443f"), []);
 
   const ringsData = useMemo(() => {
-    // Ajusta o raio dos aros de neon dinamicamente com estreitamento progressivo para exigir maior precisão ao avançar na pista
-    let baseRadius = 120;
+    // Ajusta o raio dos aros de neon dinamicamente com estreitamento progressivo para exigir maior precisão e movimentação do piloto desde o início
+    let baseRadius = 100;
     const diff = selectedRoute.difficulty;
     if (diff === "Iniciante" || diff === "Fácil") {
-      baseRadius = 165;
+      baseRadius = 110;
     } else if (diff === "Médio") {
-      baseRadius = 125;
+      baseRadius = 95;
     } else if (diff === "Difícil") {
-      baseRadius = 90;
+      baseRadius = 80;
     } else if (diff === "Elite" || diff === "Sobrevivência") {
-      baseRadius = 75;
+      baseRadius = 70;
     }
 
     return Array.from({ length: selectedRoute.numRings }).map((_, i, arr) => {
@@ -2683,9 +2683,28 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
         dy = 1;
       }
 
-      // Distância de segurança para o planeta ficar visível e imponente na visão sem colidir com os aros
-      const clearance = p.id === "saturn" ? 1800 : 2200;
-      const targetDistance = newRadius + clearance;
+      // Calcula o raio máximo de qualquer elemento do sistema do planeta (anéis, satélites, brilho ou luas)
+      let planetSystemRadius = newRadius * 1.5; // Margem padrão para atmosferas e efeitos de brilho
+      if (p.id === "saturn") {
+        planetSystemRadius = newRadius * 4.3; // Raio estendido por causa dos enormes anéis de poeira e asteroides instanciados
+      } else if (p.id === "sun") {
+        planetSystemRadius = newRadius * 4.7; // Brilhos solares e labaredas coronais
+      } else if (p.id === "blackhole") {
+        planetSystemRadius = newRadius * 4.1; // Disco de acreção de matéria
+      }
+
+      let moonsSystemRadius = 0;
+      if (newMoons && newMoons.length > 0) {
+        const maxMoonDist = Math.max(...newMoons.map((m: any) => m.distance));
+        const maxMoonSize = Math.max(...newMoons.map((m: any) => m.radius));
+        moonsSystemRadius = maxMoonDist + maxMoonSize;
+      }
+
+      // Escolhe o maior raio do sistema orbital para criar um escudo de segurança impenetrável
+      const maxSystemRadius = Math.max(planetSystemRadius, moonsSystemRadius);
+      
+      // Adiciona um buffer de segurança absoluto de 3000 metros de espaço vazio entre o limite do planeta e a pista
+      const targetDistance = maxSystemRadius + 3000;
 
       finalPos.x = routeCenter.x + dx * targetDistance;
       finalPos.y = routeCenter.y + dy * targetDistance;

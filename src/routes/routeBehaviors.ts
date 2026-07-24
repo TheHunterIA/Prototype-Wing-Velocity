@@ -118,8 +118,9 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
       if (idx < 2) {
         x = 0; y = 0;
       } else {
-        x = Math.sin((idx - 2) * 0.65) * 380 + (randomValHelper(seed, idx * 10) - 0.5) * 40;
-        y = Math.cos((idx - 2) * 0.45) * 260 + (Math.sin(seed + idx * 11) - 0.5) * 40;
+        // Amplitude e frequência aumentadas substancialmente para exigir curvas rápidas e desvios dinâmicos desde o início
+        x = Math.sin((idx - 2) * 0.85) * 620 + (randomValHelper(seed, idx * 10) - 0.5) * 120;
+        y = Math.cos((idx - 2) * 0.60) * 440 + (Math.sin(seed + idx * 11) - 0.5) * 120;
       }
       return new THREE.Vector3(x, y, baseZ);
     },
@@ -156,8 +157,9 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     ],
     calculateRingPosition: (idx, seed, ringSpacing) => {
       const baseZ = -4000 - (idx * ringSpacing);
-      const x = Math.sin(idx * 0.75) * 580 + Math.sin(idx * 1.5) * 160 + (randomValHelper(seed, idx * 10) - 0.5) * 60;
-      const y = Math.cos(idx * 0.60) * 420 + (Math.sin(seed + idx * 11) - 0.5) * 60;
+      // Espalhamento de slaloms acentuado significativamente para exigir alta perícia de pilotagem lateral e controle de turbo
+      const x = Math.sin(idx * 0.95) * 820 + Math.sin(idx * 1.8) * 250 + (randomValHelper(seed, idx * 10) - 0.5) * 160;
+      const y = Math.cos(idx * 0.80) * 600 + (Math.sin(seed + idx * 11) - 0.5) * 160;
       return new THREE.Vector3(x, y, baseZ);
     },
     updateHUDStatus: (data, currEnv, envLabel, envValueText, envBarContainer) => {
@@ -193,8 +195,9 @@ export const routeBehaviors: Record<string, RouteBehavior> = {
     ],
     calculateRingPosition: (idx, seed, ringSpacing) => {
       const baseZ = -4000 - (idx * ringSpacing);
-      const x = Math.sin(idx * 0.35) * 750 + (randomValHelper(seed, idx * 10) - 0.5) * 50;
-      const y = Math.cos(idx * 0.28) * 520 + (Math.sin(seed + idx * 11) - 0.5) * 50;
+      // Rodovia expressa agora conta com ondulações de alta velocidade e curvas sinuosas mais pronunciadas em X e Y
+      const x = Math.sin(idx * 0.55) * 1050 + Math.cos(idx * 0.25) * 300 + (randomValHelper(seed, idx * 10) - 0.5) * 140;
+      const y = Math.cos(idx * 0.45) * 780 + (Math.sin(seed + idx * 11) - 0.5) * 140;
       return new THREE.Vector3(x, y, baseZ);
     },
     updateHUDStatus: (data, currEnv, envLabel, envValueText, envBarContainer, envBarFill) => {

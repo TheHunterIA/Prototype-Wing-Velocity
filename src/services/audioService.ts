@@ -112,16 +112,16 @@ class AudioService {
     // Mapear velocidade para frequência e ganho
     const normalizedVel = Math.min(Math.max(velocity / 4000, 0), 1);
     
-    // Motor base
+    // Motor base - Volume aumentado para maior impacto do SFX
     const baseFreq = 40 + normalizedVel * 60; // 40Hz a 100Hz
     this.engineOsc.frequency.setTargetAtTime(baseFreq, this.ctx.currentTime, 0.1);
     
-    const baseGain = 0.03 + normalizedVel * 0.05;
+    const baseGain = 0.08 + normalizedVel * 0.12;
     this.engineGain.gain.setTargetAtTime(baseGain, this.ctx.currentTime, 0.1);
 
-    // Turbo
+    // Turbo - Volume aumentado para maior impacto do SFX
     if (isTurbo) {
-      this.turboGain.gain.setTargetAtTime(0.06, this.ctx.currentTime, 0.1);
+      this.turboGain.gain.setTargetAtTime(0.15, this.ctx.currentTime, 0.1);
       this.turboOsc.frequency.setTargetAtTime(100 + normalizedVel * 200, this.ctx.currentTime, 0.05);
     } else {
       this.turboGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.2);
@@ -152,7 +152,7 @@ class AudioService {
       osc.type = "sawtooth";
       osc.frequency.setValueAtTime(1100, t);
       osc.frequency.exponentialRampToValueAtTime(70, t + 0.15);
-      gain.gain.setValueAtTime(0.05, t);
+      gain.gain.setValueAtTime(0.15, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
       osc.connect(gain);
       gain.connect(outputNode);
@@ -164,7 +164,7 @@ class AudioService {
       subOsc.type = "sine";
       subOsc.frequency.setValueAtTime(150, t);
       subOsc.frequency.exponentialRampToValueAtTime(20, t + 1.2);
-      subGain.gain.setValueAtTime(0.45, t);
+      subGain.gain.setValueAtTime(0.85, t);
       subGain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
       subOsc.connect(subGain);
       subGain.connect(outputNode);
@@ -176,7 +176,7 @@ class AudioService {
       osc.type = type === "shield_hit" ? "sine" : "square";
       osc.frequency.setValueAtTime(type === "shield_hit" ? 600 : 100, t);
       osc.frequency.linearRampToValueAtTime(type === "shield_hit" ? 150 : 40, t + 0.2);
-      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.setValueAtTime(0.45, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
       osc.connect(gain);
       gain.connect(outputNode);
@@ -188,7 +188,7 @@ class AudioService {
       osc.type = "sine";
       osc.frequency.setValueAtTime(1800, t);
       osc.frequency.exponentialRampToValueAtTime(900, t + 0.05);
-      gain.gain.setValueAtTime(0.05, t);
+      gain.gain.setValueAtTime(0.15, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
       osc.connect(gain);
       gain.connect(outputNode);
@@ -200,7 +200,7 @@ class AudioService {
       osc.type = "sawtooth";
       osc.frequency.setValueAtTime(60, t);
       osc.frequency.exponentialRampToValueAtTime(400, t + 0.8);
-      gain.gain.setValueAtTime(0.1, t);
+      gain.gain.setValueAtTime(0.25, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
       osc.connect(gain);
       gain.connect(outputNode);
@@ -212,7 +212,7 @@ class AudioService {
       osc.type = "triangle";
       osc.frequency.setValueAtTime(440, t);
       osc.frequency.exponentialRampToValueAtTime(880, t + 0.4);
-      gain.gain.setValueAtTime(0.1, t);
+      gain.gain.setValueAtTime(0.25, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
       osc.connect(gain);
       gain.connect(outputNode);
@@ -407,7 +407,7 @@ class AudioService {
        const gainValue = mute ? 0 : 1;
        // Reduzir volume geral se anúncio estiver tocando
        if (this.musicGain) this.musicGain.gain.setTargetAtTime(mute ? 0 : 0.4, this.ctx.currentTime, 0.1);
-       if (this.engineGain) this.engineGain.gain.setTargetAtTime(mute ? 0 : 0.05, this.ctx.currentTime, 0.1);
+       if (this.engineGain) this.engineGain.gain.setTargetAtTime(mute ? 0 : 0.12, this.ctx.currentTime, 0.1);
     }
     window.dispatchEvent(new CustomEvent('adMuteChange', { detail: mute }));
   }
