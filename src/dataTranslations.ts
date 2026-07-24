@@ -16,7 +16,8 @@ export const skinTranslations: Record<Language, Record<string, { name: string; d
     "prototype-wing": { name: "Agência Espacial", description: "Textura comemorativa da Agência Espacial com iluminação tática e acabamento cromado." },
     "prototype-wing-2": { name: "Agência Espacial MK-II", description: "Variante tática avançada da Agência Espacial com acentuação cromada e grafismo especial." },
     "supernova": { name: "Supernova", description: "Textura flamejante Supernova com brilho estelar e acabamento dourado reluzente." },
-    "sucata-espacial": { name: "Sucata Espacial", description: "Blindagem reforçada recuperada a partir de ligas metálicas e salvados orbitais." }
+    "sucata-espacial": { name: "Sucata Espacial", description: "Blindagem reforçada recuperada a partir de ligas metálicas e salvados orbitais." },
+    "air-force": { name: "Força Aérea", description: "Padrão tático camuflado de aviação militar para operações de alta velocidade." }
   },
   en: {
     "red-fury": { name: "Red Fury", description: "An aggressive scarlet finish reflecting the heat of burning stars." },
@@ -33,7 +34,8 @@ export const skinTranslations: Record<Language, Record<string, { name: string; d
     "prototype-wing": { name: "Space Agency", description: "Commemorative Space Agency skin with tactical illumination and chrome finish." },
     "prototype-wing-2": { name: "Space Agency MK-II", description: "Advanced tactical Space Agency variant with high-fidelity chrome detailing." },
     "supernova": { name: "Supernova", description: "Flaming Supernova texture with stellar radiance and golden finish." },
-    "sucata-espacial": { name: "Space Scrap", description: "Reinforced plating salvaged from metal alloys and orbital debris." }
+    "sucata-espacial": { name: "Space Scrap", description: "Reinforced plating salvaged from metal alloys and orbital debris." },
+    "air-force": { name: "Air Force", description: "Tactical military aviation camo pattern for high-speed tactical operations." }
   },
   es: {
     "red-fury": { name: "Furia Roja", description: "Un acabado escarlata agresivo que refleja el calor de las estrellas ardientes." },
@@ -50,7 +52,8 @@ export const skinTranslations: Record<Language, Record<string, { name: string; d
     "prototype-wing": { name: "Agencia Espacial", description: "Textura conmemorativa de la Agencia Espacial con iluminación táctica y acabado cromado." },
     "prototype-wing-2": { name: "Agencia Espacial MK-II", description: "Variante táctica avanzada de la Agencia Espacial con detalles cromados y diseño especial." },
     "supernova": { name: "Supernova", description: "Textura flameante Supernova con brillo estelar y acabado dorado reluciente." },
-    "sucata-espacial": { name: "Chatarra Espacial", description: "Blindaje reforzado recuperado de aleaciones metálicas y restos orbitales." }
+    "sucata-espacial": { name: "Chatarra Espacial", description: "Blindaje reforzado recuperado de aleaciones metálicas y restos orbitales." },
+    "air-force": { name: "Fuerza Aérea", description: "Patrón táctico camuflado de aviación militar para operaciones de alta velocidad." }
   },
   fr: {
     "red-fury": { name: "Fureur Rouge", description: "Une finition écarlate agressive reflétant la chaleur des étoiles brûlantes." },
@@ -67,7 +70,8 @@ export const skinTranslations: Record<Language, Record<string, { name: string; d
     "prototype-wing": { name: "Agence Spatiale", description: "Texture commémorative de l'Agence Spatiale avec éclairage tactique et finition chromée." },
     "prototype-wing-2": { name: "Agence Spatiale MK-II", description: "Variante tactique avancée d'Agence Spatiale avec finitions chromées haute fidélité." },
     "supernova": { name: "Supernova", description: "Texture Supernova flamboyante avec éclat stellaire et finition dorée." },
-    "sucata-espacial": { name: "Épave Spatiale", description: "Blindage renforcé récupéré à partir d'alliages métalliques et de débris orbitaux." }
+    "sucata-espacial": { name: "Épave Spatiale", description: "Blindage renforcé récupéré à partir d'alliages métalliques et de débris orbitaux." },
+    "air-force": { name: "Armée de l'Air", description: "Motif camouflage tactique de l'aviation militaire pour les opérations à grande vitesse." }
   }
 };
 

@@ -320,19 +320,19 @@ export const SHIPS_DATA: ShipData[] = [
     requiredLevel: 1
   },
   {
-    id: "sparrow-02",
-    name: "Kestrel",
-    modelFile: "/StarSparrow18.glb",
-    class: "Recon",
-    description: "Versão de treinamento ultra-compacta equipada com propulsores experimentais. Compensa sua baixa potência com excelente capacidade de turbo.",
-    velocidade: 3,
+    id: "sparrow-04",
+    name: "Bulwark",
+    modelFile: "/StarSparrow20.glb",
+    class: "Heavy Fighter",
+    description: "Projeto pesado destinado a atravessar campos de destroços e suportar impactos extremos.",
+    velocidade: 2,
     aceleracao: 2,
-    turbo: 4,
-    energia: 1,
-    massa: 2,
-    price: 2500,
-    abilityName: "Sensor Sweep",
-    abilityDesc: "Mapeia anomalias à frente destacando a trajetória ideal.",
+    turbo: 2,
+    energia: 4,
+    massa: 5,
+    price: 6000,
+    abilityName: "Reflector Shield",
+    abilityDesc: "Fortalece os escudos absorvendo impacto de asteroides.",
     requiredLevel: 1
   },
   {
@@ -352,19 +352,19 @@ export const SHIPS_DATA: ShipData[] = [
     requiredLevel: 2
   },
   {
-    id: "sparrow-04",
-    name: "Bulwark",
-    modelFile: "/StarSparrow20.glb",
-    class: "Heavy Fighter",
-    description: "Projeto pesado destinado a atravessar campos de destroços e suportar impactos extremos.",
-    velocidade: 2,
+    id: "sparrow-02",
+    name: "Kestrel",
+    modelFile: "/StarSparrow18.glb",
+    class: "Recon",
+    description: "Versão de treinamento ultra-compacta equipada com propulsores experimentais. Compensa sua baixa potência com excelente capacidade de turbo.",
+    velocidade: 3,
     aceleracao: 2,
-    turbo: 2,
-    energia: 4,
-    massa: 5,
-    price: 6000,
-    abilityName: "Reflector Shield",
-    abilityDesc: "Fortalece os escudos absorvendo impacto de asteroides.",
+    turbo: 4,
+    energia: 1,
+    massa: 2,
+    price: 2500,
+    abilityName: "Sensor Sweep",
+    abilityDesc: "Mapeia anomalias à frente destacando a trajetória ideal.",
     requiredLevel: 2
   },
   {
@@ -620,7 +620,7 @@ export const SHIPS_DATA: ShipData[] = [
     massa: 8,
     price: 250000,
     abilityName: "Proto Core",
-    abilityDesc: "Ativa todos os sistemas protótipos na capacidade máxima.",
+    abilityDesc: "Sistemas protótipos avançados tornam a nave imune a todas as anomalias dos trajetos.",
     requiredLevel: 10
   }
 ];
@@ -738,6 +738,13 @@ export const SKINS_DATA: SkinData[] = [
     textureFile: "/SucataEspacial.webp",
     colorHex: "#c0c0c0",
     description: "Blindagem reforçada recuperada a partir de ligas metálicas e salvados orbitais."
+  },
+  {
+    id: "air-force",
+    name: "Força Aérea",
+    textureFile: "/AirForce.webp",
+    colorHex: "#374151",
+    description: "Padrão tático camuflado de aviação militar para operações de alta velocidade."
   }
 ];
 

@@ -2548,7 +2548,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
     ? (isMobile ? 250 : 550)
     : (graphicsQuality === "medium" 
         ? (isMobile ? 120 : 280) 
-        : (isMobile ? 60 : 150));
+        : (isMobile ? 35 : 75));
   const asteroidCount = Math.round(baseAsteroidCount * selectedRoute.asteroidDensity);
 
   // Função mestre para calcular a trajetória tridimensional específica e temática de cada pista

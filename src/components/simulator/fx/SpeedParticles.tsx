@@ -8,7 +8,7 @@ import { GraphicsQuality } from "../../../types";
 export function SpeedParticles({ velocityRef, shipRef, graphicsQuality }: { velocityRef: React.MutableRefObject<number>, shipRef: React.RefObject<THREE.Group>, graphicsQuality?: GraphicsQuality }) {
   const pointsRef = useRef<THREE.Points>(null); 
   const materialRef = useRef<THREE.ShaderMaterial>(null);
-  const count = graphicsQuality === "low" ? 120 : (graphicsQuality === "medium" ? 450 : 900);
+  const count = graphicsQuality === "low" ? 40 : (graphicsQuality === "medium" ? 450 : 900);
   
   const [positions, speeds] = useMemo(() => {
     const pos = new Float32Array(count * 3);

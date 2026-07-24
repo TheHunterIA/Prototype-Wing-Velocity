@@ -34,6 +34,7 @@ export function ColorSelector({
 
   const hasCompletedCert = playerService.hasCompletedCertification();
   const hasCompletedDyson = playerService.hasCompletedDyson();
+  const hasCompletedSupernova = playerService.hasCompletedSupernova();
 
   const getSkinName = (skinId: string) => {
     return skinTranslations[language]?.[skinId]?.name || SKINS_DATA.find(s => s.id === skinId)?.name || skinId;
@@ -42,6 +43,7 @@ export function ColorSelector({
   const activeOrHoveredId = hoveredColorId || selectedColor.id;
   const isEarthLocked = (skinId: string) => skinId === "earth-harmony" && !hasCompletedCert;
   const isSucataLocked = (skinId: string) => skinId === "sucata-espacial" && !hasCompletedDyson;
+  const isSupernovaLocked = (skinId: string) => skinId === "supernova" && !hasCompletedSupernova;
   const isSkinLocked = (skinId: string) => playerService.isSkinLocked(skinId);
 
   const currentHoveredOrActiveLocked = isSkinLocked(activeOrHoveredId);
@@ -74,7 +76,7 @@ export function ColorSelector({
               </span>
             </div>
 
-            {/* Locked banner if hovering or selected Planeta Terra or Sucata Espacial without requirement */}
+            {/* Locked banner if hovering or selected Planeta Terra, Supernova or Sucata Espacial without requirement */}
             {currentHoveredOrActiveLocked && (
               <div className="w-full text-[10px] font-mono text-amber-300 bg-amber-950/80 border border-amber-500/50 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-md">
                 <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
@@ -87,6 +89,14 @@ export function ColorSelector({
                       : language === "fr"
                       ? "Terminez le Vol de Certification pour débloquer"
                       : "Complete Certification Flight to unlock"
+                  ) : isSupernovaLocked(activeOrHoveredId) ? (
+                    language === "pt"
+                      ? "Conclua a rota Remanescente de Supernova para liberar"
+                      : language === "es"
+                      ? "Completa la ruta Remanente de Supernova para desbloquear"
+                      : language === "fr"
+                      ? "Terminez la route Rémanent de Supernova pour débloquer"
+                      : "Complete Supernova Remnant route to unlock"
                   ) : (
                     language === "pt"
                       ? "Conclua a rota Sucata de Dyson para liberar"
@@ -175,15 +185,13 @@ export function ColorSelector({
                         ? `${skinName} (${
                             isEarthLocked(colorObj.id)
                               ? (language === "pt" ? "Bloqueado: Conclua o Voo de Certificação" : "Locked: Complete Certification Flight")
-                              : (language === "pt" ? "Bloqueado: Conclua a rota Sucata de Dyson" : "Locked: Complete Dyson Scraps route")
+                              : isSupernovaLocked(colorObj.id)
+                                ? (language === "pt" ? "Bloqueado: Conclua a rota Remanescente de Supernova" : "Locked: Complete Supernova Remnant route")
+                                : (language === "pt" ? "Bloqueado: Conclua a rota Sucata de Dyson" : "Locked: Complete Dyson Scraps route")
                           })`
                         : skinName
                     }
                   >
-                    {/* Inner black circle for Supernova */}
-                    {isSupernova && (
-                      <span className="absolute w-4 h-4 rounded-full border border-black/80 bg-black/40 pointer-events-none" />
-                    )}
                     {/* Inner copper accent for Sucata */}
                     {isSucata && (
                       <span className="absolute w-4 h-4 rounded-full border border-[#ca6f1e]/80 bg-[#c86432]/10 pointer-events-none" />

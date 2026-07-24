@@ -8,7 +8,7 @@ import { GraphicsQuality } from "../../../types";
 export function SpaceDust({ shipRef, dustColor = "#5e6d8a", graphicsQuality }: { shipRef: React.RefObject<THREE.Group>, dustColor?: string, graphicsQuality?: GraphicsQuality }) {
   const pointsRef = useRef<THREE.Points>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
-  const count = graphicsQuality === "low" ? 120 : (graphicsQuality === "medium" ? 600 : 1200);
+  const count = graphicsQuality === "low" ? 40 : (graphicsQuality === "medium" ? 600 : 1200);
   
   const positions = useMemo(() => {
     const pos = new Float32Array(count * 3);

@@ -1,10 +1,11 @@
 import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { RouteData } from '../types';
+import { RouteData, GraphicsQuality } from '../types';
 
 interface AAADeepSpaceBackgroundProps {
   selectedRoute: RouteData;
+  graphicsQuality?: GraphicsQuality;
 }
 
 // ============================================================================
@@ -171,7 +172,7 @@ void main() {
 // React component
 // ============================================================================
 export const AAADeepSpaceBackground = React.memo(function AAADeepSpaceBackground(
-  { selectedRoute }: AAADeepSpaceBackgroundProps
+  { selectedRoute, graphicsQuality }: AAADeepSpaceBackgroundProps
 ) {
   const skyRef  = useRef<THREE.ShaderMaterial>(null);
   const starRef = useRef<THREE.ShaderMaterial>(null);
@@ -203,9 +204,9 @@ export const AAADeepSpaceBackground = React.memo(function AAADeepSpaceBackground
     uSeed:    { value: palette.seed },
   }), [palette]);
 
-  // Diffraction stars (300, sparse, bright)
+  // Diffraction stars (300 for high, 120 for medium, 40 for low)
   const stars = useMemo(() => {
-    const COUNT = 300;
+    const COUNT = graphicsQuality === "low" ? 40 : (graphicsQuality === "medium" ? 120 : 300);
     const pos   = new Float32Array(COUNT * 3);
     const col   = new Float32Array(COUNT * 3);
     const size  = new Float32Array(COUNT);
@@ -237,7 +238,7 @@ export const AAADeepSpaceBackground = React.memo(function AAADeepSpaceBackground
       phase[i] = Math.random() * 10;
     }
     return { pos, col, size, phase, COUNT };
-  }, []);
+  }, [graphicsQuality]);
 
   const starUniforms = useMemo(() => ({ uTime: { value: 0 } }), []);
 
@@ -247,11 +248,13 @@ export const AAADeepSpaceBackground = React.memo(function AAADeepSpaceBackground
     if (starRef.current) starRef.current.uniforms.uTime.value = t;
   });
 
+  const sphereSegs = graphicsQuality === "low" ? 12 : 24;
+
   return (
     <group>
-      {/* ── Volumetric Skybox Dome (48-seg for perf, BackSide) ── */}
+      {/* ── Volumetric Skybox Dome (BackSide) ── */}
       <mesh scale={26000} renderOrder={-2000}>
-        <sphereGeometry args={[1, 24, 24]} />
+        <sphereGeometry args={[1, sphereSegs, sphereSegs]} />
         <shaderMaterial
           ref={skyRef}
           vertexShader={SKYBOX_VERT}

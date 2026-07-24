@@ -57,7 +57,7 @@ const SpaceshipView = memo(function SpaceshipView({
   const isLow = graphicsQuality === "low";
 
   // Apply the texture to the cloned object to avoid side-effects on cache
-  const { clonedObj, sharedMaterial } = useMemo(() => {
+  const { clonedObj, sharedMaterial, shipCenter } = useMemo(() => {
     const clone = scene.clone();
 
     // Configure textures
@@ -120,16 +120,13 @@ const SpaceshipView = memo(function SpaceshipView({
       }
     });
 
-    // Center the group itself by using bounding box of the whole hierarchy
-    // This is instant and keeps the relative placements of wings, cockpit, and thrusters fully intact!
+    // Calculate the bounding box and the center offset of the cloned model.
+    // This allows us to perfectly center the model without modifying its child structure.
     const box = new THREE.Box3().setFromObject(clone);
     const center = new THREE.Vector3();
     box.getCenter(center);
-    clone.children.forEach((child) => {
-      child.position.sub(center);
-    });
 
-    return { clonedObj: clone, sharedMaterial: material };
+    return { clonedObj: clone, sharedMaterial: material, shipCenter: center };
   }, [scene, texture, pbrMaps, isGlb, isLocked]);
 
   // Clean up material when clonedObj changes or unmounts to prevent memory leaks in GPU
@@ -172,11 +169,12 @@ const SpaceshipView = memo(function SpaceshipView({
   return (
     <group ref={groupRef} position={position}>
       <group ref={internalRef}>
-        <primitive
-          object={clonedObj}
-          scale={0.015} // Appropriately scale the 1000-unit model to fit the scene
-          position={[0, 0, 0]}
-        />
+        <group
+          scale={0.015}
+          position={[-shipCenter.x * 0.015, -shipCenter.y * 0.015, -shipCenter.z * 0.015]}
+        >
+          <primitive object={clonedObj} />
+        </group>
       </group>
       {/* Luzes internas removidas — o Canvas do hangar já tem iluminação própria
           completa (6 fontes). Manter luzes aqui causava super-iluminação e tom

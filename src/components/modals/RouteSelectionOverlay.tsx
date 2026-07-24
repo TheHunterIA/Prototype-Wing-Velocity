@@ -115,9 +115,7 @@ function RouteCard3D({
     playSound("hover", isMuted);
   };
 
-  const isRouteUnlocked = 
-    playerService.data.level >= route.requiredLevel || 
-    (typeof window !== 'undefined' && (window.location.hostname.includes('run.app') || window.location.hostname.includes('ais-pre-') || (import.meta as any).env?.PROD));
+  const isRouteUnlocked = playerService.data.level >= route.requiredLevel;
   const routeTrans = routeTranslations[language]?.[route.id];
   const routeName = routeTrans ? routeTrans.name : route.name;
 

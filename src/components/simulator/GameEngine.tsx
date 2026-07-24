@@ -226,8 +226,10 @@ export function GameEngine({
 
     const maneuverability = 0.75 + ((120 - massStat) / 120) * 0.75;
 
+    const isPrototypeWing = currentShip.id === "sparrow-20" || currentShip.id === "sparrow-01" || currentShip.name === "Prototype Wing";
+
     let effectiveManeuverability = maneuverability;
-    if (customRouteDataRef && customRouteDataRef.current && selectedRoute.id === "route-ice-field") {
+    if (!isPrototypeWing && customRouteDataRef && customRouteDataRef.current && selectedRoute.id === "route-ice-field") {
       const data = customRouteDataRef.current;
       if (data.ice !== undefined) {
         effectiveManeuverability = maneuverability * (1.0 - (data.ice / 100.0) * 0.7);
@@ -285,7 +287,7 @@ export function GameEngine({
     if (keysRef.current.a) rtr -= 2.2 * transitionFactor;
     if (keysRef.current.d) rtr += 2.2 * transitionFactor;
 
-    if (customRouteDataRef && customRouteDataRef.current && customRouteDataRef.current.controlGlitched) {
+    if (!isPrototypeWing && customRouteDataRef && customRouteDataRef.current && customRouteDataRef.current.controlGlitched) {
       ptr = -ptr;
       ytr = -ytr;
     }
@@ -357,29 +359,47 @@ export function GameEngine({
       data.draftActive = false;
       data.controlGlitched = false;
 
-      getRouteBehavior(selectedRoute.id).updateTick(
-        dt,
-        data,
-        currentPos,
-        velocityRef,
-        currentMaxSpeed,
-        energyRef,
-        asteroids,
-        trafficShips,
-        neonRingsRef,
-        state.clock.elapsedTime,
-        isCurrentlyBoosting,
-        resetMultiplier,
-        shakeRef,
-        createExplosion,
-        playSimSound,
-        localMuted,
-        ship as any
-      );
+      if (isPrototypeWing) {
+        // Prototype Wing é totalmente imune a todas as anomalias ambientais dos trajetos
+        data.ice = 0;
+        data.radiation = 0;
+        data.heat = 0;
+        data.empActive = false;
+        data.solarFlareActive = false;
+        data.controlGlitched = false;
+        data.warningActive = false;
+        data.warningText = "";
+        data.shockwaveActive = false;
+        data.turbulence = 0;
+        data.magneticInterference = 0;
+        if (data.fuel !== undefined) {
+          data.fuel = 100;
+        }
+      } else {
+        getRouteBehavior(selectedRoute.id).updateTick(
+          dt,
+          data,
+          currentPos,
+          velocityRef,
+          currentMaxSpeed,
+          energyRef,
+          asteroids,
+          trafficShips,
+          neonRingsRef,
+          state.clock.elapsedTime,
+          isCurrentlyBoosting,
+          resetMultiplier,
+          shakeRef,
+          createExplosion,
+          playSimSound,
+          localMuted,
+          ship as any
+        );
+      }
     }
 
     // Apply gravity well effect if active
-    if (selectedRoute.gravityWell && !isHangarActive) {
+    if (selectedRoute.gravityWell && !isHangarActive && !isPrototypeWing) {
       const pullStrength = 0.25;
       const pull = v_pull.current.set(-ship.position.x, -ship.position.y, 0).multiplyScalar(dt * pullStrength);
       ship.position.add(pull);

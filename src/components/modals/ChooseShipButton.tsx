@@ -9,6 +9,7 @@ interface ChooseShipButtonProps {
   tempLicenseTimeLeft: number;
   onGetTempLicense: () => void;
   isMobile: boolean;
+  allowTempLicense?: boolean;
 }
 
 export function ChooseShipButton({
@@ -18,6 +19,7 @@ export function ChooseShipButton({
   requiredLevel,
   tempLicenseTimeLeft,
   onGetTempLicense,
+  allowTempLicense = true,
 }: ChooseShipButtonProps) {
   const formatTime = (ms: number) => {
     const totalSec = Math.floor(ms / 1000);
@@ -29,7 +31,7 @@ export function ChooseShipButton({
   return (
     <div className="flex flex-col items-center gap-2 select-none">
       {/* Active Temporary License Badge */}
-      {tempLicenseTimeLeft > 0 && (
+      {tempLicenseTimeLeft > 0 && allowTempLicense && (
         <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 border border-amber-500/40 rounded-full text-amber-400 font-mono text-[10px] font-bold uppercase shadow-[0_0_10px_rgba(245,158,11,0.2)] animate-pulse">
           <Clock className="w-3 h-3 text-amber-400" />
           <span>{t.tempLicenseActive}: {formatTime(tempLicenseTimeLeft)}</span>
@@ -44,13 +46,15 @@ export function ChooseShipButton({
             <span>{t.requiredLevel} {requiredLevel}</span>
           </div>
 
-          <button
-            onClick={onGetTempLicense}
-            className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-400 border border-cyan-300/50 rounded-full text-white font-mono text-xs font-black tracking-widest uppercase cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(34,211,238,0.4)] group"
-          >
-            <Play className="w-3.5 h-3.5 fill-white group-hover:scale-125 transition-transform" />
-            <span>{t.testFor15Min}</span>
-          </button>
+          {allowTempLicense && (
+            <button
+              onClick={onGetTempLicense}
+              className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-400 border border-cyan-300/50 rounded-full text-white font-mono text-xs font-black tracking-widest uppercase cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(34,211,238,0.4)] group"
+            >
+              <Play className="w-3.5 h-3.5 fill-white group-hover:scale-125 transition-transform" />
+              <span>{t.testFor15Min}</span>
+            </button>
+          )}
         </div>
       ) : (
         <button

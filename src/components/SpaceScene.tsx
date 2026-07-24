@@ -107,7 +107,7 @@ export default function SpaceScene() {
   const [lastUnlockedColor, setLastUnlockedColor] = useState(selectedColor);
   const [hoveredColor, setHoveredColor] = useState<typeof SKINS_DATA[0] | null>(null);
   const [isMuted, setIsMuted] = useState(false); // Default to unmuted as per user request
-  const [isColorPanelOpen, setIsColorPanelOpen] = useState(true);
+  const [isColorPanelOpen, setIsColorPanelOpen] = useState(false);
   const [hoveredColorName, setHoveredColorName] = useState<string | null>(null);
   const [isSimulatorActive, setIsSimulatorActive] = useState(false);
   const [isSimulatorHangarActive, setIsSimulatorHangarActive] = useState(false);
@@ -500,7 +500,7 @@ export default function SpaceScene() {
           <Canvas 
             camera={{ position: [0, 1.5, 16], fov: 40 }} 
             shadows={graphicsQuality === "low" ? false : "soft"}
-            dpr={graphicsQuality === "low" ? 0.75 : [1, 1.5]}
+            dpr={graphicsQuality === "low" ? 0.5 : [1, 1.5]}
             gl={graphicsQuality === "low" 
               ? { alpha: true, antialias: false, powerPreference: "high-performance", precision: "lowp" }
               : { alpha: true, antialias: true, powerPreference: "high-performance" }
@@ -722,10 +722,12 @@ export default function SpaceScene() {
                   requiredLevel={currentShip.requiredLevel}
                   tempLicenseTimeLeft={playerService.getTempLicenseTimeLeft(currentShip.id)}
                   onGetTempLicense={() => {
+                    if (currentShip.id === "sparrow-20") return;
                     playSound('click', isMuted);
                     setAdTarget({ id: currentShip.id, type: 'ship', name: currentShip.name });
                     setShowAdModal(true);
                   }}
+                  allowTempLicense={currentShip.id !== "sparrow-20"}
                   isMobile={isMobile}
                 />
               </div>

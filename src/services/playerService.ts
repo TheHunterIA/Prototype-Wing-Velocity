@@ -263,11 +263,18 @@ export const playerService = {
     return !!(this.data?.trackRecords && this.data.trackRecords["route-dyson"]);
   },
 
+  hasCompletedSupernova(): boolean {
+    return !!(this.data?.trackRecords && this.data.trackRecords["route-supernova"]);
+  },
+
   isSkinLocked(skinId: string): boolean {
     if (skinId === "earth-harmony" && !this.hasCompletedCertification()) {
       return true;
     }
     if (skinId === "sucata-espacial" && !this.hasCompletedDyson()) {
+      return true;
+    }
+    if (skinId === "supernova" && !this.hasCompletedSupernova()) {
       return true;
     }
     return false;
@@ -285,6 +292,7 @@ export const playerService = {
   },
 
   grantTemporaryLicense(id: string, durationMinutes: number = 15) {
+    if (id === "sparrow-20") return 0;
     const expiration = Date.now() + durationMinutes * 60 * 1000;
     this.data.temporaryLicenses[id] = expiration;
     this.save();
@@ -292,10 +300,8 @@ export const playerService = {
   },
 
   hasLicense(id: string, requiredLevel: number): boolean {
-    if (typeof window !== 'undefined' && (window.location.hostname.includes('run.app') || window.location.hostname.includes('ais-pre-') || (import.meta as any).env?.PROD)) {
-      return true;
-    }
     if (this.data.level >= requiredLevel) return true;
+    if (id === "sparrow-20") return false;
     const tempLicenseExpiration = this.data.temporaryLicenses[id];
     if (tempLicenseExpiration && tempLicenseExpiration > Date.now()) {
       return true;
@@ -304,6 +310,7 @@ export const playerService = {
   },
 
   getTempLicenseTimeLeft(id: string): number {
+    if (id === "sparrow-20") return 0;
     const tempLicenseExpiration = this.data.temporaryLicenses[id];
     if (tempLicenseExpiration && tempLicenseExpiration > Date.now()) {
       return tempLicenseExpiration - Date.now();
