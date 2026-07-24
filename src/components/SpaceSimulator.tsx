@@ -1551,6 +1551,7 @@ function PilotShipViewLegacy({
 
     texture.colorSpace = THREE.SRGBColorSpace;
     
+    // PilotShipView setup
     const isSupernova = selectedColor.id === "supernova" || selectedColor.textureFile.includes("Supernova");
     const isSucata = selectedColor.id === "sucata-espacial" || selectedColor.textureFile.includes("SucataEspacial");
 
@@ -1576,8 +1577,8 @@ function PilotShipViewLegacy({
               roughnessMap: isSupernova ? null : pbrMaps.roughnessMap,
               metalnessMap: isSupernova ? null : pbrMaps.metalnessMap,
               emissiveMap: isSupernova ? texture : pbrMaps.emissiveMap,
-              emissive: isSupernova ? new THREE.Color("#ff7700") : new THREE.Color(0xffffff),
-              emissiveIntensity: isSupernova ? 0.45 : 0.5,
+              emissive: isSupernova ? new THREE.Color("#9e723b") : new THREE.Color(0xffffff),
+              emissiveIntensity: isSupernova ? 0.18 : 0.5,
               roughness: isSupernova ? 0.25 : 1.0, 
               metalness: isSupernova ? 0.65 : 1.0, 
               transparent: true, 
@@ -1602,9 +1603,9 @@ function PilotShipViewLegacy({
         const mat = mesh.material as any;
         if (mat) {
           if (mat.emissive) {
-            mat.emissive.set(isCloaked ? "#00ffea" : (isSupernova ? "#ff7700" : "#ffffff"));
+            mat.emissive.set(isCloaked ? "#00ffea" : (isSupernova ? "#9e723b" : "#ffffff"));
           }
-          if (mat.emissiveIntensity !== undefined) mat.emissiveIntensity = isCloaked ? 0.8 : (isSupernova ? 0.45 : 0.5);
+          if (mat.emissiveIntensity !== undefined) mat.emissiveIntensity = isCloaked ? 0.8 : (isSupernova ? 0.18 : 0.5);
           if (mat.roughness !== undefined) mat.roughness = isCloaked ? 0.9 : (isSupernova ? 0.25 : (isSucata ? 0.42 : 1.0));
           if (mat.metalness !== undefined) mat.metalness = isCloaked ? 0.1 : (isSupernova ? 0.65 : (isSucata ? 0.60 : 1.0));
           mat.opacity = isCloaked ? 0.25 : 1.0;
@@ -1692,8 +1693,8 @@ function Takeoff3DShipView({ scene, currentShip, selectedColor, takeoffPercent, 
               roughnessMap: isSupernova ? null : pbrMaps.roughnessMap,
               metalnessMap: isSupernova ? null : pbrMaps.metalnessMap,
               emissiveMap: isSupernova ? texture : pbrMaps.emissiveMap,
-              emissive: isSupernova ? new THREE.Color("#ff7700") : new THREE.Color(0xffffff),
-              emissiveIntensity: isSupernova ? 0.45 : 0.5,
+              emissive: isSupernova ? new THREE.Color("#9e723b") : new THREE.Color(0xffffff),
+              emissiveIntensity: isSupernova ? 0.18 : 0.5,
               roughness: isSupernova ? 0.25 : 1.0, 
               metalness: isSupernova ? 0.65 : 1.0, 
               transparent: true, 

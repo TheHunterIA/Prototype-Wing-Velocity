@@ -87,11 +87,11 @@ const SpaceshipView = memo(function SpaceshipView({
           roughnessMap: isSupernova ? null : pbrMaps.roughnessMap,
           metalnessMap: isSupernova ? null : pbrMaps.metalnessMap,
           emissiveMap: isSupernova ? texture : (isLocked ? null : pbrMaps.emissiveMap),
-          emissive: isSupernova ? new THREE.Color("#ff7700") : (isLocked ? new THREE.Color(0x000000) : new THREE.Color(0xffffff)),
-          emissiveIntensity: isSupernova ? 0.45 : (isLocked ? 0 : 0.25),
-          roughness: isSupernova ? 0.25 : (isSucata ? 0.42 : 0.55),
-          metalness: isSupernova ? 0.65 : (isSucata ? 0.58 : 0.38),
-          envMapIntensity: isSupernova ? 0.9 : (isSucata ? 0.65 : 0.35),
+          emissive: isSupernova ? new THREE.Color("#9e723b") : (isLocked ? new THREE.Color(0x000000) : new THREE.Color(0xffffff)),
+          emissiveIntensity: isSupernova ? 0.18 : (isLocked ? 0 : 0.25),
+          roughness: isSupernova ? 0.38 : (isSucata ? 0.50 : 0.65),
+          metalness: isSupernova ? 0.55 : (isSucata ? 0.50 : 0.30),
+          envMapIntensity: isSupernova ? 0.45 : (isSucata ? 0.35 : 0.20),
           side: THREE.DoubleSide,
         });
 

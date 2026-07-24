@@ -729,7 +729,7 @@ export const SKINS_DATA: SkinData[] = [
     id: "supernova",
     name: "Supernova",
     textureFile: "/Supernova.webp",
-    colorHex: "#ff9900",
+    colorHex: "#d97706",
     description: "Textura flamejante Supernova com brilho estelar e acabamento dourado reluzente."
   },
   {

@@ -11,6 +11,7 @@ interface ColorSelectorProps {
   isColorPanelOpen: boolean;
   setIsColorPanelOpen: (open: boolean) => void;
   handleSelectColor: (colorObj: typeof SKINS_DATA[0]) => void;
+  onHoverColor?: (colorObj: typeof SKINS_DATA[0] | null) => void;
   playSound: (type: string, isMuted: boolean) => void;
   isMuted: boolean;
   language: Language;
@@ -22,6 +23,7 @@ export function ColorSelector({
   isColorPanelOpen,
   setIsColorPanelOpen,
   handleSelectColor,
+  onHoverColor,
   playSound,
   isMuted,
   language,
@@ -62,11 +64,10 @@ export function ColorSelector({
             transition={{ duration: 0.3, ease: "easeOut" }}
             className="flex flex-col items-end gap-2.5 p-3.5 bg-black/85 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-2xl w-max max-w-[92vw] sm:max-w-fit"
           >
-            {/* Header info bar displaying current skin name & total count */}
+            {/* Header info bar displaying current skin name */}
             <div className="w-full flex items-center justify-between gap-3 border-b border-white/10 pb-2 px-0.5">
               <span className="text-[10px] font-mono tracking-wider text-cyan-400 font-bold uppercase flex items-center gap-1.5">
                 <Paintbrush className="w-3.5 h-3.5 text-cyan-400" />
-                {SKINS_DATA.length} {language === "pt" ? "Texturas" : "Textures"}
               </span>
               <span className="text-[10px] font-mono tracking-widest text-cyan-200 uppercase bg-cyan-950/90 px-2.5 py-0.5 rounded border border-cyan-500/40 shadow-sm truncate max-w-[200px]">
                 {hoveredColorName || getSkinName(selectedColor.id)}
@@ -133,10 +134,12 @@ export function ColorSelector({
                     onMouseEnter={() => {
                       setHoveredColorName(skinName);
                       setHoveredColorId(colorObj.id);
+                      onHoverColor?.(colorObj);
                     }}
                     onMouseLeave={() => {
                       setHoveredColorName(null);
                       setHoveredColorId(null);
+                      onHoverColor?.(null);
                     }}
                     className={`
                       w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all duration-200 relative flex items-center justify-center shrink-0 cursor-pointer hover:scale-110 active:scale-95

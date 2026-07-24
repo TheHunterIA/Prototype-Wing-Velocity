@@ -105,6 +105,7 @@ export default function SpaceScene() {
     return defaultColor;
   });
   const [lastUnlockedColor, setLastUnlockedColor] = useState(selectedColor);
+  const [hoveredColor, setHoveredColor] = useState<typeof SKINS_DATA[0] | null>(null);
   const [isMuted, setIsMuted] = useState(false); // Default to unmuted as per user request
   const [isColorPanelOpen, setIsColorPanelOpen] = useState(true);
   const [hoveredColorName, setHoveredColorName] = useState<string | null>(null);
@@ -529,91 +530,90 @@ export default function SpaceScene() {
                  da abertura do hangar (o espaço exterior).
                  ──────────────────────────────────────────────────────────────────── */}
 
-            {/* Ambiente base: iluminação azul metálica e equilibrada */}
+            {/* Ambiente base: iluminação difusa aumentada sem gerar reflexos concentrados */}
             <ambientLight
-              intensity={isCurrentShipLocked ? 0.05 : 0.10}
-              color={isCurrentShipLocked ? "#0a0f18" : "#161e2b"}
+              intensity={isCurrentShipLocked ? 0.25 : 0.95}
+              color={isCurrentShipLocked ? "#1e293b" : "#475569"}
             />
 
-            {/* Luz hemisférica: destaque para o topo da nave e contraste inferior */}
+            {/* Luz hemisférica: preenchimento suave do teto e do piso */}
             <hemisphereLight
-              color={isCurrentShipLocked ? "#0d1a2e" : "#34527d"}
-              groundColor="#04060c"
-              intensity={isCurrentShipLocked ? 0.06 : 0.18}
+              color={isCurrentShipLocked ? "#1e293b" : "#94a3b8"}
+              groundColor="#1e293b"
+              intensity={isCurrentShipLocked ? 0.25 : 0.95}
             />
 
-            {/* Spot de estúdio frontal superior — revela a pintura e silhueta principal */}
+            {/* Spot frontal suave para revelar a pintura sem gerar ponto cego de brilho */}
             <directionalLight
               position={[0, 6, 8]}
-              intensity={isCurrentShipLocked ? 0.05 : 0.6}
+              intensity={isCurrentShipLocked ? 0.10 : 0.60}
               color="#ffffff"
             />
 
-            {/* Spots do teto: luminárias industriais de alta definição */}
+            {/* Luzes superiores de preenchimento amplo (baixa intensidade pontual = sem reflexo forte) */}
             <pointLight
               position={[-3, 8, 2]}
-              intensity={isCurrentShipLocked ? 0.0 : 1.4}
+              intensity={isCurrentShipLocked ? 0.0 : 0.6}
               color="#d8e5ff"
-              distance={22}
-              decay={1.8}
+              distance={25}
+              decay={2.0}
             />
             <pointLight
               position={[3, 8, -1]}
-              intensity={isCurrentShipLocked ? 0.0 : 1.2}
+              intensity={isCurrentShipLocked ? 0.0 : 0.55}
               color="#e0edff"
-              distance={20}
-              decay={1.8}
+              distance={25}
+              decay={2.0}
             />
             <pointLight
               position={[0, 9, 4]}
-              intensity={isCurrentShipLocked ? 0.0 : 1.0}
+              intensity={isCurrentShipLocked ? 0.0 : 0.5}
               color="#cce0ff"
-              distance={18}
+              distance={22}
               decay={2.0}
             />
 
-            {/* Rim lateral esquerdo — brilho elegante e frio nas asas */}
+            {/* Rims suaves para recorte lateral */}
             <directionalLight
               position={[-9, 2, 1]}
-              intensity={isCurrentShipLocked ? 0.05 : 0.25}
+              intensity={isCurrentShipLocked ? 0.08 : 0.35}
               color={isCurrentShipLocked ? "#1e293b" : "#38bdf8"}
             />
 
-            {/* Rim lateral direito */}
             <directionalLight
               position={[9, 2, 1]}
-              intensity={isCurrentShipLocked ? 0.05 : 0.22}
+              intensity={isCurrentShipLocked ? 0.08 : 0.32}
               color={isCurrentShipLocked ? "#1e293b" : "#0ea5e9"}
             />
 
-            {/* Sotaque azul elétrico — destaques nas turbinas e asas */}
+            {/* Luzes de sotaque difusas */}
             <pointLight
               position={[-7, 2, -3]}
-              intensity={isCurrentShipLocked ? 0.0 : 0.7}
+              intensity={isCurrentShipLocked ? 0.0 : 0.4}
               color="#3b82f6"
-              distance={12}
+              distance={15}
               decay={2.0}
             />
             <pointLight
               position={[6, 3, -2]}
-              intensity={isCurrentShipLocked ? 0.0 : 0.5}
+              intensity={isCurrentShipLocked ? 0.0 : 0.35}
               color="#2563eb"
-              distance={10}
+              distance={12}
               decay={2.0}
             />
 
-            {/* Luz fria da abertura do hangar (espaço exterior) */}
+            {/* Preenchimento vindo da abertura do hangar */}
             <directionalLight
               position={[0, 1, 12]}
-              intensity={isCurrentShipLocked ? 0.05 : 0.18}
-              color={isCurrentShipLocked ? "#0f1e36" : "#a5c9eb"}
+              intensity={isCurrentShipLocked ? 0.10 : 0.50}
+              color={isCurrentShipLocked ? "#0f1e36" : "#e2e8f0"}
             />
 
-            {/* Preenchimento traseiro suave — destaca silhueta dos propulsores */}
+            {/* Preenchimento traseiro para silhueta */}
             <directionalLight
               position={[0, 5, -10]}
-              intensity={isCurrentShipLocked ? 0.08 : 0.15}
-              color={isCurrentShipLocked ? "#1e2d4a" : "#1e314f"}
+              intensity={isCurrentShipLocked ? 0.10 : 0.45}
+              color={isCurrentShipLocked ? "#1e2d4a" : "#475569"}
             />
 
             {/* Localized Suspense boundary to prevent unmounting lights and controls during load */}
@@ -622,7 +622,7 @@ export default function SpaceScene() {
               <Environment preset="night" environmentIntensity={isCurrentShipLocked ? 0.02 : 0.12} />
               <Spaceship 
                 modelFile={currentShip.modelFile} 
-                textureFile={selectedColor.textureFile}
+                textureFile={(hoveredColor || selectedColor).textureFile}
                 position={[0, -0.6, 0]} 
                 isLocked={isCurrentShipLocked}
                 graphicsQuality={graphicsQuality}
@@ -779,6 +779,7 @@ export default function SpaceScene() {
                 isColorPanelOpen={isColorPanelOpen}
                 setIsColorPanelOpen={setIsColorPanelOpen}
                 handleSelectColor={handleSelectColor}
+                onHoverColor={setHoveredColor}
                 playSound={playSound}
                 isMuted={isMuted}
                 language={language}
