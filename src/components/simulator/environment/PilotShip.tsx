@@ -98,6 +98,9 @@ export function PilotShipView({
 
     texture.colorSpace = THREE.SRGBColorSpace;
     
+    const isSupernova = selectedColor.id === "supernova" || selectedColor.textureFile.includes("Supernova");
+    const isSucata = selectedColor.id === "sucata-espacial" || selectedColor.textureFile.includes("SucataEspacial");
+
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
@@ -110,8 +113,8 @@ export function PilotShipView({
           ? new THREE.MeshPhongMaterial({
                map: texture,
                color: new THREE.Color("#ffffff"),
-               shininess: 30,
-               specular: new THREE.Color("#334466"),
+               shininess: 50,
+               specular: new THREE.Color("#ffaa33"),
                transparent: true,
                opacity: 1.0,
                side: THREE.DoubleSide,
@@ -119,14 +122,14 @@ export function PilotShipView({
           : new THREE.MeshStandardMaterial({
                map: texture, 
                normalMap: pbrMaps.normalMap,
-               roughnessMap: pbrMaps.roughnessMap,
-               metalnessMap: pbrMaps.metalnessMap,
-               emissiveMap: pbrMaps.emissiveMap,
-               emissive: new THREE.Color(0xffffff),
-               emissiveIntensity: 0.25,
-               roughness: 0.55, 
-               metalness: 0.38,
-               envMapIntensity: 0.35,
+               roughnessMap: isSupernova ? null : pbrMaps.roughnessMap,
+               metalnessMap: isSupernova ? null : pbrMaps.metalnessMap,
+               emissiveMap: isSupernova ? texture : pbrMaps.emissiveMap,
+               emissive: isSupernova ? new THREE.Color("#ff7700") : new THREE.Color(0xffffff),
+               emissiveIntensity: isSupernova ? 0.45 : 0.25,
+               roughness: isSupernova ? 0.25 : (isSucata ? 0.42 : 0.55), 
+               metalness: isSupernova ? 0.65 : (isSucata ? 0.58 : 0.38),
+               envMapIntensity: isSupernova ? 0.9 : (isSucata ? 0.65 : 0.35),
                transparent: true, 
                opacity: 1.0, 
                color: new THREE.Color("#ffffff"), 
@@ -241,6 +244,9 @@ export function Takeoff3DShipView({
 
     texture.colorSpace = THREE.SRGBColorSpace;
 
+    const isSupernova = selectedColor.id === "supernova" || selectedColor.textureFile.includes("Supernova");
+    const isSucata = selectedColor.id === "sucata-espacial" || selectedColor.textureFile.includes("SucataEspacial");
+
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
@@ -260,14 +266,14 @@ export function Takeoff3DShipView({
           : new THREE.MeshStandardMaterial({
                map: texture, 
                normalMap: pbrMaps.normalMap,
-               roughnessMap: pbrMaps.roughnessMap,
-               metalnessMap: pbrMaps.metalnessMap,
-               emissiveMap: pbrMaps.emissiveMap,
-               emissive: new THREE.Color(0xffffff),
-               emissiveIntensity: 0.15,
-               roughness: 0.55, 
-               metalness: 0.38, 
-               envMapIntensity: 0.35,
+               roughnessMap: isSupernova ? null : pbrMaps.roughnessMap,
+               metalnessMap: isSupernova ? null : pbrMaps.metalnessMap,
+               emissiveMap: isSupernova ? texture : pbrMaps.emissiveMap,
+               emissive: isSupernova ? new THREE.Color("#ff7700") : new THREE.Color(0xffffff),
+               emissiveIntensity: isSupernova ? 0.45 : 0.15,
+               roughness: isSupernova ? 0.25 : (isSucata ? 0.42 : 0.55), 
+               metalness: isSupernova ? 0.65 : (isSucata ? 0.58 : 0.38), 
+               envMapIntensity: isSupernova ? 0.9 : (isSucata ? 0.65 : 0.35),
                transparent: false, 
                opacity: 1.0, 
                color: new THREE.Color("#ffffff"), 

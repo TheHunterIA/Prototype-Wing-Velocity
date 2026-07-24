@@ -123,6 +123,9 @@ export interface TranslationDict {
   mouseControlActive: string;
   upgradeTitle: string;
   turboPower: string;
+  gamePaused: string;
+  resumeGame: string;
+  pauseSubtitle: string;
 }
 
 export const translations: Record<Language, TranslationDict> = {
@@ -248,7 +251,10 @@ export const translations: Record<Language, TranslationDict> = {
     xpToNextLevel: "XP para o próximo nível",
     mouseControlActive: "Controle de Mouse Ativo (Mova para Girar)",
     upgradeTitle: "Upgrade Tático de Nave",
-    turboPower: "Turbo (Boost)"
+    turboPower: "Turbo (Boost)",
+    gamePaused: "SIMULAÇÃO PAUSADA",
+    resumeGame: "Retomar Partida",
+    pauseSubtitle: "O controle de voo foi suspenso. Clique em retomar para travar o cursor e continuar."
   },
   en: {
     prototypeWing: "Prototype Wing: Velocity",
@@ -372,7 +378,10 @@ export const translations: Record<Language, TranslationDict> = {
     xpToNextLevel: "XP to next level",
     mouseControlActive: "Mouse Control Active (Move to Rotate)",
     upgradeTitle: "Tactical Ship Upgrade",
-    turboPower: "Turbo (Boost)"
+    turboPower: "Turbo (Boost)",
+    gamePaused: "SIMULATION PAUSED",
+    resumeGame: "Resume Game",
+    pauseSubtitle: "Flight control suspended. Click resume to lock cursor and continue."
   },
   es: {
     prototypeWing: "Prototype Wing: Velocity",
@@ -496,7 +505,10 @@ export const translations: Record<Language, TranslationDict> = {
     xpToNextLevel: "XP para el siguiente nivel",
     mouseControlActive: "Control de Mouse Activo (Mover para Girar)",
     upgradeTitle: "Mejora Táctica de Nave",
-    turboPower: "Turbo (Impulso)"
+    turboPower: "Turbo (Impulso)",
+    gamePaused: "SIMULACIÓN PAUSADA",
+    resumeGame: "Reanudar Partida",
+    pauseSubtitle: "El control de vuelo ha sido suspendido. Haz clic en reanudar para bloquear el cursor y continuar."
   },
   fr: {
     prototypeWing: "Prototype Wing: Velocity",
@@ -620,7 +632,10 @@ export const translations: Record<Language, TranslationDict> = {
     xpToNextLevel: "XP pour o prochain niveau",
     mouseControlActive: "Contrôle Souris Actif (Déplacer pour Tourner)",
     upgradeTitle: "Amélioration Tactique de Vaisseau",
-    turboPower: "Turbo (Boost)"
+    turboPower: "Turbo (Boost)",
+    gamePaused: "SIMULATION EN PAUSE",
+    resumeGame: "Reprendre la Partie",
+    pauseSubtitle: "Commande de vol suspendue. Cliquez sur reprendre pour verrouiller le curseur et continuer."
   }
 };
 

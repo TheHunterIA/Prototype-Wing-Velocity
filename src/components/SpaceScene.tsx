@@ -91,16 +91,22 @@ export default function SpaceScene() {
           parsed.textureFile = finalPath;
         }
 
-        const exists = SKINS_DATA.find(c => c.textureFile === parsed.textureFile);
-        if (exists) return exists;
+        const exists = SKINS_DATA.find(c => c.textureFile === parsed.textureFile || c.id === parsed.id);
+        if (exists) {
+          if (playerService.isSkinLocked(exists.id)) {
+            return defaultColor;
+          }
+          return exists;
+        }
       }
     } catch (e) {
       console.error("Error loading color from localStorage", e);
     }
     return defaultColor;
   });
+  const [lastUnlockedColor, setLastUnlockedColor] = useState(selectedColor);
   const [isMuted, setIsMuted] = useState(false); // Default to unmuted as per user request
-  const [isColorPanelOpen, setIsColorPanelOpen] = useState(false);
+  const [isColorPanelOpen, setIsColorPanelOpen] = useState(true);
   const [hoveredColorName, setHoveredColorName] = useState<string | null>(null);
   const [isSimulatorActive, setIsSimulatorActive] = useState(false);
   const [isSimulatorHangarActive, setIsSimulatorHangarActive] = useState(false);
@@ -322,8 +328,24 @@ export default function SpaceScene() {
 
   const handleSelectColor = (colorObj: any) => {
     setSelectedColor(colorObj);
+    const isLocked = playerService.isSkinLocked(colorObj.id);
+    if (!isLocked) {
+      setLastUnlockedColor(colorObj);
+      try {
+        localStorage.setItem("starSparrow_color", JSON.stringify(colorObj));
+      } catch (e) {}
+    }
     playSound("paint", isMuted);
   };
+
+  // Revert previewed locked skin back to last unlocked color when closing panel or starting flight
+  useEffect(() => {
+    if (!isColorPanelOpen || isSimulatorActive || isRouteSelectionOpen) {
+      if (playerService.isSkinLocked(selectedColor.id)) {
+        setSelectedColor(lastUnlockedColor);
+      }
+    }
+  }, [isColorPanelOpen, isSimulatorActive, isRouteSelectionOpen, selectedColor, lastUnlockedColor]);
 
   // Keyboard navigation for arrow keys (Somente quando no Hangar, NÃO durante a partida no simulador!)
   useEffect(() => {

@@ -255,6 +255,24 @@ export const playerService = {
     return thresholds[level] - this.data.xp;
   },
 
+  hasCompletedCertification(): boolean {
+    return !!(this.data?.trackRecords && this.data.trackRecords["route-certification"]);
+  },
+
+  hasCompletedDyson(): boolean {
+    return !!(this.data?.trackRecords && this.data.trackRecords["route-dyson"]);
+  },
+
+  isSkinLocked(skinId: string): boolean {
+    if (skinId === "earth-harmony" && !this.hasCompletedCertification()) {
+      return true;
+    }
+    if (skinId === "sucata-espacial" && !this.hasCompletedDyson()) {
+      return true;
+    }
+    return false;
+  },
+
   submitTrackTime(trackId: string, time: number, shipId: string) {
     const currentRecord = this.data.trackRecords[trackId];
     let isNewRecord = false;

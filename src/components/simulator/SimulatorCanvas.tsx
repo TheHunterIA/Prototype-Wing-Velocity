@@ -131,6 +131,7 @@ export const SimulatorCanvas = memo(function SimulatorCanvas(props: {
   fallbackAsteroidTexture: THREE.Texture;
   baseQuat: React.MutableRefObject<THREE.Quaternion>;
   envPreset: string;
+  isPaused?: boolean;
 }) {
   const {
     graphicsQuality,
@@ -174,7 +175,8 @@ export const SimulatorCanvas = memo(function SimulatorCanvas(props: {
     asteroidTexture,
     fallbackAsteroidTexture,
     baseQuat,
-    envPreset
+    envPreset,
+    isPaused = false,
   } = props;
 
   const activeQualityRef = useRef<GraphicsQuality>(graphicsQuality);
@@ -285,6 +287,7 @@ export const SimulatorCanvas = memo(function SimulatorCanvas(props: {
             customRouteDataRef={customRouteDataRef}
             asteroidsChangedRef={asteroidsChangedRef}
             repulsionVelRef={repulsionVelRef}
+            isPaused={isPaused}
           />
           
           <RenderNeonRings ringsRef={neonRingsRef} shipRef={shipRef} />

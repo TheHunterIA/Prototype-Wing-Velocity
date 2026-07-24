@@ -43,6 +43,7 @@ interface GameEngineProps {
   customRouteDataRef: React.MutableRefObject<any>;
   asteroidsChangedRef: React.MutableRefObject<boolean>;
   repulsionVelRef: React.MutableRefObject<THREE.Vector3>;
+  isPaused?: boolean;
 }
 
 export function GameEngine({
@@ -81,6 +82,7 @@ export function GameEngine({
   customRouteDataRef,
   asteroidsChangedRef,
   repulsionVelRef,
+  isPaused = false,
 }: GameEngineProps) {
   const { camera } = useThree();
   
@@ -121,6 +123,12 @@ export function GameEngine({
   useFrame((state, delta) => {
     const ship = shipRef.current;
     if (!ship) return;
+
+    if (isPaused) {
+      audioService.updateEngine(0, false, true);
+      return;
+    }
+
     const dt = Math.min(delta, 0.1);
 
     // Processar vetor de repulsão física elástica

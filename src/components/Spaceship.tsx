@@ -72,6 +72,9 @@ const SpaceshipView = memo(function SpaceshipView({
 
     texture.colorSpace = THREE.SRGBColorSpace;
 
+    const isSupernova = textureFile.includes("Supernova") || textureFile.includes("supernova");
+    const isSucata = textureFile.includes("SucataEspacial") || textureFile.includes("sucata");
+
     // Create a single shared material instance for this ship
     const material = isLow
       ? new THREE.MeshLambertMaterial({
@@ -81,14 +84,14 @@ const SpaceshipView = memo(function SpaceshipView({
       : new THREE.MeshStandardMaterial({
           map: texture,
           normalMap: pbrMaps.normalMap,
-          roughnessMap: pbrMaps.roughnessMap,
-          metalnessMap: pbrMaps.metalnessMap,
-          emissiveMap: isLocked ? null : pbrMaps.emissiveMap,
-          emissive: isLocked ? new THREE.Color(0x000000) : new THREE.Color(0xffffff),
-          emissiveIntensity: isLocked ? 0 : 0.25,
-          roughness: 0.55,
-          metalness: 0.38,
-          envMapIntensity: 0.35,
+          roughnessMap: isSupernova ? null : pbrMaps.roughnessMap,
+          metalnessMap: isSupernova ? null : pbrMaps.metalnessMap,
+          emissiveMap: isSupernova ? texture : (isLocked ? null : pbrMaps.emissiveMap),
+          emissive: isSupernova ? new THREE.Color("#ff7700") : (isLocked ? new THREE.Color(0x000000) : new THREE.Color(0xffffff)),
+          emissiveIntensity: isSupernova ? 0.45 : (isLocked ? 0 : 0.25),
+          roughness: isSupernova ? 0.25 : (isSucata ? 0.42 : 0.55),
+          metalness: isSupernova ? 0.65 : (isSucata ? 0.58 : 0.38),
+          envMapIntensity: isSupernova ? 0.9 : (isSucata ? 0.65 : 0.35),
           side: THREE.DoubleSide,
         });
 

@@ -23,11 +23,15 @@ import {
   BarChart2,
   Flag,
   Star,
-  ShieldCheck
+  ShieldCheck,
+  Pause,
+  Play,
+  Settings
 } from "lucide-react";
 import { SHIPS_DATA, calculateShipStats } from "../data";
 import { ShipData, RouteData, GraphicsQuality } from "../types";
 import { LoadingScreen } from "./LoadingScreen";
+import { SettingsModal } from "./modals/SettingsModal";
 import { AAADeepSpaceBackground } from "./AAADeepSpaceBackground";
 import { translations, routeTranslations, translateDifficulty, translateClass, Language } from "../translations";
 import { usePerformanceMonitor } from "../hooks/usePerformanceMonitor";
@@ -1547,6 +1551,9 @@ function PilotShipViewLegacy({
 
     texture.colorSpace = THREE.SRGBColorSpace;
     
+    const isSupernova = selectedColor.id === "supernova" || selectedColor.textureFile.includes("Supernova");
+    const isSucata = selectedColor.id === "sucata-espacial" || selectedColor.textureFile.includes("SucataEspacial");
+
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
@@ -1566,13 +1573,13 @@ function PilotShipViewLegacy({
           : new THREE.MeshStandardMaterial({
               map: texture, 
               normalMap: pbrMaps.normalMap,
-              roughnessMap: pbrMaps.roughnessMap,
-              metalnessMap: pbrMaps.metalnessMap,
-              emissiveMap: pbrMaps.emissiveMap,
-              emissive: new THREE.Color(0xffffff),
-              emissiveIntensity: 0.5,
-              roughness: 1.0, 
-              metalness: 1.0, 
+              roughnessMap: isSupernova ? null : pbrMaps.roughnessMap,
+              metalnessMap: isSupernova ? null : pbrMaps.metalnessMap,
+              emissiveMap: isSupernova ? texture : pbrMaps.emissiveMap,
+              emissive: isSupernova ? new THREE.Color("#ff7700") : new THREE.Color(0xffffff),
+              emissiveIntensity: isSupernova ? 0.45 : 0.5,
+              roughness: isSupernova ? 0.25 : 1.0, 
+              metalness: isSupernova ? 0.65 : 1.0, 
               transparent: true, 
               opacity: 1.0, 
               color: new THREE.Color("#ffffff"), 
@@ -1586,6 +1593,8 @@ function PilotShipViewLegacy({
 
   // Atualiza as propriedades do material do clone de forma ultra-eficiente e sem re-alocar memória na GPU
   useEffect(() => {
+    const isSupernova = selectedColor.id === "supernova" || selectedColor.textureFile.includes("Supernova");
+    const isSucata = selectedColor.id === "sucata-espacial" || selectedColor.textureFile.includes("SucataEspacial");
     const isCloaked = abilityActive && currentShip.id === "sparrow-03";
     shipMesh.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
@@ -1593,18 +1602,18 @@ function PilotShipViewLegacy({
         const mat = mesh.material as any;
         if (mat) {
           if (mat.emissive) {
-            mat.emissive.set(isCloaked ? "#00ffea" : "#ffffff");
+            mat.emissive.set(isCloaked ? "#00ffea" : (isSupernova ? "#ff7700" : "#ffffff"));
           }
-          if (mat.emissiveIntensity !== undefined) mat.emissiveIntensity = isCloaked ? 0.8 : 0.5;
-          if (mat.roughness !== undefined) mat.roughness = isCloaked ? 0.9 : 1.0;
-          if (mat.metalness !== undefined) mat.metalness = isCloaked ? 0.1 : 1.0;
+          if (mat.emissiveIntensity !== undefined) mat.emissiveIntensity = isCloaked ? 0.8 : (isSupernova ? 0.45 : 0.5);
+          if (mat.roughness !== undefined) mat.roughness = isCloaked ? 0.9 : (isSupernova ? 0.25 : (isSucata ? 0.42 : 1.0));
+          if (mat.metalness !== undefined) mat.metalness = isCloaked ? 0.1 : (isSupernova ? 0.65 : (isSucata ? 0.60 : 1.0));
           mat.opacity = isCloaked ? 0.25 : 1.0;
           mat.color.set(isCloaked ? "#00ffea" : "#ffffff");
           // Atualização dinâmica via Uniforms sem recompilar Shaders da GPU
         }
       }
     });
-  }, [shipMesh, abilityActive, currentShip.id]);
+  }, [shipMesh, abilityActive, currentShip.id, selectedColor]);
 
   useEffect(() => {
     return () => {
@@ -1659,6 +1668,8 @@ function Takeoff3DShipView({ scene, currentShip, selectedColor, takeoffPercent, 
 
     texture.colorSpace = THREE.SRGBColorSpace;
 
+    const isSupernova = selectedColor.id === "supernova" || selectedColor.textureFile.includes("Supernova");
+
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
@@ -1678,13 +1689,13 @@ function Takeoff3DShipView({ scene, currentShip, selectedColor, takeoffPercent, 
           : new THREE.MeshStandardMaterial({
               map: texture, 
               normalMap: pbrMaps.normalMap,
-              roughnessMap: pbrMaps.roughnessMap,
-              metalnessMap: pbrMaps.metalnessMap,
-              emissiveMap: pbrMaps.emissiveMap,
-              emissive: new THREE.Color(0xffffff),
-              emissiveIntensity: 0.5,
-              roughness: 1.0, 
-              metalness: 1.0, 
+              roughnessMap: isSupernova ? null : pbrMaps.roughnessMap,
+              metalnessMap: isSupernova ? null : pbrMaps.metalnessMap,
+              emissiveMap: isSupernova ? texture : pbrMaps.emissiveMap,
+              emissive: isSupernova ? new THREE.Color("#ff7700") : new THREE.Color(0xffffff),
+              emissiveIntensity: isSupernova ? 0.45 : 0.5,
+              roughness: isSupernova ? 0.25 : 1.0, 
+              metalness: isSupernova ? 0.65 : 1.0, 
               transparent: true, 
               opacity: 1.0, 
               color: new THREE.Color("#ffffff"), 
@@ -2310,6 +2321,26 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
   const [leaderboardInfo, setLeaderboardInfo] = useState<{ isNewRecord: boolean, bestTime: number } | null>(null);
   const [abilityActive, setAbilityActive] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false); const [isVictory, setIsVictory] = useState(false); const [localMuted, setLocalMuted] = useState(isMuted); const [isHangarActive, setIsHangarActive] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const handleResume = useCallback(() => {
+    setIsPaused(false);
+    setIsSettingsOpen(false);
+    if (containerRef.current) {
+      try {
+        const res = (containerRef.current as any).requestPointerLock();
+        if (res && typeof res.catch === 'function') res.catch(() => {});
+      } catch (e) {}
+    }
+  }, []);
+
+  const handlePause = useCallback(() => {
+    setIsPaused(true);
+    if (document.pointerLockElement) {
+      document.exitPointerLock();
+    }
+  }, []);
 
   const [xpGained, setXpGained] = useState(0);
   const [levelUpInfo, setLevelUpInfo] = useState<{ levelUp: boolean, newLevel: number } | null>(null);
@@ -2889,6 +2920,22 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase(); 
+      if (e.key === "Escape" || k === "p") {
+        if (!isHangarActive && !isGameOver && !isVictory && !loadingScreenActive) {
+          setIsPaused((prev) => {
+            const next = !prev;
+            if (next && document.pointerLockElement) {
+              document.exitPointerLock();
+            } else if (!next && containerRef.current) {
+              try {
+                const res = (containerRef.current as any).requestPointerLock();
+                if (res && typeof res.catch === 'function') res.catch(() => {});
+              } catch (err) {}
+            }
+            return next;
+          });
+        }
+      }
       if (k === 'w') keysRef.current.w = true; 
       if (k === 's') keysRef.current.s = true; 
       if (k === 'a') keysRef.current.a = true; 
@@ -2936,19 +2983,42 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
       if (!document.pointerLockElement) {
         pointerRef.current.x = 0;
         pointerRef.current.y = 0;
+        if (!isHangarActive && !isGameOver && !isVictory && !loadingScreenActive) {
+          setIsPaused(true);
+        }
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden && !isHangarActive && !isGameOver && !isVictory && !loadingScreenActive) {
+        setIsPaused(true);
+        if (document.pointerLockElement) {
+          document.exitPointerLock();
+        }
+      }
+    };
+    const handleBlur = () => {
+      if (!isHangarActive && !isGameOver && !isVictory && !loadingScreenActive) {
+        setIsPaused(true);
+        if (document.pointerLockElement) {
+          document.exitPointerLock();
+        }
       }
     };
     window.addEventListener("keydown", down); 
     window.addEventListener("keyup", up); 
     window.addEventListener("mousemove", move);
     document.addEventListener("pointerlockchange", pointerLockChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleBlur);
     return () => { 
       window.removeEventListener("keydown", down); 
       window.removeEventListener("keyup", up); 
       window.removeEventListener("mousemove", move); 
       document.removeEventListener("pointerlockchange", pointerLockChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleBlur);
     };
-  }, [isGameOver, localMuted, isHangarActive]);
+  }, [isGameOver, isVictory, localMuted, isHangarActive, loadingScreenActive]);
 
   useEffect(() => {
     playSimSound("warp", localMuted); baseQuat.current.identity();
@@ -3060,6 +3130,8 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
   const resetGame = () => {
     setIsGameOver(false);
     setIsVictory(false);
+    setIsPaused(false);
+    setIsSettingsOpen(false);
     setAbilityActive(false);
     velocityRef.current = 0;
     baseQuat.current.identity();
@@ -3090,7 +3162,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
       onClick={(e) => {
         // Ativar o controle de mouse oculto (pointer lock) ao clicar no simulador durante o voo
         const target = e.target as HTMLElement;
-        if (!target.closest('button') && !target.closest('.pointer-events-auto') && !isHangarActive && !isGameOver && !isVictory) {
+        if (!target.closest('button') && !target.closest('.pointer-events-auto') && !isHangarActive && !isGameOver && !isVictory && !isPaused) {
           if (containerRef.current && !document.pointerLockElement) {
             try {
               const res = (containerRef.current as any).requestPointerLock();
@@ -3209,6 +3281,7 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
         fallbackAsteroidTexture={fallbackAsteroidTexture}
         baseQuat={baseQuat}
         envPreset={envPreset}
+        isPaused={isPaused}
       />
 
       {/* Dynamic Hangar Takeoff Overlay using Custom Image */}
@@ -3291,6 +3364,18 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
             >
               <RotateCcw className="w-4.5 h-4.5 text-amber-500 group-hover:rotate-[-45deg] transition-transform" />
             </button>
+
+            {/* Botão Pausar (durante o voo) */}
+            {!isHangarActive && !isGameOver && !isVictory && (
+              <button 
+                onClick={handlePause} 
+                title="Pausar (ESC / P)"
+                aria-label="Pausar (ESC / P)"
+                className="flex items-center justify-center w-10 h-10 bg-black/60 hover:bg-zinc-800/80 border border-white/10 rounded-lg transition-all cursor-pointer text-white/80 hover:text-white shadow-xl active:scale-95 group"
+              >
+                <Pause className="w-4.5 h-4.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2 pointer-events-auto">
             <button onClick={() => { const m = !localMuted; setLocalMuted(m); playSimSound("click", m); }} className="p-1.5 bg-black/40 hover:bg-black/60 border border-white/5 rounded-full text-white/60 hover:text-white transition-all cursor-pointer flex items-center justify-center">
@@ -3526,6 +3611,110 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
           </motion.div>
         </div>
       )}
+
+      {/* PAUSE OVERLAY */}
+      <AnimatePresence>
+        {isPaused && !isHangarActive && !isGameOver && !isVictory && (
+          <motion.div
+            key="pause-overlay"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 select-none"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                handleResume();
+              }
+            }}
+          >
+            <div className="bg-gradient-to-b from-zinc-900/90 via-black/95 to-black/98 border border-cyan-500/30 shadow-[0_0_50px_rgba(34,211,238,0.2)] rounded-2xl p-6 sm:p-8 max-w-md w-full relative overflow-hidden flex flex-col items-center text-center">
+              {/* Background ambient glow */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+              <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Icon Emblem */}
+              <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-cyan-400 mb-4 shadow-[0_0_20px_rgba(34,211,238,0.3)] animate-pulse">
+                <Pause className="w-8 h-8" />
+              </div>
+
+              {/* Title & Subtitle */}
+              <h2 className="text-xl sm:text-2xl font-black font-mono tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-teal-200 to-emerald-300 uppercase">
+                {t.gamePaused}
+              </h2>
+              <p className="text-xs text-zinc-400 font-mono mt-2 mb-6 leading-relaxed max-w-xs">
+                {t.pauseSubtitle}
+              </p>
+
+              {/* Main Button: RETOMAR PARTIDA */}
+              <button
+                onClick={handleResume}
+                className="w-full py-3.5 px-6 rounded-xl font-mono font-bold text-sm tracking-wider uppercase bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 text-black shadow-[0_0_25px_rgba(34,211,238,0.4)] hover:shadow-[0_0_35px_rgba(34,211,238,0.6)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer mb-3"
+              >
+                <Play className="w-5 h-5 fill-current" />
+                <span>{t.resumeGame}</span>
+              </button>
+
+              {/* Secondary Actions Stack */}
+              <div className="w-full flex flex-col gap-2 font-mono text-xs">
+                <button
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="w-full py-2.5 px-4 bg-zinc-900/80 hover:bg-zinc-800 border border-white/10 rounded-xl text-zinc-300 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                >
+                  <Settings className="w-4 h-4 text-cyan-400" />
+                  <span>{t.settings}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    resetGame();
+                    setIsPaused(false);
+                  }}
+                  className="w-full py-2.5 px-4 bg-zinc-900/80 hover:bg-zinc-800 border border-white/10 rounded-xl text-zinc-300 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                >
+                  <RotateCcw className="w-4 h-4 text-amber-400" />
+                  <span>{t.restart}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (document.pointerLockElement) {
+                      document.exitPointerLock();
+                    }
+                    onExit();
+                  }}
+                  className="w-full py-2.5 px-4 bg-zinc-900/80 hover:bg-zinc-800/80 border border-white/10 rounded-xl text-zinc-400 hover:text-red-400 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                >
+                  <ArrowLeft className="w-4 h-4 text-red-400" />
+                  <span>{t.backToHangar}</span>
+                </button>
+              </div>
+
+              {/* Shortcut Hint */}
+              <div className="mt-5 pt-3 border-t border-white/10 w-full flex items-center justify-center gap-2 text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+                <span className="px-1.5 py-0.5 bg-white/10 rounded border border-white/10 text-zinc-300">ESC</span>
+                <span>/</span>
+                <span className="px-1.5 py-0.5 bg-white/10 rounded border border-white/10 text-zinc-300">P</span>
+                <span>- Pausar / Retomar</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isSettingsOpen={isSettingsOpen}
+        setIsSettingsOpen={setIsSettingsOpen}
+        language={language || "pt"}
+        setLanguage={() => {}}
+        graphicsQuality={graphicsQuality}
+        setGraphicsQuality={setGraphicsQuality}
+        isMuted={localMuted}
+        setIsMuted={(m) => setLocalMuted(m)}
+        t={t}
+        playSound={playSimSound}
+      />
     </div>
   );
 });

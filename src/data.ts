@@ -694,7 +694,7 @@ export const SKINS_DATA: SkinData[] = [
     id: "white-neutron",
     name: "Estrela de Nêutrons",
     textureFile: "/StarSparrow_White.webp",
-    colorHex: "#fafafa",
+    colorHex: "#f3e5ab",
     description: "Brilho intenso e pureza absoluta."
   },
   {
@@ -710,6 +710,34 @@ export const SKINS_DATA: SkinData[] = [
     textureFile: "/StarSparrow_Earth.webp",
     colorHex: "#0ea5e9",
     description: "Inspirada na beleza azul e verde do nosso planeta de origem, a Terra."
+  },
+  {
+    id: "prototype-wing",
+    name: "Agência Espacial",
+    textureFile: "/PrototypeWing.webp",
+    colorHex: "#ffffff",
+    description: "Textura comemorativa da Agência Espacial com iluminação tática e acabamento cromado."
+  },
+  {
+    id: "prototype-wing-2",
+    name: "Agência Espacial MK-II",
+    textureFile: "/PrototypeWing-1.webp",
+    colorHex: "#f59e0b",
+    description: "Variante tática avançada da Agência Espacial com acentuação cromada e grafismo especial."
+  },
+  {
+    id: "supernova",
+    name: "Supernova",
+    textureFile: "/Supernova.webp",
+    colorHex: "#ff9900",
+    description: "Textura flamejante Supernova com brilho estelar e acabamento dourado reluzente."
+  },
+  {
+    id: "sucata-espacial",
+    name: "Sucata Espacial",
+    textureFile: "/SucataEspacial.webp",
+    colorHex: "#c0c0c0",
+    description: "Blindagem reforçada recuperada a partir de ligas metálicas e salvados orbitais."
   }
 ];
 

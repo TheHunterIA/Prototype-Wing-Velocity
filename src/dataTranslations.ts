@@ -12,7 +12,11 @@ export const skinTranslations: Record<Language, Record<string, { name: string; d
     "black-vacuum": { name: "Vácuo Absoluto", description: "Nanotecnologia que absorve 99% da luz visível para operações furtivas de elite." },
     "white-neutron": { name: "Estrela de Nêutrons", description: "Brilho intenso e pureza absoluta." },
     "cammo-military": { name: "Camuflado Militar", description: "Padrão tático de camuflagem projetado para infiltração em campos de destroços." },
-    "earth-harmony": { name: "Planeta Terra", description: "Inspirada na beleza azul e verde do nosso planeta de origem, a Terra." }
+    "earth-harmony": { name: "Planeta Terra", description: "Inspirada na beleza azul e verde do nosso planeta de origem, a Terra." },
+    "prototype-wing": { name: "Agência Espacial", description: "Textura comemorativa da Agência Espacial com iluminação tática e acabamento cromado." },
+    "prototype-wing-2": { name: "Agência Espacial MK-II", description: "Variante tática avançada da Agência Espacial com acentuação cromada e grafismo especial." },
+    "supernova": { name: "Supernova", description: "Textura flamejante Supernova com brilho estelar e acabamento dourado reluzente." },
+    "sucata-espacial": { name: "Sucata Espacial", description: "Blindagem reforçada recuperada a partir de ligas metálicas e salvados orbitais." }
   },
   en: {
     "red-fury": { name: "Red Fury", description: "An aggressive scarlet finish reflecting the heat of burning stars." },
@@ -25,7 +29,11 @@ export const skinTranslations: Record<Language, Record<string, { name: string; d
     "black-vacuum": { name: "Absolute Vacuum", description: "Nanotechnology that absorbs 99% of visible light for elite stealth operations." },
     "white-neutron": { name: "Neutron Star", description: "Intense brilliance and absolute purity." },
     "cammo-military": { name: "Military Camo", description: "Tactical camouflage pattern designed for infiltration into debris fields." },
-    "earth-harmony": { name: "Planet Earth", description: "Inspired by the blue and green beauty of our home planet, Earth." }
+    "earth-harmony": { name: "Planet Earth", description: "Inspired by the blue and green beauty of our home planet, Earth." },
+    "prototype-wing": { name: "Space Agency", description: "Commemorative Space Agency skin with tactical illumination and chrome finish." },
+    "prototype-wing-2": { name: "Space Agency MK-II", description: "Advanced tactical Space Agency variant with high-fidelity chrome detailing." },
+    "supernova": { name: "Supernova", description: "Flaming Supernova texture with stellar radiance and golden finish." },
+    "sucata-espacial": { name: "Space Scrap", description: "Reinforced plating salvaged from metal alloys and orbital debris." }
   },
   es: {
     "red-fury": { name: "Furia Roja", description: "Un acabado escarlata agresivo que refleja el calor de las estrellas ardientes." },
@@ -38,20 +46,28 @@ export const skinTranslations: Record<Language, Record<string, { name: string; d
     "black-vacuum": { name: "Vacío Absoluto", description: "Nanotecnología que absorbe el 99% de la luz visible para operaciones sigilosas de élite." },
     "white-neutron": { name: "Estrella de Neutrones", description: "Brillo intenso y pureza absoluta." },
     "cammo-military": { name: "Camuflaje Militar", description: "Patrón de camuflaje táctico diseñado para la infiltración en campos de escombros." },
-    "earth-harmony": { name: "Planeta Tierra", description: "Inspirada en la belleza azul y verde de nuestro planeta de origen, la Tierra." }
+    "earth-harmony": { name: "Planeta Tierra", description: "Inspirada en la belleza azul y verde de nuestro planeta de origen, la Tierra." },
+    "prototype-wing": { name: "Agencia Espacial", description: "Textura conmemorativa de la Agencia Espacial con iluminación táctica y acabado cromado." },
+    "prototype-wing-2": { name: "Agencia Espacial MK-II", description: "Variante táctica avanzada de la Agencia Espacial con detalles cromados y diseño especial." },
+    "supernova": { name: "Supernova", description: "Textura flameante Supernova con brillo estelar y acabado dorado reluciente." },
+    "sucata-espacial": { name: "Chatarra Espacial", description: "Blindaje reforzado recuperado de aleaciones metálicas y restos orbitales." }
   },
   fr: {
     "red-fury": { name: "Fureur Rouge", description: "Une finition écarlate agressive reflétant la chaleur des étoiles brûlantes." },
     "blue-void": { name: "Abîme Profond", description: "Teintes bleu cobalt conçues pour le camouflage dans les nébuleuses gazeuses." },
     "green-acid": { name: "Radioactif", description: "Une lueur émeraude radioactive qui intimide tout adversaire dans le vide." },
     "yellow-sun": { name: "Singularité Solaire", description: "Reflets dorés polis qui captent et amplifient la lumière des systèmes binaires." },
-    "purple-nebula": { name: "Nébuleuse d'Antimatière", description: "Des couleurs profondes et mystérieuses récoltées au cœur des nébuleuses les plus lointaines." },
+    "purple-nebula": { name: "Nébuleuse d'Antimatière", description: "Des couleurs profondes et mystériuses récoltées au cœur des nébuleuses les plus lointaines." },
     "cyan-ion": { name: "Faisceau d'Ions", description: "Revêtement ionique expérimental pour une efficacité maximale dans les manœuvres rapides." },
     "grey-carbonite": { name: "Alliage de Carbonite", description: "Métal brut et résistant forgé pour résister aux impacts dans les ceintures d'astéroïdes." },
     "black-vacuum": { name: "Vide Absolu", description: "Nanotechnologie qui absorbe 99 % de la lumière visible pour les opérations furtives d'élite." },
     "white-neutron": { name: "Étoile à Neutrons", description: "Brillance intense et pureté absolue." },
     "cammo-military": { name: "Camouflage Militaire", description: "Motif de camouflage tactique conçu pour l'infiltration dans les champs de débris." },
-    "earth-harmony": { name: "Planète Terre", description: "Inspiré par la beauté bleue et verte de notre planète d'origine, la Terre." }
+    "earth-harmony": { name: "Planète Terre", description: "Inspiré par la beauté bleue et verte de notre planète d'origine, la Terre." },
+    "prototype-wing": { name: "Agence Spatiale", description: "Texture commémorative de l'Agence Spatiale avec éclairage tactique et finition chromée." },
+    "prototype-wing-2": { name: "Agence Spatiale MK-II", description: "Variante tactique avancée d'Agence Spatiale avec finitions chromées haute fidélité." },
+    "supernova": { name: "Supernova", description: "Texture Supernova flamboyante avec éclat stellaire et finition dorée." },
+    "sucata-espacial": { name: "Épave Spatiale", description: "Blindage renforcé récupéré à partir d'alliages métalliques et de débris orbitaux." }
   }
 };
 
