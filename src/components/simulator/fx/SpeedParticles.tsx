@@ -3,10 +3,12 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { SPEED_PARTICLES_VERTEX_SHADER, SPEED_PARTICLES_FRAGMENT_SHADER } from "../shaders/speedShader";
 
-export function SpeedParticles({ velocityRef, shipRef, graphicsQuality }: { velocityRef: React.MutableRefObject<number>, shipRef: React.RefObject<THREE.Group>, graphicsQuality?: "high" | "low" }) {
+import { GraphicsQuality } from "../../../types";
+
+export function SpeedParticles({ velocityRef, shipRef, graphicsQuality }: { velocityRef: React.MutableRefObject<number>, shipRef: React.RefObject<THREE.Group>, graphicsQuality?: GraphicsQuality }) {
   const pointsRef = useRef<THREE.Points>(null); 
   const materialRef = useRef<THREE.ShaderMaterial>(null);
-  const count = graphicsQuality === "low" ? 120 : 900;
+  const count = graphicsQuality === "low" ? 120 : (graphicsQuality === "medium" ? 450 : 900);
   
   const [positions, speeds] = useMemo(() => {
     const pos = new Float32Array(count * 3);

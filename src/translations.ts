@@ -23,8 +23,10 @@ export interface TranslationDict {
   settings: string;
   graphics: string;
   graphicsHigh: string;
+  graphicsMedium: string;
   graphicsLow: string;
   graphicsHighDesc: string;
+  graphicsMediumDesc: string;
   graphicsLowDesc: string;
   languageLabel: string;
   close: string;
@@ -146,10 +148,12 @@ export const translations: Record<Language, TranslationDict> = {
     difficulty: "Dificuldade",
     settings: "Configurações",
     graphics: "Qualidade Gráfica",
-    graphicsHigh: "Altos (Bloom & Efeitos)",
-    graphicsLow: "Fluido (Mais Desempenho)",
-    graphicsHighDesc: "Ativa efeitos cinematográficos de pós-processamento, Bloom e poeira espacial.",
-    graphicsLowDesc: "Desativa o pós-processamento pesado para garantir máxima fluidez e taxa de quadros.",
+    graphicsHigh: "Alta (Cinematográfico)",
+    graphicsMedium: "Média (Equilibrado)",
+    graphicsLow: "Baixa (Desempenho)",
+    graphicsHighDesc: "Pós-processamento completo com Bloom, reflexos PBR e sombras HD.",
+    graphicsMediumDesc: "Equilíbrio ideal entre visual moderno, Bloom suave e excelente fluidez.",
+    graphicsLowDesc: "Desativa pós-processamento para garantir máxima taxa de quadros em PCs fracos.",
     languageLabel: "Idioma do Sistema",
     close: "Confirmar",
     soundEffects: "Efeitos Sonoros",
@@ -268,10 +272,12 @@ export const translations: Record<Language, TranslationDict> = {
     difficulty: "Difficulty",
     settings: "Settings",
     graphics: "Graphics Quality",
-    graphicsHigh: "High (Bloom & Effects)",
-    graphicsLow: "Fluid (Performance)",
-    graphicsHighDesc: "Enables cinematic post-processing, Bloom, and atmospheric effects.",
-    graphicsLowDesc: "Disables heavy post-processing for maximum frames per second.",
+    graphicsHigh: "High (Cinematic)",
+    graphicsMedium: "Medium (Balanced)",
+    graphicsLow: "Low (Performance)",
+    graphicsHighDesc: "Full post-processing with Bloom, PBR reflections, and HD shadows.",
+    graphicsMediumDesc: "Optimal balance between modern visuals, soft Bloom, and fluid FPS.",
+    graphicsLowDesc: "Disables post-processing to guarantee maximum frame rate on low-end PCs.",
     languageLabel: "System Language",
     close: "Confirm",
     soundEffects: "Sound Effects",
@@ -390,9 +396,11 @@ export const translations: Record<Language, TranslationDict> = {
     difficulty: "Dificultad",
     settings: "Configuraciones",
     graphics: "Calidad Gráfica",
-    graphicsHigh: "Alta (Bloom y Efectos)",
-    graphicsLow: "Fluida (Rendimiento)",
-    graphicsHighDesc: "Activa efectos de postprocesado cinematográfico, Bloom y polvo espacial.",
+    graphicsHigh: "Alta (Cinematográfica)",
+    graphicsMedium: "Media (Equilibrada)",
+    graphicsLow: "Baja (Rendimiento)",
+    graphicsHighDesc: "Postprocesado completo con Bloom, reflejos PBR y sombras HD.",
+    graphicsMediumDesc: "Equilibrio ideal entre gráficos modernos, Bloom suave y fluidez.",
     graphicsLowDesc: "Desactiva postprocesados exigentes para garantizar la máxima tasa de fotogramas.",
     languageLabel: "Idioma del Sistema",
     close: "Confirmar",
@@ -512,10 +520,12 @@ export const translations: Record<Language, TranslationDict> = {
     difficulty: "Difficulté",
     settings: "Paramètres",
     graphics: "Qualité Graphique",
-    graphicsHigh: "Haute (Bloom & Effets)",
-    graphicsLow: "Fluide (Performance)",
-    graphicsHighDesc: "Active les effets cinématographiques de post-traitement, le Bloom et la poussière spatiale.",
-    graphicsLowDesc: "Désactive le post-traitement lourd pour assurer une fluidité d'image maximale.",
+    graphicsHigh: "Élevée (Cinématographique)",
+    graphicsMedium: "Moyenne (Équilibrée)",
+    graphicsLow: "Basse (Performance)",
+    graphicsHighDesc: "Post-traitement complet avec Bloom, reflets PBR et ombres HD.",
+    graphicsMediumDesc: "Équilibre optimal entre visuels modernes, Bloom doux et fluidité.",
+    graphicsLowDesc: "Désactive le post-traitement lourd pour assurer une fluidité maximale.",
     languageLabel: "Langue du Système",
     close: "Confirmer",
     soundEffects: "Effets Sonores",

@@ -32,7 +32,7 @@ void main() {
 // → Bloom threshold 0.82 leaves nebula alone, blooms only stars/thrusters
 // ============================================================================
 const SKYBOX_FRAG = `
-precision highp float;
+precision mediump float;
 
 uniform vec3  uC0;       // void background
 uniform vec3  uC1;       // outer haze
@@ -57,14 +57,14 @@ float noise(vec3 p) {
     mix(mix(hash(i),             hash(i+vec3(1,0,0)), f.x),
         mix(hash(i+vec3(0,1,0)), hash(i+vec3(1,1,0)), f.x), f.y),
     mix(mix(hash(i+vec3(0,0,1)), hash(i+vec3(1,0,1)), f.x),
-        mix(hash(i+vec3(0,1,1)), hash(i+vec3(1,1,1)), f.x), f.y),
+        mix(hash(i+vec3(0,0,1)), hash(i+vec3(1,1,1)), f.x), f.y),
     f.z);
 }
 
-// 4-octave FBM (good visual quality, ~35% faster than 6-octave)
+// 3-octave FBM (otimizado para alta taxa de quadros e menor custo por pixel)
 float fbm(vec3 p) {
   float v=0.0, a=0.5;
-  for (int i=0;i<4;i++) { v+=a*noise(p); p=p*2.03+vec3(1.7,9.2,3.4); a*=0.5; }
+  for (int i=0;i<3;i++) { v+=a*noise(p); p=p*2.03+vec3(1.7,9.2,3.4); a*=0.5; }
   return v;
 }
 
@@ -251,7 +251,7 @@ export const AAADeepSpaceBackground = React.memo(function AAADeepSpaceBackground
     <group>
       {/* ── Volumetric Skybox Dome (48-seg for perf, BackSide) ── */}
       <mesh scale={26000} renderOrder={-2000}>
-        <sphereGeometry args={[1, 48, 48]} />
+        <sphereGeometry args={[1, 24, 24]} />
         <shaderMaterial
           ref={skyRef}
           vertexShader={SKYBOX_VERT}

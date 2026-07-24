@@ -182,11 +182,13 @@ export const RenderMilkyWay = memo(function RenderMilkyWay() {
   );
 });
 
-export const RenderBackgroundStars = memo(function RenderBackgroundStars({ starlightColor, graphicsQuality }: { starlightColor?: string, graphicsQuality?: "high" | "low" }) {
+import { GraphicsQuality } from "../../../types";
+
+export const RenderBackgroundStars = memo(function RenderBackgroundStars({ starlightColor, graphicsQuality }: { starlightColor?: string, graphicsQuality?: GraphicsQuality }) {
   const pointsRef = useRef<THREE.Points>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
 
-  const count = graphicsQuality === "low" ? 600 : 6000;
+  const count = graphicsQuality === "low" ? 600 : (graphicsQuality === "medium" ? 3000 : 6000);
 
   const { positions, colors, sizes, phases, brightnesses } = useMemo(() => {
     const pos = new Float32Array(count * 3);

@@ -128,17 +128,24 @@ class AudioService {
     }
   }
 
-  public async playSfx(type: "laser" | "explosion" | "shield_hit" | "hull_hit" | "ability" | "click" | "warp", forceMute = false) {
-    if ((this.isMuted || this.isAdMuted || forceMute) && type !== "click") return;
-    if (!this.ctx) await this.init();
+  public updateListenerPosition(
+    pos: { x: number; y: number; z: number }
+  ) {
+    if (!this.ctx || !this.ctx.listener) return;
+    const l = this.ctx.listener;
+    const t = this.ctx.currentTime;
+    if (l.positionX) {
+      l.positionX.setTargetAtTime(pos.x, t, 0.05);
+      l.positionY.setTargetAtTime(pos.y, t, 0.05);
+      l.positionZ.setTargetAtTime(pos.z, t, 0.05);
+    } else if (l.setPosition) {
+      l.setPosition(pos.x, pos.y, pos.z);
+    }
+  }
+
+  private createSfxNode(type: string, t: number, outputNode: AudioNode) {
     if (!this.ctx) return;
 
-    if (this.ctx.state === "suspended") {
-      this.ctx.resume().catch(() => {});
-    }
-
-    const t = this.ctx.currentTime;
-    
     if (type === "laser") {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
@@ -148,7 +155,7 @@ class AudioService {
       gain.gain.setValueAtTime(0.05, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(outputNode);
       osc.start(t);
       osc.stop(t + 0.15);
     } else if (type === "explosion") {
@@ -160,19 +167,19 @@ class AudioService {
       subGain.gain.setValueAtTime(0.45, t);
       subGain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
       subOsc.connect(subGain);
-      subGain.connect(this.ctx.destination);
+      subGain.connect(outputNode);
       subOsc.start(t);
       subOsc.stop(t + 1.2);
-    } else if (type === "hull_hit") {
+    } else if (type === "hull_hit" || type === "shield_hit") {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-      osc.type = "square";
-      osc.frequency.setValueAtTime(100, t);
-      osc.frequency.linearRampToValueAtTime(40, t + 0.2);
+      osc.type = type === "shield_hit" ? "sine" : "square";
+      osc.frequency.setValueAtTime(type === "shield_hit" ? 600 : 100, t);
+      osc.frequency.linearRampToValueAtTime(type === "shield_hit" ? 150 : 40, t + 0.2);
       gain.gain.setValueAtTime(0.2, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(outputNode);
       osc.start(t);
       osc.stop(t + 0.2);
     } else if (type === "click") {
@@ -184,7 +191,7 @@ class AudioService {
       gain.gain.setValueAtTime(0.05, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(outputNode);
       osc.start(t);
       osc.stop(t + 0.05);
     } else if (type === "warp") {
@@ -196,7 +203,7 @@ class AudioService {
       gain.gain.setValueAtTime(0.1, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(outputNode);
       osc.start(t);
       osc.stop(t + 0.8);
     } else if (type === "ability") {
@@ -208,10 +215,56 @@ class AudioService {
       gain.gain.setValueAtTime(0.1, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(outputNode);
       osc.start(t);
       osc.stop(t + 0.4);
     }
+  }
+
+  public async playSpatialSfx(
+    type: "laser" | "explosion" | "shield_hit" | "hull_hit" | "ability" | "click" | "warp",
+    pos: { x: number; y: number; z: number },
+    forceMute = false
+  ) {
+    if ((this.isMuted || this.isAdMuted || forceMute) && type !== "click") return;
+    if (!this.ctx) await this.init();
+    if (!this.ctx) return;
+
+    if (this.ctx.state === "suspended") {
+      this.ctx.resume().catch(() => {});
+    }
+
+    const t = this.ctx.currentTime;
+    const panner = this.ctx.createPanner();
+    panner.panningModel = "HRTF";
+    panner.distanceModel = "inverse";
+    panner.refDistance = 15;
+    panner.maxDistance = 6000;
+    panner.rolloffFactor = 1;
+
+    if (panner.positionX) {
+      panner.positionX.setValueAtTime(pos.x, t);
+      panner.positionY.setValueAtTime(pos.y, t);
+      panner.positionZ.setValueAtTime(pos.z, t);
+    } else if (panner.setPosition) {
+      panner.setPosition(pos.x, pos.y, pos.z);
+    }
+
+    panner.connect(this.ctx.destination);
+    this.createSfxNode(type, t, panner);
+  }
+
+  public async playSfx(type: "laser" | "explosion" | "shield_hit" | "hull_hit" | "ability" | "click" | "warp", forceMute = false) {
+    if ((this.isMuted || this.isAdMuted || forceMute) && type !== "click") return;
+    if (!this.ctx) await this.init();
+    if (!this.ctx) return;
+
+    if (this.ctx.state === "suspended") {
+      this.ctx.resume().catch(() => {});
+    }
+
+    const t = this.ctx.currentTime;
+    this.createSfxNode(type, t, this.ctx.destination);
   }
 
   public async startMusic(type: "hangar" | "game") {

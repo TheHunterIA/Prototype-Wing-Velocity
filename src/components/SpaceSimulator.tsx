@@ -26,7 +26,7 @@ import {
   ShieldCheck
 } from "lucide-react";
 import { SHIPS_DATA, calculateShipStats } from "../data";
-import { ShipData, RouteData } from "../types";
+import { ShipData, RouteData, GraphicsQuality } from "../types";
 import { LoadingScreen } from "./LoadingScreen";
 import { AAADeepSpaceBackground } from "./AAADeepSpaceBackground";
 import { translations, routeTranslations, translateDifficulty, translateClass, Language } from "../translations";
@@ -39,6 +39,7 @@ import { getRouteBehavior } from "../routes/routeBehaviors";
 import { audioService } from "../services/audioService";
 import { GameEngine } from "./simulator/GameEngine";
 import { TelemetryHUD } from "./simulator/ui/TelemetryHUD";
+import { SimulatorCanvas } from "./simulator/SimulatorCanvas";
 import { 
   DeepSpaceEnvironment, 
   RenderBackgroundStars, 
@@ -1315,7 +1316,7 @@ const DestroyedSatelliteModelLegacy = memo(function DestroyedSatelliteModel({ po
 
 const asteroidGeometryCache = new Map<string, THREE.DodecahedronGeometry>();
 
-const RenderAsteroidsLegacy = memo(function RenderAsteroids({ asteroids, texture, selectedRoute, graphicsQuality, asteroidsChangedRef }: { asteroids: any[], texture: THREE.Texture | null, selectedRoute: RouteData, graphicsQuality: "high" | "low", asteroidsChangedRef: React.RefObject<boolean> }) {
+const RenderAsteroidsLegacy = memo(function RenderAsteroids({ asteroids, texture, selectedRoute, graphicsQuality, asteroidsChangedRef }: { asteroids: any[], texture: THREE.Texture | null, selectedRoute: RouteData, graphicsQuality: GraphicsQuality, asteroidsChangedRef: React.RefObject<boolean> }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const count = asteroids.length;
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -1508,7 +1509,7 @@ interface PilotShipViewProps {
   selectedColor: any;
   abilityActive: boolean;
   isHangarActive: boolean;
-  graphicsQuality?: "high" | "low";
+  graphicsQuality?: GraphicsQuality;
 }
 
 function PilotShipViewLegacy({
@@ -1599,7 +1600,7 @@ function PilotShipViewLegacy({
           if (mat.metalness !== undefined) mat.metalness = isCloaked ? 0.1 : 1.0;
           mat.opacity = isCloaked ? 0.25 : 1.0;
           mat.color.set(isCloaked ? "#00ffea" : "#ffffff");
-          mat.needsUpdate = true;
+          // Atualização dinâmica via Uniforms sem recompilar Shaders da GPU
         }
       }
     });
@@ -1628,12 +1629,12 @@ function PilotShipViewLegacy({
   return <primitive object={shipMesh} scale={massScale} rotation={[tiltX, Math.PI, 0]} />;
 }
 
-function PilotShipLegacy({ currentShip, selectedColor, abilityActive, isHangarActive, graphicsQuality }: { currentShip: ShipData, selectedColor: any, abilityActive: boolean, isHangarActive: boolean, graphicsQuality?: "high" | "low" }) {
+function PilotShipLegacy({ currentShip, selectedColor, abilityActive, isHangarActive, graphicsQuality }: { currentShip: ShipData, selectedColor: any, abilityActive: boolean, isHangarActive: boolean, graphicsQuality?: GraphicsQuality }) {
   const gltf = useLoader(GLTFLoader, currentShip.modelFile);
   return <PilotShipViewLegacy scene={gltf.scene} currentShip={currentShip} selectedColor={selectedColor} abilityActive={abilityActive} isHangarActive={isHangarActive} graphicsQuality={graphicsQuality} />;
 }
 
-function Takeoff3DShipView({ scene, currentShip, selectedColor, takeoffPercent, takeoffStarted, graphicsQuality }: { scene: THREE.Group, currentShip: ShipData, selectedColor: any, takeoffPercent: number, takeoffStarted: boolean, graphicsQuality?: "high" | "low" }) {
+function Takeoff3DShipView({ scene, currentShip, selectedColor, takeoffPercent, takeoffStarted, graphicsQuality }: { scene: THREE.Group, currentShip: ShipData, selectedColor: any, takeoffPercent: number, takeoffStarted: boolean, graphicsQuality?: GraphicsQuality }) {
   const texture = useTexture(selectedColor.textureFile) as THREE.Texture;
   const pbrMaps = useTexture({
     normalMap: "/StarSparrow_Normal.webp",
@@ -1745,12 +1746,12 @@ function Takeoff3DShipView({ scene, currentShip, selectedColor, takeoffPercent, 
   );
 }
 
-function Takeoff3DShipLoader({ currentShip, selectedColor, takeoffPercent, takeoffStarted, graphicsQuality }: { currentShip: ShipData, selectedColor: any, takeoffPercent: number, takeoffStarted: boolean, graphicsQuality?: "high" | "low" }) {
+function Takeoff3DShipLoader({ currentShip, selectedColor, takeoffPercent, takeoffStarted, graphicsQuality }: { currentShip: ShipData, selectedColor: any, takeoffPercent: number, takeoffStarted: boolean, graphicsQuality?: GraphicsQuality }) {
   const gltf = useLoader(GLTFLoader, currentShip.modelFile);
   return <Takeoff3DShipView scene={gltf.scene} currentShip={currentShip} selectedColor={selectedColor} takeoffPercent={takeoffPercent} takeoffStarted={takeoffStarted} graphicsQuality={graphicsQuality} />;
 }
 
-function Takeoff3DShipCanvasLegacy({ currentShip, selectedColor, takeoffPercent, takeoffStarted, graphicsQuality }: { currentShip: ShipData, selectedColor: any, takeoffPercent: number, takeoffStarted: boolean, graphicsQuality?: "high" | "low" }) {
+function Takeoff3DShipCanvasLegacy({ currentShip, selectedColor, takeoffPercent, takeoffStarted, graphicsQuality }: { currentShip: ShipData, selectedColor: any, takeoffPercent: number, takeoffStarted: boolean, graphicsQuality?: GraphicsQuality }) {
   return (
     <div className="absolute inset-0 z-20 pointer-events-none">
       <Canvas 
@@ -1762,9 +1763,9 @@ function Takeoff3DShipCanvasLegacy({ currentShip, selectedColor, takeoffPercent,
           : { alpha: true, antialias: true, powerPreference: "high-performance" }
         }
       >
-        <ambientLight intensity={0.7} color="#8090b0" />
-        <directionalLight position={[10, 15, 10]} intensity={2.2} color="#ffffff" />
-        <directionalLight position={[-10, -5, -10]} intensity={1.2} color={selectedColor.colorHex} />
+        <ambientLight intensity={0.4} color="#8090b0" />
+        <directionalLight position={[10, 15, 10]} intensity={1.2} color="#ffffff" />
+        <directionalLight position={[-10, -5, -10]} intensity={0.6} color={selectedColor.colorHex} />
         <Suspense fallback={null}>
           <Takeoff3DShipLoader currentShip={currentShip} selectedColor={selectedColor} takeoffPercent={takeoffPercent} takeoffStarted={takeoffStarted} graphicsQuality={graphicsQuality} />
         </Suspense>
@@ -1986,8 +1987,8 @@ interface SpaceSimulatorProps {
   isMuted: boolean; 
   onExit: () => void; 
   selectedRoute: RouteData;
-  graphicsQuality: "high" | "low";
-  setGraphicsQuality: (quality: "high" | "low") => void;
+  graphicsQuality: GraphicsQuality;
+  setGraphicsQuality: (quality: GraphicsQuality) => void;
   language?: Language;
   onHangarStateChange?: (isActive: boolean) => void;
   isMobile?: boolean;
@@ -2578,6 +2579,24 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
     return items;
   }, [asteroidCount, selectedRoute, getRouteCenterAtZ, calculateRingPosition]);
 
+  // Travar as configurações do Canvas e WebGL durante a partida atual para impedir
+  // que o contexto WebGL seja destruído ou recompilado no meio do voo.
+  const activeQualityRef = useRef(graphicsQuality);
+
+  const canvasGl = useMemo(() => {
+    return activeQualityRef.current === "low"
+      ? { alpha: false, antialias: false, powerPreference: "high-performance" as const, precision: "lowp" as const }
+      : { logarithmicDepthBuffer: true, antialias: true, powerPreference: "high-performance" as const, precision: "highp" as const };
+  }, []);
+
+  const envPreset = useMemo(() => {
+    const c = selectedRoute.ambientColor.toLowerCase();
+    return c === "#09090b" || c === "#1e1b4b" ? "night" :
+           c === "#ef4444" || c === "#f97316" || c === "#8b5cf6" ? "sunset" :
+           c === "#10b981" || c === "#0c4a6e" ? "dawn" :
+           "city";
+  }, [selectedRoute.ambientColor]);
+
   const asteroidTexture = useSafeTexture("/asteroid_texture.webp"); 
   const fallbackAsteroidTexture = useMemo(() => generateNoiseTexture(128, 128, "asteroid", "#4a443f"), []);
 
@@ -3060,146 +3079,50 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
       </AnimatePresence>
       
 
-      <div className="absolute inset-0 z-0">
-        <Canvas 
-          camera={{ position: [0, 6, 26], fov: 45, far: 200000 }} 
-          shadows={graphicsQuality === "low" ? false : "soft"}
-          dpr={graphicsQuality === "low" ? 0.75 : [1, 1.5]}
-          gl={graphicsQuality === "low"
-            ? { alpha: false, antialias: false, powerPreference: "high-performance", precision: "lowp" }
-            : { logarithmicDepthBuffer: true, antialias: true, powerPreference: "high-performance", precision: "highp" }
-          }
-          onCreated={({ gl }) => {
-            if (graphicsQuality === "low") {
-              gl.setClearColor("#000000", 1);
-            }
-          }}
-        >
-          <PerformanceController graphicsQuality={graphicsQuality} setGraphicsQuality={setGraphicsQuality} />
-          <DynamicFOV velocityRef={velocityRef} />
-          <SpeedParticles velocityRef={velocityRef} shipRef={shipRef} graphicsQuality={graphicsQuality} />
-          <SpaceDust shipRef={shipRef} dustColor={selectedRoute.dustColor || "#5e6d8a"} graphicsQuality={graphicsQuality} />
-          <color attach="background" args={[graphicsQuality === "low" ? "#000000" : (selectedRoute.ambientColor === "#09090b" ? "#000000" : "#020205")]} />
-          <fog attach="fog" args={[selectedRoute.fogColor || selectedRoute.ambientColor, 1000, 100000]} />
-          <Suspense fallback={null}>
-            {/* Ambient lift — planetas precisam de luz de preenchimento generosa em espaço aberto */}
-            <ambientLight intensity={0.55} color="#8090b0" />
-            <hemisphereLight color="#7b93c2" groundColor="#050812" intensity={0.75} />
-            {/* Fonte de reflexo/iluminação indireta para materiais PBR (casco da nave, etc.) — sem isso,
-                MeshStandardMaterial nunca recebe envMap e fica com aparência "plástica" mesmo com boa luz direta */}
-            {graphicsQuality === "high" && <Environment preset="night" environmentIntensity={0.6} />}
-            {/* Luz solar principal — colateral para o eixo Z do trajeto, cria sombra lateral dramática nos planetas */}
-            <directionalLight 
-              position={[18, 30, 10]} 
-              intensity={graphicsQuality === "low" ? 2.5 : 5.5}
-              color={selectedRoute.sunLightColor || "#ffe8d0"}
-              castShadow={graphicsQuality !== "low"} 
-              shadow-mapSize={graphicsQuality === "low" ? [256, 256] : [2048, 2048]}
-              shadow-camera-near={1}
-              shadow-camera-far={200}
-              shadow-camera-left={-60}
-              shadow-camera-right={60}
-              shadow-camera-top={60}
-              shadow-camera-bottom={-60}
-              shadow-bias={-0.0005}
-            />
-            {/* Rim light de cor da rota — ilumina a borda traseira dos planetas e naves */}
-            <directionalLight position={[-20, 10, -20]} intensity={3.0} color={selectedColor.colorHex} />
-            {/* Fill baixo suave — evita sombras completamente pretas */}
-            <directionalLight position={[0, -25, 5]} intensity={1.2} color="#1a2040" />
-            {/* AAA Deep Space Environment (Volumetric Ray-warped Skybox + Flare Stars) */}
-            {!isHangarActive && (
-              <>
-                <AAADeepSpaceBackground selectedRoute={selectedRoute} />
-                <RenderBackgroundStars starlightColor={selectedRoute.starlightColor} graphicsQuality={graphicsQuality} />
-              </>
-            )}
-            
-              <GameEngine 
-                shipRef={shipRef} 
-                velocityRef={velocityRef} 
-                baseQuat={baseQuat} 
-                isHangarActive={isHangarActive} 
-                setIsHangarActive={setIsHangarActive} 
-                takeoffProgressRef={takeoffProgressRef} 
-                pointerRef={pointerRef} 
-                keysRef={keysRef} 
-                scoreRef={scoreRef}
-                multiplierRef={multiplierRef}
-                planets={planets} 
-                asteroids={asteroids} 
-                satellites={satellites}
-                abilityActive={abilityActive} 
-                setAbilityActive={setAbilityActive}
-                energyRef={energyRef}
-                currentShip={currentShip} 
-                createExplosion={createExplosion} 
-                localMuted={localMuted} 
-                shieldRef={shieldRef} 
-                armorRef={armorRef} 
-                flightVectorRef={flightVectorRef}
-                setIsGameOver={(val: boolean) => {
-                  setArmorState(armorRef.current);
-                  setShieldState(shieldRef.current);
-                  setIsGameOver(val);
-                }} 
-                setIsVictory={(val: boolean) => {
-                  setArmorState(armorRef.current);
-                  setShieldState(shieldRef.current);
-                  setIsVictory(val);
-                }} 
-                trafficShips={trafficShips} 
-                shakeRef={shakeRef} 
-                explosionsRef={explosionsRef} 
-                selectedColor={selectedColor} 
-                countdown={countdown}
-                stats={stats}
-                neonRingsRef={neonRingsRef}
-                selectedRoute={selectedRoute}
-                customRouteDataRef={customRouteDataRef}
-                asteroidsChangedRef={asteroidsChangedRef}
-                repulsionVelRef={repulsionVelRef}
-              />
-            
-            <RenderNeonRings ringsRef={neonRingsRef} shipRef={shipRef} />
-            <SpeedParallaxDust shipRef={shipRef} velocityRef={velocityRef} keysRef={keysRef} abilityActive={abilityActive} />
-
-            
-            {/* Planets always visible so the corridor exit frames them beautifully */}
-            {planets.map(p => <PlanetModel key={p.id} planet={p} />)}
-            
-            {/* Keep asteroids, satellites, and explosions always rendered so you can see them from inside the corridor before exiting */}
-            <RenderExplosions explosionsRef={explosionsRef} />
-            {satellites.map(s => <DestroyedSatelliteModel key={s.id} position={[s.pos.x, s.pos.y, s.pos.z]} rotation={s.rot} scale={s.scale} selectedRoute={selectedRoute} />)}
-            {/* Render highly optimized instanced asteroids with just 1 Draw Call! */}
-            <RenderAsteroids asteroids={asteroids} texture={asteroidTexture || fallbackAsteroidTexture} selectedRoute={selectedRoute} graphicsQuality={graphicsQuality} asteroidsChangedRef={asteroidsChangedRef} />
-            
-
-            <group ref={shipRef} visible={!isHangarActive}>
-              <PilotShip currentShip={currentShip} selectedColor={selectedColor} abilityActive={abilityActive} isHangarActive={isHangarActive} graphicsQuality={graphicsQuality} />
-              <ShipThrusters currentShip={currentShip} selectedColor={selectedColor} keysRef={keysRef} abilityActive={abilityActive} velocityRef={velocityRef} takeoffProgressRef={takeoffProgressRef} />
-              <ShipCrosshair selectedColor={selectedColor} />
-
-              {/* Luzes locais de altíssimo brilho atreladas à nave para destacá-la no espaço */}
-              <pointLight position={[0, 10, 15]} intensity={30.0} distance={200} decay={1.0} />
-              <pointLight position={[0, -8, -15]} intensity={25.0} distance={150} decay={1.0} color={selectedColor.colorHex} />
-              <directionalLight position={[5, 15, 15]} intensity={6.0} />
-            </group>
-          </Suspense>
-
-          {graphicsQuality === "high" && (
-            <EffectComposer key="sim-composer-high" multisampling={8}>
-              {/* Bloom threshold 0.82: nebula cores ficam abaixo, só spikes estelares e propulsores disparam */}
-              <Bloom luminanceThreshold={0.82} mipmapBlur intensity={0.5} radius={0.65} />
-              <ChromaticAberration offset={[0.00055, 0.00055]} radialModulation modulationOffset={0.18} />
-              <BrightnessContrast brightness={0.01} contrast={0.08} />
-              <HueSaturation hue={0} saturation={0.10} />
-              <Noise opacity={0.006} />
-              <Vignette eskil={false} offset={0.12} darkness={0.55} />
-            </EffectComposer>
-          )}
-        </Canvas>
-      </div>
+      <SimulatorCanvas 
+        graphicsQuality={graphicsQuality}
+        setGraphicsQuality={setGraphicsQuality}
+        velocityRef={velocityRef}
+        shipRef={shipRef}
+        selectedRoute={selectedRoute}
+        isHangarActive={isHangarActive}
+        setIsHangarActive={setIsHangarActive}
+        takeoffProgressRef={takeoffProgressRef}
+        pointerRef={pointerRef}
+        keysRef={keysRef}
+        scoreRef={scoreRef}
+        multiplierRef={multiplierRef}
+        planets={planets}
+        asteroids={asteroids}
+        satellites={satellites}
+        abilityActive={abilityActive}
+        setAbilityActive={setAbilityActive}
+        energyRef={energyRef}
+        currentShip={currentShip}
+        createExplosion={createExplosion}
+        localMuted={localMuted}
+        shieldRef={shieldRef}
+        armorRef={armorRef}
+        flightVectorRef={flightVectorRef}
+        setArmorState={setArmorState}
+        setShieldState={setShieldState}
+        setIsGameOver={setIsGameOver}
+        setIsVictory={setIsVictory}
+        trafficShips={trafficShips}
+        shakeRef={shakeRef}
+        explosionsRef={explosionsRef}
+        selectedColor={selectedColor}
+        countdown={countdown}
+        stats={stats}
+        neonRingsRef={neonRingsRef}
+        customRouteDataRef={customRouteDataRef}
+        asteroidsChangedRef={asteroidsChangedRef}
+        repulsionVelRef={repulsionVelRef}
+        asteroidTexture={asteroidTexture}
+        fallbackAsteroidTexture={fallbackAsteroidTexture}
+        baseQuat={baseQuat}
+        envPreset={envPreset}
+      />
 
       {/* Dynamic Hangar Takeoff Overlay using Custom Image */}
       <AnimatePresence>

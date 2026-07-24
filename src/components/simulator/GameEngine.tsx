@@ -135,6 +135,7 @@ export function GameEngine({
       keysRef.current[" "] || keysRef.current.ArrowUp,
       localMuted
     );
+    audioService.updateListenerPosition(ship.position);
 
     // Amortecimento dinâmico: os controles retornam suavemente ao centro quando não há input ativo
     const damping = Math.exp(-dt * 2.8);

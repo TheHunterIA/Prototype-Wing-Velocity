@@ -5,13 +5,15 @@ import { Language } from "../../translations";
 import { ModalCard } from "../ui/ModalCard";
 import { SciFiButton } from "../ui/SciFiButton";
 
+import { GraphicsQuality } from "../../types";
+
 interface SettingsModalProps {
   isSettingsOpen: boolean;
   setIsSettingsOpen: (open: boolean) => void;
   language: Language;
   setLanguage: (lang: Language) => void;
-  graphicsQuality: "high" | "low";
-  setGraphicsQuality: (quality: "high" | "low") => void;
+  graphicsQuality: GraphicsQuality;
+  setGraphicsQuality: (quality: GraphicsQuality) => void;
   isMuted: boolean;
   setIsMuted: (muted: boolean) => void;
   t: any;
@@ -111,10 +113,11 @@ export function SettingsModal({
               <Sliders className="w-3 h-3" />
               {t.graphics}
             </span>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {[
-                { code: "high", name: t.graphicsHigh, desc: t.graphicsHighDesc, icon: Sparkles },
-                { code: "low", name: t.graphicsLow, desc: t.graphicsLowDesc, icon: Gauge }
+                { code: "low", name: t.graphicsLow, desc: t.graphicsLowDesc, icon: Gauge },
+                { code: "medium", name: t.graphicsMedium, desc: t.graphicsMediumDesc, icon: Sliders },
+                { code: "high", name: t.graphicsHigh, desc: t.graphicsHighDesc, icon: Sparkles }
               ].map((quality) => {
                 const isSelected = graphicsQuality === quality.code;
                 const IconComponent = quality.icon;
@@ -122,26 +125,26 @@ export function SettingsModal({
                   <button
                     key={quality.code}
                     onClick={() => {
-                      setGraphicsQuality(quality.code as "high" | "low");
+                      setGraphicsQuality(quality.code as GraphicsQuality);
                       try {
                         localStorage.setItem("graphicsQuality", quality.code);
                         localStorage.setItem("graphicsQualityManual", "true");
                       } catch {}
                       playSound("click", isMuted);
                     }}
-                    className={`relative p-3.5 rounded-xl border transition-all duration-500 cursor-pointer flex flex-col gap-1.5 group ${
+                    className={`relative p-2.5 rounded-xl border transition-all duration-500 cursor-pointer flex flex-col gap-1 group ${
                       isSelected
                         ? "bg-white/5 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.15)]"
                         : "bg-transparent border-white/5 hover:border-white/20 hover:bg-white/[0.02]"
                     }`}
                   >
                     <div className="flex justify-between items-center">
-                      <span className={`text-[11px] font-bold tracking-tight ${isSelected ? "text-white" : "text-zinc-500"}`}>
+                      <span className={`text-[10px] font-bold tracking-tight ${isSelected ? "text-white" : "text-zinc-500"}`}>
                         {quality.name}
                       </span>
                       <IconComponent className={`w-3 h-3 transition-transform duration-500 group-hover:scale-110 ${isSelected ? "text-cyan-400" : "text-zinc-700"}`} />
                     </div>
-                    <p className={`text-[9px] leading-snug text-left ${isSelected ? "text-zinc-400" : "text-zinc-600"}`}>
+                    <p className={`text-[8px] leading-snug text-left ${isSelected ? "text-zinc-400" : "text-zinc-600"}`}>
                       {quality.desc}
                     </p>
                   </button>

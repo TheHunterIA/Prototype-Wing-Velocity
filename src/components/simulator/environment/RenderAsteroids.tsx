@@ -5,31 +5,35 @@ import { RouteData } from "../../../types";
 import { getRouteBehavior } from "../../../routes/routeBehaviors";
 import { generateNormalMapFromAlbedo } from "../utils/textures";
 
-const asteroidGeometryCache = new Map<string, THREE.DodecahedronGeometry>();
+import { GraphicsQuality } from "../../../types";
+
+const asteroidGeometryCache = new Map<string, THREE.BufferGeometry>();
 
 export const RenderAsteroids = memo(function RenderAsteroids({ 
   asteroids, 
   texture, 
   selectedRoute, 
   graphicsQuality, 
-  asteroidsChangedRef 
+  asteroidsChangedRef,
+  shipRef
 }: { 
   asteroids: any[], 
   texture: THREE.Texture | null, 
   selectedRoute: RouteData, 
-  graphicsQuality: "high" | "low", 
-  asteroidsChangedRef: React.RefObject<boolean> 
+  graphicsQuality: GraphicsQuality, 
+  asteroidsChangedRef: React.RefObject<boolean>,
+  shipRef?: React.MutableRefObject<THREE.Group | null>
 }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const count = asteroids.length;
   const dummy = useMemo(() => new THREE.Object3D(), []);
+  const normalScaleVector = useMemo(() => new THREE.Vector2(1.1, 1.1), []);
 
-  // Criar uma geometria de asteroide procedural altamente realista, craterada e irregular (formato de batata cósmica)
   const asteroidGeometry = useMemo(() => {
     if (asteroidGeometryCache.has(graphicsQuality)) {
       return asteroidGeometryCache.get(graphicsQuality)!;
     }
-    const detail = graphicsQuality === "high" ? 2 : 0; // Subdivisão 0 no modo de baixa qualidade (Dodecaedro simples)
+    const detail = graphicsQuality === "high" ? 2 : (graphicsQuality === "medium" ? 1 : 0);
     const geo = new THREE.DodecahedronGeometry(1, detail);
     const posAttr = geo.attributes.position;
     const v = new THREE.Vector3();
@@ -64,60 +68,90 @@ export const RenderAsteroids = memo(function RenderAsteroids({
     return geo;
   }, [graphicsQuality]);
 
-  const materialProps = useMemo(() => {
-    return getRouteBehavior(selectedRoute.id).asteroidMaterialProps;
-  }, [selectedRoute.id]);
+  const dysonScrapGeometry = useMemo(() => {
+    if (asteroidGeometryCache.has("dysonScrap_" + graphicsQuality)) {
+      return asteroidGeometryCache.get("dysonScrap_" + graphicsQuality)!;
+    }
+    const geo = new THREE.BoxGeometry(2.5, 0.4, 1.2);
+    asteroidGeometryCache.set("dysonScrap_" + graphicsQuality, geo);
+    return geo;
+  }, [graphicsQuality]);
 
-  // Normal map real derivado da textura procedural do asteroide (mesma técnica dos planetas) -
-  // troca o bumpMap fraco por relevo com resposta de luz em X/Y de verdade nas crateras
+  const highwayGeometry = useMemo(() => {
+    if (asteroidGeometryCache.has("highway_" + graphicsQuality)) {
+      return asteroidGeometryCache.get("highway_" + graphicsQuality)!;
+    }
+    const geo = new THREE.OctahedronGeometry(1.2, 0);
+    asteroidGeometryCache.set("highway_" + graphicsQuality, geo);
+    return geo;
+  }, [graphicsQuality]);
+
+  const plasmaGeometry = useMemo(() => {
+    if (asteroidGeometryCache.has("plasma_" + graphicsQuality)) {
+      return asteroidGeometryCache.get("plasma_" + graphicsQuality)!;
+    }
+    const detail = graphicsQuality === "high" ? 1 : 0;
+    const geo = new THREE.IcosahedronGeometry(1, detail);
+    asteroidGeometryCache.set("plasma_" + graphicsQuality, geo);
+    return geo;
+  }, [graphicsQuality]);
+
+  // Gerar mapa de normais procedurais apenas se houver textura carregada
   const asteroidNormalTexture = useMemo(() => {
     if (!texture) return null;
     return generateNormalMapFromAlbedo(texture as THREE.CanvasTexture, "asteroid_field");
   }, [texture]);
 
-  // Geometria de estilhaço metálico irregular e retorcido para a Rota de Dyson (sem retângulos/caixas)
-  const dysonScrapGeometry = useMemo(() => {
-    const geo = new THREE.CylinderGeometry(0.5, 0.9, 1.4, 5);
-    const posAttr = geo.attributes.position;
-    const v = new THREE.Vector3();
-    for (let i = 0; i < posAttr.count; i++) {
-      v.fromBufferAttribute(posAttr, i);
-      const angle = Math.atan2(v.z, v.x);
-      
-      // Dobrar e cisalhar o cilindro para tirar qualquer traço simétrico
-      v.x += Math.sin(v.y * 3.0) * 0.4;
-      v.z += Math.cos(v.y * 3.0) * 0.4;
-      
-      // Ondulações e dentes de metal retorcido
-      const spikes = Math.sin(angle * 5.0) * 0.2 + Math.cos(v.y * 8.0) * 0.15;
-      v.x *= (1.0 + spikes);
-      v.z *= (1.0 + spikes);
-      
-      // Assimetria de topo/base
-      if (v.y > 0) {
-        v.x *= 0.7;
-        v.z *= 1.3;
-      } else {
-        v.x *= 1.2;
-        v.z *= 0.6;
-      }
-      posAttr.setXYZ(i, v.x, v.y, v.z);
+  // Propriedades visuais do material ajustadas dinamicamente com base no ambiente da rota
+  const materialProps = useMemo(() => {
+    const obstacleType = getRouteBehavior(selectedRoute.id).obstacleGeometryType;
+    if (obstacleType === "dysonScrap") {
+      return {
+        color: new THREE.Color("#4a5568"),
+        emissive: new THREE.Color("#1a202c"),
+        emissiveIntensity: 0.1,
+        roughness: 0.4,
+        metalness: 0.85,
+        useTexture: false
+      };
+    } else if (obstacleType === "plasma") {
+      return {
+        color: new THREE.Color("#93c5fd"),
+        emissive: new THREE.Color("#3b82f6"),
+        emissiveIntensity: 1.2,
+        roughness: 0.2,
+        metalness: 0.1,
+        useTexture: false
+      };
+    } else if (selectedRoute.id === "route-ice-field" || selectedRoute.id === "route-saturn-rings") {
+      return {
+        color: new THREE.Color("#bae6fd"),
+        emissive: new THREE.Color("#0284c7"),
+        emissiveIntensity: 0.2,
+        roughness: 0.3,
+        metalness: 0.2,
+        useTexture: true
+      };
+    } else if (selectedRoute.id === "route-supernova" || selectedRoute.id === "route-asteroid-alpha") {
+      return {
+        color: new THREE.Color("#fed7aa"),
+        emissive: new THREE.Color("#ea580c"),
+        emissiveIntensity: 0.15,
+        roughness: 0.8,
+        metalness: 0.3,
+        useTexture: true
+      };
+    } else {
+      return {
+        color: new THREE.Color("#888888"),
+        emissive: new THREE.Color("#000000"),
+        emissiveIntensity: 0,
+        roughness: 0.85,
+        metalness: 0.15,
+        useTexture: true
+      };
     }
-    geo.computeVertexNormals();
-    return geo;
-  }, []);
-
-  const highwayGeometry = useMemo(() => new THREE.ConeGeometry(0.6, 1.2, 4), []);
-  const plasmaGeometry = useMemo(() => new THREE.IcosahedronGeometry(1, 1), []);
-
-  // Liberar recursos de forma segura para evitar vazamento de memória de GPU
-  useEffect(() => {
-    return () => {
-      dysonScrapGeometry.dispose();
-      highwayGeometry.dispose();
-      plasmaGeometry.dispose();
-    };
-  }, [dysonScrapGeometry, highwayGeometry, plasmaGeometry]);
+  }, [selectedRoute, dysonScrapGeometry, highwayGeometry, plasmaGeometry]);
 
   const geometryToUse = useMemo(() => {
     const obstacleType = getRouteBehavior(selectedRoute.id).obstacleGeometryType;
@@ -147,7 +181,6 @@ export const RenderAsteroids = memo(function RenderAsteroids({
     meshRef.current.instanceMatrix.needsUpdate = true;
   };
 
-  // Definir matrizes estáticas apenas quando asteroides ou geometria mudarem
   useEffect(() => {
     const t = setTimeout(() => {
       updateAsteroidMatrices();
@@ -155,22 +188,24 @@ export const RenderAsteroids = memo(function RenderAsteroids({
     return () => clearTimeout(t);
   }, [asteroids, count, geometryToUse]);
 
-  // Executar a rotação e animação contínua de todos os asteroides a cada frame para dar sensação de universo em movimento
   useFrame((state, delta) => {
     if (!meshRef.current) return;
     const dt = Math.min(delta, 0.05);
     const time = state.clock.elapsedTime;
+    const shipPos = shipRef?.current ? shipRef.current.position : null;
+    const shipZ = shipPos ? shipPos.z : 0;
 
     for (let i = 0; i < count; i++) {
       const a = asteroids[i];
       if (!a) continue;
 
-      // Rotação orbital contínua de cada asteroide
+      // Culling por distância: se o asteroide estiver a mais de 3500m da nave, pular recalculo de matriz
+      if (shipPos && Math.abs(a.pos.z - shipZ) > 3500) continue;
+
       a.rot[0] += (a.rotSpeedX || 0.15) * dt;
       a.rot[1] += (a.rotSpeedY || 0.25) * dt;
       a.rot[2] += (a.rotSpeedZ || 0.10) * dt;
 
-      // Deriva de movimento para trajetos com asteroides dinâmicos
       if (selectedRoute.hasMovingAsteroids) {
         a.pos.x += Math.sin(time * 0.8 + i) * 10 * dt;
         a.pos.y += Math.cos(time * 0.6 + i * 2) * 6 * dt;
@@ -194,7 +229,7 @@ export const RenderAsteroids = memo(function RenderAsteroids({
       <meshStandardMaterial 
         map={materialProps.useTexture ? (texture || undefined) : undefined} 
         normalMap={materialProps.useTexture ? (asteroidNormalTexture || undefined) : undefined}
-        normalScale={asteroidNormalTexture ? new THREE.Vector2(1.1, 1.1) : undefined}
+        normalScale={asteroidNormalTexture ? normalScaleVector : undefined}
         color={materialProps.color} 
         emissive={materialProps.emissive}
         emissiveIntensity={materialProps.emissiveIntensity}

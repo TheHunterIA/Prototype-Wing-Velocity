@@ -1,9 +1,11 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 
+export type GraphicsQuality = "high" | "medium" | "low";
+
 export interface UsePerformanceMonitorProps {
-  graphicsQuality: "high" | "low";
-  setGraphicsQuality: (q: "high" | "low") => void;
+  graphicsQuality: GraphicsQuality;
+  setGraphicsQuality: (q: GraphicsQuality) => void;
 }
 
 export function usePerformanceMonitor({
@@ -22,13 +24,11 @@ export function usePerformanceMonitor({
     const now = performance.now();
     const timeSinceMount = now - mountTimeRef.current;
 
-    // Skip the first 5 seconds of the simulator to avoid load spikes (shader compile, model loading)
     if (timeSinceMount < 5000) {
       lastCheckTime.current = now;
       return;
     }
 
-    // Respect manual user selection
     let isManual = false;
     try {
       isManual = localStorage.getItem("graphicsQualityManual") === "true";
@@ -38,20 +38,16 @@ export function usePerformanceMonitor({
       return;
     }
 
-    // Record frame delta
     frameDeltas.current.push({ time: now, delta });
 
-    // Clean up frames older than 2.5 seconds (2500ms sliding window)
     const windowStart = now - 2500;
     frameDeltas.current = frameDeltas.current.filter((f) => f.time >= windowStart);
 
-    // We need at least some frames to calculate average FPS
     if (frameDeltas.current.length < 30) {
       lastCheckTime.current = now;
       return;
     }
 
-    // Calculate sliding average FPS
     const totalDelta = frameDeltas.current.reduce((sum, f) => sum + f.delta, 0);
     const avgFPS = frameDeltas.current.length / totalDelta;
 
@@ -59,25 +55,41 @@ export function usePerformanceMonitor({
     lastCheckTime.current = now;
 
     if (graphicsQuality === "high") {
-      if (avgFPS < 32) {
+      if (avgFPS < 35) {
         timeBelow32.current += elapsed;
-        if (timeBelow32.current >= 4000) { // 4 seconds continuous
-          console.log(`[PerformanceMonitor] Low FPS detected (${avgFPS.toFixed(1)}). Downgrading to low quality.`);
-          setGraphicsQuality("low");
+        if (timeBelow32.current >= 4000) {
+          console.log(`[PerformanceMonitor] FPS (${avgFPS.toFixed(1)}). Ajustando para qualidade média.`);
+          setGraphicsQuality("medium");
           timeBelow32.current = 0;
-          timeAbove58.current = 0;
           frameDeltas.current = [];
         }
       } else {
         timeBelow32.current = 0;
       }
-    } else if (graphicsQuality === "low") {
-      if (avgFPS >= 58) {
-        timeAbove58.current += elapsed;
-        if (timeAbove58.current >= 12000) { // 12 seconds continuous
-          console.log(`[PerformanceMonitor] High FPS detected (${avgFPS.toFixed(1)}). Upgrading to high quality.`);
-          setGraphicsQuality("high");
+    } else if (graphicsQuality === "medium") {
+      if (avgFPS < 30) {
+        timeBelow32.current += elapsed;
+        if (timeBelow32.current >= 4000) {
+          console.log(`[PerformanceMonitor] FPS (${avgFPS.toFixed(1)}). Ajustando para qualidade baixa.`);
+          setGraphicsQuality("low");
           timeBelow32.current = 0;
+          frameDeltas.current = [];
+        }
+      } else if (avgFPS >= 58) {
+        timeAbove58.current += elapsed;
+        if (timeAbove58.current >= 10000) {
+          console.log(`[PerformanceMonitor] FPS (${avgFPS.toFixed(1)}). Elevando para qualidade alta.`);
+          setGraphicsQuality("high");
+          timeAbove58.current = 0;
+          frameDeltas.current = [];
+        }
+      }
+    } else if (graphicsQuality === "low") {
+      if (avgFPS >= 55) {
+        timeAbove58.current += elapsed;
+        if (timeAbove58.current >= 10000) {
+          console.log(`[PerformanceMonitor] FPS (${avgFPS.toFixed(1)}). Elevando para qualidade média.`);
+          setGraphicsQuality("medium");
           timeAbove58.current = 0;
           frameDeltas.current = [];
         }

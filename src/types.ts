@@ -54,3 +54,5 @@ export interface RouteData {
   requiredLevel: number;
 }
 
+export type GraphicsQuality = "high" | "medium" | "low";
+

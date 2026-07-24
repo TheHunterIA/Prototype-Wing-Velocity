@@ -17,12 +17,14 @@ const PBR_MAP_PATHS = {
   emissiveMap: "/StarSparrow_Emission.webp",
 } as const;
 
+import { GraphicsQuality } from "../types";
+
 interface SpaceshipProps {
   modelFile: string;
   textureFile: string;
   position?: [number, number, number];
   isLocked?: boolean;
-  graphicsQuality?: "high" | "low";
+  graphicsQuality?: GraphicsQuality;
 }
 
 interface SpaceshipViewProps {
@@ -31,7 +33,7 @@ interface SpaceshipViewProps {
   position?: [number, number, number];
   isGlb?: boolean;
   isLocked?: boolean;
-  graphicsQuality?: "high" | "low";
+  graphicsQuality?: GraphicsQuality;
 }
 
 const SpaceshipView = memo(function SpaceshipView({
@@ -83,10 +85,10 @@ const SpaceshipView = memo(function SpaceshipView({
           metalnessMap: pbrMaps.metalnessMap,
           emissiveMap: isLocked ? null : pbrMaps.emissiveMap,
           emissive: isLocked ? new THREE.Color(0x000000) : new THREE.Color(0xffffff),
-          emissiveIntensity: isLocked ? 0 : 0.5,
-          roughness: 1,
-          metalness: 1,
-          envMapIntensity: 1.15,
+          emissiveIntensity: isLocked ? 0 : 0.25,
+          roughness: 0.35,
+          metalness: 0.82,
+          envMapIntensity: 1.25,
           side: THREE.DoubleSide,
         });
 
@@ -173,31 +175,9 @@ const SpaceshipView = memo(function SpaceshipView({
           position={[0, 0, 0]}
         />
       </group>
-      {!isLocked && (
-        <>
-          {/* Luz principal do topo e ligeiramente frontal em intensidade bem suave */}
-          <directionalLight
-            intensity={0.8}
-            position={[0, 10, 6]}
-            color="#ffffff"
-          />
-          {/* Luz focalizada traseira (Spotlight) azul tecnológica de destaque suave */}
-          <spotLight
-            position={[0, 8, -8]}
-            angle={Math.PI / 2.5}
-            penumbra={0.9}
-            intensity={1.2}
-            color="#3b82f6"
-          />
-          {/* Luz de preenchimento inferior sutil em tom âmbar quente */}
-          <pointLight
-            position={[0, -6, 0]}
-            intensity={0.5}
-            color="#ff7f1e"
-            distance={30}
-          />
-        </>
-      )}
+      {/* Luzes internas removidas — o Canvas do hangar já tem iluminação própria
+          completa (6 fontes). Manter luzes aqui causava super-iluminação e tom
+          incompatível com o simulador (9 fontes simultâneas). */}
     </group>
   );
 });

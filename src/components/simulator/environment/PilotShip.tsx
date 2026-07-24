@@ -1,9 +1,9 @@
 import { useRef, useMemo, useEffect, memo, Suspense } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
-import { useTexture, Billboard } from "@react-three/drei";
+import { useTexture } from "@react-three/drei";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as THREE from "three";
-import { ShipData } from "../../../types";
+import { ShipData, GraphicsQuality } from "../../../types";
 
 const thrusterPositionsCache = new Map<string, [number, number, number][]>();
 
@@ -62,7 +62,7 @@ interface PilotShipViewProps {
   selectedColor: any;
   abilityActive: boolean;
   isHangarActive: boolean;
-  graphicsQuality?: "high" | "low";
+  graphicsQuality?: GraphicsQuality;
 }
 
 export function PilotShipView({
@@ -107,11 +107,13 @@ export function PilotShipView({
         mesh.castShadow = !isLow;
         mesh.receiveShadow = !isLow;
         mesh.material = isLow
-          ? new THREE.MeshLambertMaterial({
+          ? new THREE.MeshPhongMaterial({
                map: texture,
+               color: new THREE.Color("#ffffff"),
+               shininess: 30,
+               specular: new THREE.Color("#334466"),
                transparent: true,
                opacity: 1.0,
-               color: new THREE.Color("#ffffff"),
                side: THREE.DoubleSide,
             })
           : new THREE.MeshStandardMaterial({
@@ -121,9 +123,10 @@ export function PilotShipView({
                metalnessMap: pbrMaps.metalnessMap,
                emissiveMap: pbrMaps.emissiveMap,
                emissive: new THREE.Color(0xffffff),
-               emissiveIntensity: 0.5,
-               roughness: 1.0, 
-               metalness: 1.0, 
+               emissiveIntensity: 0.25,
+               roughness: 0.35, 
+               metalness: 0.82,
+               envMapIntensity: 1.25,
                transparent: true, 
                opacity: 1.0, 
                color: new THREE.Color("#ffffff"), 
@@ -143,14 +146,18 @@ export function PilotShipView({
         const mat = mesh.material as any;
         if (mat) {
           if (mat.emissive) {
-            mat.emissive.set(isCloaked ? "#00ffea" : "#ffffff");
+            const defaultEmissiveColor = mat.emissiveMap ? "#ffffff" : "#000000";
+            mat.emissive.set(isCloaked ? "#00ffea" : defaultEmissiveColor);
           }
-          if (mat.emissiveIntensity !== undefined) mat.emissiveIntensity = isCloaked ? 0.8 : 0.5;
-          if (mat.roughness !== undefined) mat.roughness = isCloaked ? 0.9 : 1.0;
-          if (mat.metalness !== undefined) mat.metalness = isCloaked ? 0.1 : 1.0;
+          if (mat.emissiveIntensity !== undefined) {
+            const defaultEmissiveIntensity = mat.emissiveMap ? 0.15 : 0;
+            mat.emissiveIntensity = isCloaked ? 0.8 : defaultEmissiveIntensity;
+          }
+          if (mat.roughness !== undefined) mat.roughness = isCloaked ? 0.9 : 0.45;
+          if (mat.metalness !== undefined) mat.metalness = isCloaked ? 0.1 : 0.75;
           mat.opacity = isCloaked ? 0.25 : 1.0;
           mat.color.set(isCloaked ? "#00ffea" : "#ffffff");
-          mat.needsUpdate = true;
+          // Atualização dinâmica via Uniforms sem recompilar Shaders da GPU (elimina travamento de turbo/boost)
         }
       }
     });
@@ -189,7 +196,7 @@ export function PilotShip({
   selectedColor: any, 
   abilityActive: boolean, 
   isHangarActive: boolean, 
-  graphicsQuality?: "high" | "low" 
+  graphicsQuality?: GraphicsQuality 
 }) {
   const gltf = useLoader(GLTFLoader, currentShip.modelFile);
   return <PilotShipView scene={gltf.scene} currentShip={currentShip} selectedColor={selectedColor} abilityActive={abilityActive} isHangarActive={isHangarActive} graphicsQuality={graphicsQuality} />;
@@ -208,7 +215,7 @@ export function Takeoff3DShipView({
   selectedColor: any, 
   takeoffPercent: number, 
   takeoffStarted: boolean, 
-  graphicsQuality?: "high" | "low" 
+  graphicsQuality?: GraphicsQuality 
 }) {
   const texture = useTexture(selectedColor.textureFile) as THREE.Texture;
   const pbrMaps = useTexture({
@@ -245,7 +252,7 @@ export function Takeoff3DShipView({
         mesh.material = isLow
           ? new THREE.MeshLambertMaterial({
                map: texture,
-               transparent: true,
+               transparent: false,
                opacity: 1.0,
                color: new THREE.Color("#ffffff"),
                side: THREE.DoubleSide,
@@ -257,10 +264,10 @@ export function Takeoff3DShipView({
                metalnessMap: pbrMaps.metalnessMap,
                emissiveMap: pbrMaps.emissiveMap,
                emissive: new THREE.Color(0xffffff),
-               emissiveIntensity: 0.5,
-               roughness: 1.0, 
-               metalness: 1.0, 
-               transparent: true, 
+               emissiveIntensity: 0.15,
+               roughness: 0.45, 
+               metalness: 0.75, 
+               transparent: false, 
                opacity: 1.0, 
                color: new THREE.Color("#ffffff"), 
                side: THREE.DoubleSide,
@@ -329,7 +336,7 @@ export function Takeoff3DShipLoader({
   selectedColor: any, 
   takeoffPercent: number, 
   takeoffStarted: boolean, 
-  graphicsQuality?: "high" | "low" 
+  graphicsQuality?: GraphicsQuality 
 }) {
   const gltf = useLoader(GLTFLoader, currentShip.modelFile);
   return <Takeoff3DShipView scene={gltf.scene} currentShip={currentShip} selectedColor={selectedColor} takeoffPercent={takeoffPercent} takeoffStarted={takeoffStarted} graphicsQuality={graphicsQuality} />;
@@ -346,7 +353,7 @@ export function Takeoff3DShipCanvas({
   selectedColor: any, 
   takeoffPercent: number, 
   takeoffStarted: boolean, 
-  graphicsQuality?: "high" | "low" 
+  graphicsQuality?: GraphicsQuality 
 }) {
   return (
     <div className="absolute inset-0 z-20 pointer-events-none">
@@ -359,9 +366,9 @@ export function Takeoff3DShipCanvas({
           : { alpha: true, antialias: true, powerPreference: "high-performance" }
         }
       >
-        <ambientLight intensity={0.7} color="#8090b0" />
-        <directionalLight position={[10, 15, 10]} intensity={2.2} color="#ffffff" />
-        <directionalLight position={[-10, -5, -10]} intensity={1.2} color={selectedColor.colorHex} />
+        <ambientLight intensity={0.4} color="#8090b0" />
+        <directionalLight position={[10, 15, 10]} intensity={1.2} color="#ffffff" />
+        <directionalLight position={[-10, -5, -10]} intensity={0.6} color={selectedColor.colorHex} />
         <Suspense fallback={null}>
           <Takeoff3DShipLoader currentShip={currentShip} selectedColor={selectedColor} takeoffPercent={takeoffPercent} takeoffStarted={takeoffStarted} graphicsQuality={graphicsQuality} />
         </Suspense>

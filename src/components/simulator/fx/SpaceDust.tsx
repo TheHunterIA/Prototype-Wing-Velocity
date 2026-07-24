@@ -3,10 +3,12 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { DUST_VERTEX_SHADER, DUST_FRAGMENT_SHADER } from "../shaders/dustShader";
 
-export function SpaceDust({ shipRef, dustColor = "#5e6d8a", graphicsQuality }: { shipRef: React.RefObject<THREE.Group>, dustColor?: string, graphicsQuality?: "high" | "low" }) {
+import { GraphicsQuality } from "../../../types";
+
+export function SpaceDust({ shipRef, dustColor = "#5e6d8a", graphicsQuality }: { shipRef: React.RefObject<THREE.Group>, dustColor?: string, graphicsQuality?: GraphicsQuality }) {
   const pointsRef = useRef<THREE.Points>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
-  const count = graphicsQuality === "low" ? 120 : 1200; // extremamente leve, única chamada de desenho
+  const count = graphicsQuality === "low" ? 120 : (graphicsQuality === "medium" ? 600 : 1200);
   
   const positions = useMemo(() => {
     const pos = new Float32Array(count * 3);

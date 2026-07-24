@@ -1,5 +1,5 @@
 import { Suspense, useState, useEffect, useMemo, useRef, useCallback, memo } from "react";
-import { Canvas, useLoader } from "@react-three/fiber";
+import { Canvas, useLoader, useFrame } from "@react-three/fiber";
 import { Environment, OrbitControls, useProgress, Html, useTexture } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette, ToneMapping, ChromaticAberration } from "@react-three/postprocessing";
 import * as THREE from "three";
@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight, Volume2, VolumeX, Paintbrush, ChevronUp, Che
 import Spaceship from "./Spaceship";
 import SpaceSimulator from "./SpaceSimulator";
 import { SHIPS_DATA, calculateShipStats, SHIP_CLASS_PROFILES, ROUTES_DATA, SKINS_DATA } from "../data";
-import { RouteData } from "../types";
+import { RouteData, GraphicsQuality } from "../types";
 import { translations, routeTranslations, translateDifficulty, translateClass, Language } from "../translations";
 import { shipDescriptions } from "../shipTranslations";
 import { skinTranslations, classProfileTranslations } from "../dataTranslations";
@@ -38,6 +38,37 @@ const playSound = (type: "click" | "transition" | "paint", isMuted: boolean) => 
 };
 
 function Loader() {
+  return null;
+}
+
+// Monitor de FPS no hangar: faz downgrade automático para modo "low" se a GPU travar
+// (cobre a lacuna onde o PerformanceController só existia dentro do SpaceSimulator)
+function HangarPerformanceMonitor({ graphicsQuality, setGraphicsQuality }: { graphicsQuality: GraphicsQuality; setGraphicsQuality: (q: GraphicsQuality) => void }) {
+  const frameTimesRef = useRef<number[]>([]);
+  const mountTimeRef = useRef(performance.now());
+
+  useFrame((_state, dt) => {
+    if (performance.now() - mountTimeRef.current < 4000) return;
+    try { if (localStorage.getItem("graphicsQualityManual") === "true") return; } catch {}
+    if (graphicsQuality === "low") return;
+
+    const times = frameTimesRef.current;
+    times.push(dt);
+    if (times.length > 120) times.shift();
+    if (times.length === 120) {
+      const avgFPS = 120 / times.reduce((s, t) => s + t, 0);
+      if (graphicsQuality === "high" && avgFPS < 35) {
+        console.warn(`[HangarMonitor] FPS médio ${avgFPS.toFixed(1)}. Ajustando para modo medium.`);
+        setGraphicsQuality("medium");
+        times.length = 0;
+      } else if (graphicsQuality === "medium" && avgFPS < 28) {
+        console.warn(`[HangarMonitor] FPS médio ${avgFPS.toFixed(1)}. Ajustando para modo low.`);
+        setGraphicsQuality("low");
+        times.length = 0;
+      }
+    }
+  });
+
   return null;
 }
 
@@ -117,10 +148,10 @@ export default function SpaceScene() {
     crazyGamesService.init();
   }, []);
 
-  const [graphicsQuality, setGraphicsQuality] = useState<"high" | "low">(() => {
+  const [graphicsQuality, setGraphicsQuality] = useState<GraphicsQuality>(() => {
     try {
-      const saved = localStorage.getItem("graphicsQuality") as "high" | "low" | null;
-      if (saved === "high" || saved === "low") return saved;
+      const saved = localStorage.getItem("graphicsQuality") as GraphicsQuality | null;
+      if (saved === "high" || saved === "medium" || saved === "low") return saved;
       return detectLowEndHardware() ? "low" : "high";
     } catch {
       return "high";
@@ -452,6 +483,8 @@ export default function SpaceScene() {
               : { alpha: true, antialias: true, powerPreference: "high-performance" }
             }
           >
+            {/* Monitor de FPS do hangar — downgrade automático se GPU não aguentar */}
+            <HangarPerformanceMonitor graphicsQuality={graphicsQuality} setGraphicsQuality={setGraphicsQuality} />
             <OrbitControls 
               enablePan={false} 
               enableZoom={!isRouteSelectionOpen} 
@@ -467,29 +500,104 @@ export default function SpaceScene() {
               dampingFactor={0.05}
             />
             
-             {/* Scene lighting configured to match the hangar mood - adjusted for locked ship silhouette */}
-            <ambientLight intensity={isCurrentShipLocked ? 0.02 : 0.15} />
-            <hemisphereLight 
-              color={isCurrentShipLocked ? "#112233" : "#ffffff"} 
-              groundColor="#000005" 
-              intensity={isCurrentShipLocked ? 0.05 : 0.3} 
+             {/* ─── Iluminação do Hangar calibrada pela imagem de fundo ─────────────────
+                 A imagem mostra: ambiente muito escuro (aço azulado), spots brancos
+                 frios no teto, rim âmbar/laranja nas laterais, sotaque azul elétrico
+                 em pontos específicos das paredes, e claridade azul-fria suave vinda
+                 da abertura do hangar (o espaço exterior).
+                 ──────────────────────────────────────────────────────────────────── */}
+
+            {/* Ambiente base: iluminação azul metálica e equilibrada */}
+            <ambientLight
+              intensity={isCurrentShipLocked ? 0.08 : 0.35}
+              color={isCurrentShipLocked ? "#0a0f18" : "#283b56"}
             />
-            
-            {/* Front main light - turned off when locked so front of ship stays in shadow */}
-            <directionalLight 
-              position={[5, 10, 8]} 
-              intensity={isCurrentShipLocked ? 0.0 : 1.0} 
-              castShadow={!isCurrentShipLocked} 
+
+            {/* Luz hemisférica: destaque para o topo da nave e contraste inferior */}
+            <hemisphereLight
+              color={isCurrentShipLocked ? "#0d1a2e" : "#4a6fa5"}
+              groundColor="#0a0f1d"
+              intensity={isCurrentShipLocked ? 0.1 : 0.45}
             />
-            
-            {/* Saturated cinematic side/rim lights - subtle edge contour when locked */}
-            <directionalLight position={[-8, 2, -5]} intensity={isCurrentShipLocked ? 0.15 : 0.8} color={isCurrentShipLocked ? "#1e293b" : "#00ffff"} />
-            <directionalLight position={[8, -2, -5]} intensity={isCurrentShipLocked ? 0.15 : 0.8} color={isCurrentShipLocked ? "#1e293b" : "#ffaa00"} />
-            <directionalLight position={[0, 8, -6]} intensity={isCurrentShipLocked ? 0.2 : 0.6} color={isCurrentShipLocked ? "#334155" : "#ffffff"} />
+
+            {/* Spot de estúdio frontal superior — revela a pintura e silhueta principal */}
+            <directionalLight
+              position={[0, 6, 8]}
+              intensity={isCurrentShipLocked ? 0.1 : 1.2}
+              color="#ffffff"
+            />
+
+            {/* Spots do teto: luminárias industriais de alta definição */}
+            <pointLight
+              position={[-3, 8, 2]}
+              intensity={isCurrentShipLocked ? 0.0 : 3.2}
+              color="#d8e5ff"
+              distance={22}
+              decay={1.8}
+            />
+            <pointLight
+              position={[3, 8, -1]}
+              intensity={isCurrentShipLocked ? 0.0 : 2.8}
+              color="#e0edff"
+              distance={20}
+              decay={1.8}
+            />
+            <pointLight
+              position={[0, 9, 4]}
+              intensity={isCurrentShipLocked ? 0.0 : 2.5}
+              color="#cce0ff"
+              distance={18}
+              decay={2.0}
+            />
+
+            {/* Rim âmbar lateral esquerdo — brilho dramático nas asas */}
+            <directionalLight
+              position={[-9, 2, 1]}
+              intensity={isCurrentShipLocked ? 0.1 : 0.65}
+              color={isCurrentShipLocked ? "#1e293b" : "#ff8800"}
+            />
+
+            {/* Rim âmbar lateral direito */}
+            <directionalLight
+              position={[9, 2, 1]}
+              intensity={isCurrentShipLocked ? 0.1 : 0.55}
+              color={isCurrentShipLocked ? "#1e293b" : "#ff9900"}
+            />
+
+            {/* Sotaque azul elétrico — destaques nas turbinas e asas */}
+            <pointLight
+              position={[-7, 2, -3]}
+              intensity={isCurrentShipLocked ? 0.0 : 1.6}
+              color="#3b82f6"
+              distance={12}
+              decay={2.0}
+            />
+            <pointLight
+              position={[6, 3, -2]}
+              intensity={isCurrentShipLocked ? 0.0 : 1.2}
+              color="#2563eb"
+              distance={10}
+              decay={2.0}
+            />
+
+            {/* Luz fria da abertura do hangar (espaço exterior) */}
+            <directionalLight
+              position={[0, 1, 12]}
+              intensity={isCurrentShipLocked ? 0.08 : 0.45}
+              color={isCurrentShipLocked ? "#0f1e36" : "#a5c9eb"}
+            />
+
+            {/* Preenchimento traseiro suave — destaca silhueta dos propulsores */}
+            <directionalLight
+              position={[0, 5, -10]}
+              intensity={isCurrentShipLocked ? 0.12 : 0.3}
+              color={isCurrentShipLocked ? "#1e2d4a" : "#2d4a75"}
+            />
 
             {/* Localized Suspense boundary to prevent unmounting lights and controls during load */}
             <Suspense fallback={null}>
-              <Environment preset="studio" environmentIntensity={isCurrentShipLocked ? 0.2 : 0.8} />
+              {/* Environment warehouse: reflexo especular de alta definição na carcaça */}
+              <Environment preset="warehouse" environmentIntensity={isCurrentShipLocked ? 0.1 : 0.65} />
               <Spaceship 
                 modelFile={currentShip.modelFile} 
                 textureFile={selectedColor.textureFile}
@@ -500,7 +608,7 @@ export default function SpaceScene() {
             </Suspense>
 
             {graphicsQuality === "high" && (
-              <EffectComposer key="scene-effect-composer" multisampling={8}>
+              <EffectComposer key="scene-effect-composer" multisampling={0}>
                 <Bloom luminanceThreshold={0.85} mipmapBlur intensity={0.35} />
                 <Vignette eskil={false} offset={0.15} darkness={0.6} />
                 <ChromaticAberration offset={[0.0006, 0.0006]} />
