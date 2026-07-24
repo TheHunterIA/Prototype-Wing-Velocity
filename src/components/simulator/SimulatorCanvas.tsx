@@ -188,7 +188,7 @@ export const SimulatorCanvas = memo(function SimulatorCanvas(props: {
   return (
     <div className="absolute inset-0 z-0">
       <Canvas 
-        camera={{ position: [0, 6, 26], fov: 45, far: 200000 }} 
+        camera={{ position: [0, 6, 26], fov: 45, far: graphicsQuality === "low" ? 22000 : 200000 }} 
         shadows={graphicsQuality === "low" ? false : "soft"}
         dpr={graphicsQuality === "low" ? 0.75 : (graphicsQuality === "medium" ? 1.0 : [1, 1.25])}
         gl={canvasGl}

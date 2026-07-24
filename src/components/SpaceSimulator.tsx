@@ -2445,11 +2445,10 @@ const SpaceSimulator = memo(function SpaceSimulator({ currentShip, selectedColor
   // Aumentamos a base de asteroides e meteoros nos trajetos para exigir maior habilidade e manobras ágeis
   const baseAsteroidCount = graphicsQuality === "high"
     ? (isMobile ? 250 : 550)
-    : (isMobile ? 40 : 60);
-  let asteroidCount = Math.round(baseAsteroidCount * selectedRoute.asteroidDensity);
-  if (graphicsQuality === "low") {
-    asteroidCount = 60;
-  }
+    : (graphicsQuality === "medium" 
+        ? (isMobile ? 120 : 280) 
+        : (isMobile ? 60 : 150));
+  const asteroidCount = Math.round(baseAsteroidCount * selectedRoute.asteroidDensity);
 
   // Função mestre para calcular a trajetória tridimensional específica e temática de cada pista
   const calculateRingPosition = useCallback((idx: number) => {

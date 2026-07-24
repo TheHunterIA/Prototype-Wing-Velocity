@@ -509,42 +509,42 @@ export default function SpaceScene() {
 
             {/* Ambiente base: iluminação azul metálica e equilibrada */}
             <ambientLight
-              intensity={isCurrentShipLocked ? 0.08 : 0.35}
-              color={isCurrentShipLocked ? "#0a0f18" : "#283b56"}
+              intensity={isCurrentShipLocked ? 0.05 : 0.10}
+              color={isCurrentShipLocked ? "#0a0f18" : "#161e2b"}
             />
 
             {/* Luz hemisférica: destaque para o topo da nave e contraste inferior */}
             <hemisphereLight
-              color={isCurrentShipLocked ? "#0d1a2e" : "#4a6fa5"}
-              groundColor="#0a0f1d"
-              intensity={isCurrentShipLocked ? 0.1 : 0.45}
+              color={isCurrentShipLocked ? "#0d1a2e" : "#34527d"}
+              groundColor="#04060c"
+              intensity={isCurrentShipLocked ? 0.06 : 0.18}
             />
 
             {/* Spot de estúdio frontal superior — revela a pintura e silhueta principal */}
             <directionalLight
               position={[0, 6, 8]}
-              intensity={isCurrentShipLocked ? 0.1 : 1.2}
+              intensity={isCurrentShipLocked ? 0.05 : 0.6}
               color="#ffffff"
             />
 
             {/* Spots do teto: luminárias industriais de alta definição */}
             <pointLight
               position={[-3, 8, 2]}
-              intensity={isCurrentShipLocked ? 0.0 : 3.2}
+              intensity={isCurrentShipLocked ? 0.0 : 1.4}
               color="#d8e5ff"
               distance={22}
               decay={1.8}
             />
             <pointLight
               position={[3, 8, -1]}
-              intensity={isCurrentShipLocked ? 0.0 : 2.8}
+              intensity={isCurrentShipLocked ? 0.0 : 1.2}
               color="#e0edff"
               distance={20}
               decay={1.8}
             />
             <pointLight
               position={[0, 9, 4]}
-              intensity={isCurrentShipLocked ? 0.0 : 2.5}
+              intensity={isCurrentShipLocked ? 0.0 : 1.0}
               color="#cce0ff"
               distance={18}
               decay={2.0}
@@ -553,28 +553,28 @@ export default function SpaceScene() {
             {/* Rim âmbar lateral esquerdo — brilho dramático nas asas */}
             <directionalLight
               position={[-9, 2, 1]}
-              intensity={isCurrentShipLocked ? 0.1 : 0.65}
+              intensity={isCurrentShipLocked ? 0.05 : 0.35}
               color={isCurrentShipLocked ? "#1e293b" : "#ff8800"}
             />
 
             {/* Rim âmbar lateral direito */}
             <directionalLight
               position={[9, 2, 1]}
-              intensity={isCurrentShipLocked ? 0.1 : 0.55}
+              intensity={isCurrentShipLocked ? 0.05 : 0.28}
               color={isCurrentShipLocked ? "#1e293b" : "#ff9900"}
             />
 
             {/* Sotaque azul elétrico — destaques nas turbinas e asas */}
             <pointLight
               position={[-7, 2, -3]}
-              intensity={isCurrentShipLocked ? 0.0 : 1.6}
+              intensity={isCurrentShipLocked ? 0.0 : 0.7}
               color="#3b82f6"
               distance={12}
               decay={2.0}
             />
             <pointLight
               position={[6, 3, -2]}
-              intensity={isCurrentShipLocked ? 0.0 : 1.2}
+              intensity={isCurrentShipLocked ? 0.0 : 0.5}
               color="#2563eb"
               distance={10}
               decay={2.0}
@@ -583,21 +583,21 @@ export default function SpaceScene() {
             {/* Luz fria da abertura do hangar (espaço exterior) */}
             <directionalLight
               position={[0, 1, 12]}
-              intensity={isCurrentShipLocked ? 0.08 : 0.45}
+              intensity={isCurrentShipLocked ? 0.05 : 0.18}
               color={isCurrentShipLocked ? "#0f1e36" : "#a5c9eb"}
             />
 
             {/* Preenchimento traseiro suave — destaca silhueta dos propulsores */}
             <directionalLight
               position={[0, 5, -10]}
-              intensity={isCurrentShipLocked ? 0.12 : 0.3}
-              color={isCurrentShipLocked ? "#1e2d4a" : "#2d4a75"}
+              intensity={isCurrentShipLocked ? 0.08 : 0.15}
+              color={isCurrentShipLocked ? "#1e2d4a" : "#1e314f"}
             />
 
             {/* Localized Suspense boundary to prevent unmounting lights and controls during load */}
             <Suspense fallback={null}>
               {/* Environment warehouse: reflexo especular de alta definição na carcaça */}
-              <Environment preset="warehouse" environmentIntensity={isCurrentShipLocked ? 0.1 : 0.65} />
+              <Environment preset="warehouse" environmentIntensity={isCurrentShipLocked ? 0.05 : 0.20} />
               <Spaceship 
                 modelFile={currentShip.modelFile} 
                 textureFile={selectedColor.textureFile}
