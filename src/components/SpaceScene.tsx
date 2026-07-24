@@ -550,18 +550,18 @@ export default function SpaceScene() {
               decay={2.0}
             />
 
-            {/* Rim âmbar lateral esquerdo — brilho dramático nas asas */}
+            {/* Rim lateral esquerdo — brilho elegante e frio nas asas */}
             <directionalLight
               position={[-9, 2, 1]}
-              intensity={isCurrentShipLocked ? 0.05 : 0.35}
-              color={isCurrentShipLocked ? "#1e293b" : "#ff8800"}
+              intensity={isCurrentShipLocked ? 0.05 : 0.25}
+              color={isCurrentShipLocked ? "#1e293b" : "#38bdf8"}
             />
 
-            {/* Rim âmbar lateral direito */}
+            {/* Rim lateral direito */}
             <directionalLight
               position={[9, 2, 1]}
-              intensity={isCurrentShipLocked ? 0.05 : 0.28}
-              color={isCurrentShipLocked ? "#1e293b" : "#ff9900"}
+              intensity={isCurrentShipLocked ? 0.05 : 0.22}
+              color={isCurrentShipLocked ? "#1e293b" : "#0ea5e9"}
             />
 
             {/* Sotaque azul elétrico — destaques nas turbinas e asas */}
@@ -596,8 +596,8 @@ export default function SpaceScene() {
 
             {/* Localized Suspense boundary to prevent unmounting lights and controls during load */}
             <Suspense fallback={null}>
-              {/* Environment warehouse: reflexo especular de alta definição na carcaça */}
-              <Environment preset="warehouse" environmentIntensity={isCurrentShipLocked ? 0.05 : 0.20} />
+              {/* Environment night: iluminação sideral coerente com o tom azulado do hangar */}
+              <Environment preset="night" environmentIntensity={isCurrentShipLocked ? 0.02 : 0.12} />
               <Spaceship 
                 modelFile={currentShip.modelFile} 
                 textureFile={selectedColor.textureFile}
@@ -609,9 +609,7 @@ export default function SpaceScene() {
 
             {graphicsQuality === "high" && (
               <EffectComposer key="scene-effect-composer" multisampling={0}>
-                <Bloom luminanceThreshold={0.85} mipmapBlur intensity={0.35} />
-                <Vignette eskil={false} offset={0.15} darkness={0.6} />
-                <ChromaticAberration offset={[0.0006, 0.0006]} />
+                <Bloom luminanceThreshold={0.88} mipmapBlur intensity={0.25} />
               </EffectComposer>
             )}
           </Canvas>

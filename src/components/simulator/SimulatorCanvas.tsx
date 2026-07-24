@@ -206,7 +206,7 @@ export const SimulatorCanvas = memo(function SimulatorCanvas(props: {
         <SpaceDust shipRef={shipRef} dustColor={selectedRoute.dustColor || "#5e6d8a"} graphicsQuality={graphicsQuality} />
         <color attach="background" args={[graphicsQuality === "low" ? "#000000" : (selectedRoute.ambientColor === "#09090b" ? "#000000" : "#020205")]} />
         {graphicsQuality !== "low" && (
-          <fog attach="fog" args={[selectedRoute.fogColor || selectedRoute.ambientColor, 1000, 100000]} />
+          <fog attach="fog" args={[selectedRoute.fogColor || selectedRoute.ambientColor, 15000, 120000]} />
         )}
         <Suspense fallback={null}>
           <ambientLight intensity={0.35} color={selectedRoute.ambientColor} />
@@ -307,9 +307,7 @@ export const SimulatorCanvas = memo(function SimulatorCanvas(props: {
 
         {graphicsQuality === "high" && (
           <EffectComposer key="sim-composer-high" multisampling={0}>
-            <Bloom luminanceThreshold={0.82} mipmapBlur intensity={0.5} radius={0.65} />
-            <ChromaticAberration offset={[0.00055, 0.00055]} radialModulation modulationOffset={0.18} />
-            <Vignette eskil={false} offset={0.18} darkness={0.5} />
+            <Bloom luminanceThreshold={0.85} mipmapBlur intensity={0.35} radius={0.5} />
           </EffectComposer>
         )}
 

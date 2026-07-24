@@ -86,9 +86,9 @@ const SpaceshipView = memo(function SpaceshipView({
           emissiveMap: isLocked ? null : pbrMaps.emissiveMap,
           emissive: isLocked ? new THREE.Color(0x000000) : new THREE.Color(0xffffff),
           emissiveIntensity: isLocked ? 0 : 0.25,
-          roughness: 0.35,
-          metalness: 0.82,
-          envMapIntensity: 1.25,
+          roughness: 0.55,
+          metalness: 0.38,
+          envMapIntensity: 0.35,
           side: THREE.DoubleSide,
         });
 

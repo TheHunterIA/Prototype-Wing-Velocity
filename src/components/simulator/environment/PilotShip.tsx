@@ -124,9 +124,9 @@ export function PilotShipView({
                emissiveMap: pbrMaps.emissiveMap,
                emissive: new THREE.Color(0xffffff),
                emissiveIntensity: 0.25,
-               roughness: 0.35, 
-               metalness: 0.82,
-               envMapIntensity: 1.25,
+               roughness: 0.55, 
+               metalness: 0.38,
+               envMapIntensity: 0.35,
                transparent: true, 
                opacity: 1.0, 
                color: new THREE.Color("#ffffff"), 
@@ -265,8 +265,9 @@ export function Takeoff3DShipView({
                emissiveMap: pbrMaps.emissiveMap,
                emissive: new THREE.Color(0xffffff),
                emissiveIntensity: 0.15,
-               roughness: 0.45, 
-               metalness: 0.75, 
+               roughness: 0.55, 
+               metalness: 0.38, 
+               envMapIntensity: 0.35,
                transparent: false, 
                opacity: 1.0, 
                color: new THREE.Color("#ffffff"), 
@@ -430,14 +431,88 @@ export function ShipThrusters({
   const scene = gltf.scene;
   const groupRef = useRef<THREE.Group>(null); 
   
-  const mat1 = useMemo(() => new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }), []);
-  const mat2 = useMemo(() => new THREE.MeshBasicMaterial({ color: selectedColor.colorHex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }), [selectedColor.colorHex]);
-  
-  const geo1 = useMemo(() => { const g = new THREE.ConeGeometry(0.48, 2.4, 16); g.translate(0, 1.2, 0); g.rotateX(Math.PI / 2); return g; }, []);
-  const geo2 = useMemo(() => { const g = new THREE.ConeGeometry(0.85, 3.8, 16); g.translate(0, 1.9, 0); g.rotateX(Math.PI / 2); return g; }, []);
-  
-  const offsets = useMemo(() => scanShipThrusterPositions(scene, currentShip.modelFile), [scene, currentShip.modelFile]);
+  // Material Shader Procedural de Plasma de Alta Tecnologia (Volumétrico com Mach Diamonds)
+  const shaderMat = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Color(selectedColor.colorHex) },
+        uSpeedRatio: { value: 0 },
+        uBoost: { value: 0 },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vNormal;
 
+        void main() {
+          vUv = uv;
+          vNormal = normalize(normalMatrix * normal);
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        uniform vec3 uColor;
+        uniform float uSpeedRatio;
+        uniform float uBoost;
+
+        varying vec2 vUv;
+        varying vec3 vNormal;
+
+        float rand(vec2 co) {
+          return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+        }
+
+        void main() {
+          float lengthPos = vUv.y; // 0.0 no bocal -> 1.0 na cauda
+          float radialDist = abs(vUv.x - 0.5) * 2.0;
+
+          // Ondas de choque supersônicas (Mach Diamonds)
+          float shockWave = sin(lengthPos * 26.0 - uTime * (25.0 + uBoost * 25.0)) * 0.5 + 0.5;
+          shockWave = pow(shockWave, 3.5);
+
+          // Pulsação turbulenta do plasma
+          float turbulence = sin(lengthPos * 45.0 + uTime * 35.0 + rand(vec2(vUv.x, uTime * 0.05)) * 0.15) * 0.5 + 0.5;
+
+          // Núcleo incandescente branco no centro do fluxo
+          float coreIntensity = pow(1.0 - radialDist, 3.0) * (1.0 - lengthPos * 0.65);
+
+          // Mistura de cor base -> núcleo incandescente
+          vec3 finalColor = mix(uColor, vec3(1.0, 1.0, 1.0), coreIntensity * 0.9);
+
+          // Adiciona os anéis de energia Mach Diamonds
+          finalColor += vec3(0.5, 0.8, 1.0) * shockWave * (1.0 - lengthPos) * (0.2 + uBoost * 0.6);
+
+          // Suavização e transição suave nas extremidades (evita corte seco e artefatos)
+          float tailFade = smoothstep(1.0, 0.05, lengthPos);
+          float nozzleFade = smoothstep(0.0, 0.06, lengthPos);
+          float edgeFade = smoothstep(1.0, 0.0, radialDist);
+
+          float baseAlpha = (0.25 + uSpeedRatio * 0.65 + uBoost * 0.5) * (0.85 + turbulence * 0.15);
+          float finalAlpha = tailFade * nozzleFade * edgeFade * baseAlpha;
+
+          if (finalAlpha < 0.005) discard;
+
+          gl_FragColor = vec4(finalColor, finalAlpha);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+  }, [selectedColor.colorHex]);
+
+  // Geometria cônica imponente para o jato de plasma da nave espacial
+  const thrusterGeo = useMemo(() => {
+    const g = new THREE.CylinderGeometry(0.18, 0.85, 4.8, 32, 24, true);
+    g.translate(0, 2.4, 0);
+    g.rotateX(Math.PI / 2);
+    return g;
+  }, []);
+
+  const offsets = useMemo(() => scanShipThrusterPositions(scene, currentShip.modelFile), [scene, currentShip.modelFile]);
   const engineLightRef = useRef<THREE.PointLight>(null);
 
   useFrame((state, delta) => {
@@ -447,30 +522,30 @@ export function ShipThrusters({
     const speed = Math.max(0, velocityRef.current || 0);
     const isBraking = keysRef.current.ArrowDown;
     
-    const baseFlameSize = Math.max(0.4, speed / 200.0);
-    const targetScaleZ = isBoost ? 1.8 : (isBraking ? 0 : Math.min(1.4, baseFlameSize));
-    const targetOpacity = isBoost ? 0.9 : (isBraking ? 0 : Math.max(0.1, Math.min(0.7, speed / 250.0)));
+    const speedRatio = Math.min(1.0, speed / 400.0);
     
-    mat1.opacity = THREE.MathUtils.lerp(mat1.opacity, targetOpacity, delta * 15);
-    mat2.opacity = THREE.MathUtils.lerp(mat2.opacity, targetOpacity * 0.7, delta * 15);
+    // Atualiza uniforms do Shader
+    shaderMat.uniforms.uTime.value = state.clock.elapsedTime;
+    shaderMat.uniforms.uSpeedRatio.value = isBraking ? 0 : speedRatio;
+    shaderMat.uniforms.uBoost.value = isBoost ? 1.0 : 0.0;
     
-    const pulse = !isBraking ? 0.9 + Math.sin(state.clock.elapsedTime * 45) * 0.15 : 1.0;
-    
+    const targetScaleZ = isBoost ? 2.5 : (isBraking ? 0 : Math.min(2.0, 0.6 + speedRatio * 1.4));
+    const targetScaleXY = isBoost ? 1.8 : (isBraking ? 0.15 : 1.25 + Math.sin(state.clock.elapsedTime * 30) * 0.1);
+
     groupRef.current.children.forEach(engine => {
        const flame = engine.children.find(c => c.name === "flameScale");
        if (flame) {
          flame.scale.z = THREE.MathUtils.lerp(flame.scale.z, targetScaleZ, delta * 12);
-         flame.scale.x = THREE.MathUtils.lerp(flame.scale.x, pulse, delta * 25);
-         flame.scale.y = THREE.MathUtils.lerp(flame.scale.y, pulse, delta * 25);
+         flame.scale.x = THREE.MathUtils.lerp(flame.scale.x, targetScaleXY, delta * 18);
+         flame.scale.y = THREE.MathUtils.lerp(flame.scale.y, targetScaleXY, delta * 18);
        }
     });
 
     if (engineLightRef.current) {
       const progress = takeoffProgressRef ? takeoffProgressRef.current : 1;
       const cameraClosenessFade = progress < 0.1 ? 0 : THREE.MathUtils.smoothstep(progress, 0.1, 0.95);
-      
-      const targetIntensity = isBraking ? 0 : (isBoost ? 4.5 : THREE.MathUtils.lerp(0.8, 2.8, Math.min(1, speed / 500)));
-      engineLightRef.current.intensity = THREE.MathUtils.lerp(engineLightRef.current.intensity, targetIntensity * pulse * cameraClosenessFade, delta * 10);
+      const targetIntensity = isBraking ? 0 : (isBoost ? 1.8 : THREE.MathUtils.lerp(0.2, 1.0, speedRatio));
+      engineLightRef.current.intensity = THREE.MathUtils.lerp(engineLightRef.current.intensity, targetIntensity * cameraClosenessFade, delta * 10);
     }
   });
 
@@ -482,15 +557,14 @@ export function ShipThrusters({
         {offsets.map((o, i) => (
           <group key={i} position={o}>
             <group name="flameScale">
-              <mesh geometry={geo1} material={mat1} />
-              <mesh geometry={geo2} material={mat2} />
+              <mesh geometry={thrusterGeo} material={shaderMat} />
             </group>
             <pointLight
               ref={i === 0 ? engineLightRef : undefined}
-              position={[0, 0, 1.0]}
+              position={[0, 0, 0.2]}
               color={selectedColor.colorHex}
               intensity={0}
-              distance={12}
+              distance={3.0}
               decay={2}
             />
           </group>
